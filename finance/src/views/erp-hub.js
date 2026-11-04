@@ -84,7 +84,7 @@ export function erpHubSection(ctx, { contracts = [] } = {}) {
       confirmLabel: status === 'revoked' ? 'Revogar' : status === 'suspended' ? 'Suspender' : 'Reativar', tone: status === 'configured' ? 'primary' : 'danger' });
     if (!ok) return;
     try {
-      await ctx.api('erp-fees/configure', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, integration_id: cfg.id, contract_id: cfg.contract_id, expected_version: cfg.version, request_key: uid(), status, settings: cfg.settings }) });
+      await ctx.send('erp-fees/configure', { organization_id: ctx.organization.id, integration_id: cfg.id, contract_id: cfg.contract_id, expected_version: cfg.version, request_key: uid(), status, settings: cfg.settings });
       toast(status === 'revoked' ? 'Integração revogada.' : status === 'suspended' ? 'Integração suspensa.' : 'Integração reativada.'); load();
     } catch (error) { toast(erpErrorMessage(error), 'error'); if (error.status === 409) load(); }
   }
@@ -123,8 +123,8 @@ export function erpHubSection(ctx, { contracts = [] } = {}) {
       if (bad) { bad.focus(); return; }
       save.disabled = true; err.hidden = true;
       try {
-        await ctx.api('erp-fees/configure', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, integration_id: cfg?.id || (configure.id ||= uid()), contract_id: cfg?.contract_id || contract.value, expected_version: cfg?.version || 0, request_key: key, status: cfg?.status || 'configured',
-          settings: { tenant_id: tenant.value.trim(), environment: env.value.trim(), company_id: company.value.trim(), account_id: account.value.trim(), currency: currency.value.trim(), service: service.value.trim(), charging_unit: unit.value } }) });
+        await ctx.send('erp-fees/configure', { organization_id: ctx.organization.id, integration_id: cfg?.id || (configure.id ||= uid()), contract_id: cfg?.contract_id || contract.value, expected_version: cfg?.version || 0, request_key: key, status: cfg?.status || 'configured',
+          settings: { tenant_id: tenant.value.trim(), environment: env.value.trim(), company_id: company.value.trim(), account_id: account.value.trim(), currency: currency.value.trim(), service: service.value.trim(), charging_unit: unit.value } });
         configure.id = null; dialog.close(); toast('Configuração gravada. Conexão ainda não testada: gere uma prévia.'); load();
       } catch (error) { err.replaceChildren(el('span', { text: erpErrorMessage(error) }), ...(sessionLink(error) ? [' ', sessionLink(error)] : [])); err.hidden = false; save.disabled = false; }
     });
@@ -139,7 +139,7 @@ export function erpHubSection(ctx, { contracts = [] } = {}) {
       if (!start.value || !end.value || end.value < start.value) { out.replaceChildren(el('p', { class: 'callout callout-error compact', role: 'alert', text: 'Informe um período válido (início ≤ fim).' })); return; }
       go.disabled = true; out.replaceChildren(loading('Consultando o ERP…'));
       try {
-        preview = (await ctx.api('erp-fees/preview', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, integration_id: cfg.id, period_start: start.value, period_end: end.value }) })).preview;
+        preview = (await ctx.send('erp-fees/preview', { organization_id: ctx.organization.id, integration_id: cfg.id, period_start: start.value, period_end: end.value })).preview;
         drawPreview();
       } catch (error) { out.replaceChildren(el('p', { class: 'callout callout-error compact', role: 'alert', text: erpErrorMessage(error) })); }
       finally { go.disabled = false; }
@@ -159,7 +159,7 @@ export function erpHubSection(ctx, { contracts = [] } = {}) {
         if (!(await confirmDialog({ title: 'Gravar lançamentos selecionados?', description: 'O Arandu lê o ERP de novo; se a origem mudou, nada é gravado e uma nova prévia é necessária. Diferenças contra o contrato ficam para revisão humana; não são economia.', confirmLabel: 'Gravar' }))) return;
         confirm.disabled = true;
         try {
-          const r = await ctx.api('erp-fees/confirm', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, integration_id: cfg.id, period_start: start.value, period_end: end.value, confirmation: true, preview_fingerprint: preview.fingerprint, selected_lines: [...selected].sort((a, b) => a - b), request_key: confirmKey }) });
+          const r = await ctx.send('erp-fees/confirm', { organization_id: ctx.organization.id, integration_id: cfg.id, period_start: start.value, period_end: end.value, confirmation: true, preview_fingerprint: preview.fingerprint, selected_lines: [...selected].sort((a, b) => a - b), request_key: confirmKey });
           out.replaceChildren(el('p', { class: 'callout callout-success', role: 'status' }, [icon('checkCircle', { size: 16 }), el('span', { text: `${r.replayed ? 'Já registrado antes; nada duplicado. ' : ''}${plural(r.imported ?? 0, 'lançamento importado', 'lançamentos importados')}, ${plural(r.ignored ?? 0, 'ignorado', 'ignorados')}. Período ${formatDate(start.value)} a ${formatDate(end.value)}.` })]),
             el('a', { class: 'btn btn-secondary btn-sm', href: ctx.href(`/finance/fees.html?contract_id=${enc(cfg.contract_id)}`) }, el('span', { class: 'btn-label', text: 'Ver tarifas do contrato' })),
             el('a', { class: 'btn btn-ghost btn-sm', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${cfg.contract_id}`) }, el('span', { class: 'btn-label', text: 'Abrir contrato' })));

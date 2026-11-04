@@ -10,7 +10,7 @@ import { el, icon, money, formatDate, formatDateTime, timeAgo } from '../core.js
 import { card, tag, button, linkButton, emptyState, errorState, toast, drawer, field, progress, onSubmit } from '../ui.js';
 import { buildPassport, SOURCE_LABELS, WRITABLE_SOURCES, FRESHNESS, MIN_REVIEW_DAYS, MAX_REVIEW_DAYS, catalogField, fieldLabel } from '../../../lib/finance/passport.mjs';
 import { loadEntities } from './entities.js';
-import { lazyDocuments } from './shared.js';
+import { lazyDocuments } from './shared/documents.js';
 
 const REVENUE_BANDS = { ate_360k: 'Até R$ 360 mil', '360k_4_8m': 'R$ 360 mil a R$ 4,8 mi', '4_8m_30m': 'R$ 4,8 mi a R$ 30 mi', '30m_300m': 'R$ 30 mi a R$ 300 mi', acima_300m: 'Acima de R$ 300 mi' };
 
@@ -219,10 +219,10 @@ function editField(ctx, item, documents) {
     if (!form.reportValidity()) return;
     save.disabled = true;
     try {
-      await ctx.api('profile', { method: 'POST', body: JSON.stringify({
+      await ctx.send('profile', {
         organization_id: ctx.organization.id, legal_entity_id: ctx.passportEntityId || null, field_key: item.key, field_value: value.value, source: source.value,
         document_id: documentSelect?.value || null, valid_until: validUntil.value || null, review_after_days: Number(review.value)
-      }) });
+      });
       panel.close();
       toast(`${item.label} salvo no Passport.`);
       ctx.reload();
@@ -237,7 +237,7 @@ function editField(ctx, item, documents) {
 async function confirmField(ctx, item, trigger) {
   trigger.disabled = true;
   try {
-    await ctx.api('profile/confirm', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, legal_entity_id: item.legal_entity_id || null, field_key: item.key }) });
+    await ctx.send('profile/confirm', { organization_id: ctx.organization.id, legal_entity_id: item.legal_entity_id || null, field_key: item.key });
     toast(`${item.label} confirmado como atual.`);
     ctx.reload();
   } catch (error) {
@@ -277,7 +277,7 @@ function customForm(ctx) {
     if (key.length < 2) { toast('Dê um nome com letras ao campo.', 'error'); return; }
     if (catalogField(key)) { toast(`${fieldLabel(key)} já existe no catálogo: preencha pelo campo correspondente.`, 'error'); return; }
     try {
-      await ctx.api('profile', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, legal_entity_id: ctx.passportEntityId || null, field_key: key, field_value: value.value, source: source.value }) });
+      await ctx.send('profile', { organization_id: ctx.organization.id, legal_entity_id: ctx.passportEntityId || null, field_key: key, field_value: value.value, source: source.value });
       toast('Campo salvo.');
       ctx.reload();
     } catch (error) { toast(error.message, 'error'); }

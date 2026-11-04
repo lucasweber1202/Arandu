@@ -14,6 +14,7 @@
 import { el, icon, ROLE_LABELS, needsRenewalAttention } from './src/core.js';
 import { emptyState, linkButton, errorState, loading, toast, SESSION_EXPIRED_WRITE } from './src/ui.js';
 import { renderSidebar, renderTopbar, renderMobileNav, renderDemoBanner, installCommandCenter, installNotificationCenter } from './src/shell.js';
+import { COMPANY_VIEWS } from './src/views/company.js';
 import { locate } from '../lib/finance/navigation.mjs';
 import { requestedAction } from '../lib/finance/intents.mjs';
 import { canRole } from '../lib/finance/permissions.mjs';
@@ -23,7 +24,9 @@ const DEMO_BUILD = typeof __ARANDU_DEMO__ !== 'undefined' && __ARANDU_DEMO__ ===
 document.documentElement.classList.add('js');
 const view = document.body.dataset.view || 'dashboard';
 const audience = document.body.dataset.audience || 'company';
-const demoPage = document.body.dataset.mode === 'demo';
+// Páginas /demo/ só existem no build demonstrativo: no produto a constante de
+// build elimina transporte local, personas e banner do sandbox legado.
+const demoPage = DEMO_BUILD && document.body.dataset.mode === 'demo';
 const root = document.querySelector('#view');
 
 // Cada tela é carregada sob demanda: uma página baixa só o código que exibe.
@@ -34,7 +37,6 @@ const lazy = (load, name) => {
   renderView.preload = preload;
   return renderView;
 };
-const company = () => import('./src/views/company.js');
 const providerViews = () => import('./src/views/provider.js');
 const VIEWS = {
   home: lazy(() => import('./src/views/dashboard.js'), 'dashboard'),
@@ -42,13 +44,12 @@ const VIEWS = {
   rfqs: lazy(() => import('./src/views/rfqs.js'), 'rfqList'),
   newRfq: lazy(() => import('./src/views/rfqs.js'), 'newRfq'),
   rfq: lazy(() => import('./src/views/rfq.js'), 'rfqDetail'),
-  approvals: lazy(company, 'approvalsInbox'), proposals: lazy(company, 'proposalsList'), contracts: lazy(company, 'contracts'),
+  ...Object.fromEntries(Object.entries(COMPANY_VIEWS).map(([route, [load, name]]) => [route, lazy(load, name)])),
   passport: lazy(() => import('./src/views/passport.js'), 'passport'),
   value: lazy(() => import('./src/views/value.js'), 'value'),
   fees: lazy(() => import('./src/views/fees.js'), 'fees'),
   opportunities: lazy(() => import('./src/views/opportunities.js'), 'opportunities'),
   portfolio: lazy(() => import('./src/views/portfolio.js'), 'portfolio'),
-  providers: lazy(company, 'providers'), tasks: lazy(company, 'tasks'), notifications: lazy(company, 'notifications'), settings: lazy(company, 'settings'),
   providerHome: lazy(providerViews, 'providerHome'), providerRfqs: lazy(providerViews, 'providerRfqs'),
   providerProposal: lazy(providerViews, 'providerProposal'), providerInvite: lazy(providerViews, 'providerInvite'),
   // Página estática: o conteúdo já está no HTML; só o shell é montado.
@@ -176,6 +177,8 @@ function createContext(transport) {
       }
       return transport.request(path, options);
     },
+    // Escrita JSON: mesmo caminho de ctx.api (offline, transporte, erros).
+    send(path, body, method = 'POST') { return ctx.api(path, { method, body: JSON.stringify(body) }); },
     putFile(url, file) { return transport.putFile(url, file); },
     can(permission) {
       return canRole(ctx.viewer?.role, permission);
@@ -195,7 +198,8 @@ function createContext(transport) {
     header: setHeader,
     reload: () => render({ refresh: true }),
     rerender: (options) => render(options),
-    async switchPersona(key) {
+    // Troca de persona só existe no sandbox legado (build demonstrativo).
+    switchPersona: DEMO_BUILD ? async (key) => {
       transport.setPersona(key);
       const persona = transport.persona();
       const stay = persona.audience === audience && audience === 'company' && view !== 'newRfq';
@@ -209,7 +213,7 @@ function createContext(transport) {
       const target = persona.audience === 'provider' ? '/provider/index.html' : '/finance/dashboard.html';
       // Mesma página: recarrega (mudar só a âncora não recarregaria o conteúdo).
       setTimeout(() => (stay ? location.reload() : location.assign(ctx.href(target))), 250);
-    }
+    } : null
   };
   return ctx;
 }
@@ -331,7 +335,7 @@ function createOrganizationView(ctx) {
     event.preventDefault();
     submit.disabled = true;
     try {
-      const result = await ctx.api('organizations', { method: 'POST', body: JSON.stringify({ legal_name: name.value, country: 'BR', kind: buyer ? 'BUYER' : 'PROVIDER' }) });
+      const result = await ctx.send('organizations', { legal_name: name.value, country: 'BR', kind: buyer ? 'BUYER' : 'PROVIDER' });
       try { sessionStorage.setItem('arandu-finance-org', result.id); } catch { /* sem memória */ }
       toast('Organização criada. Você é o administrador dela.');
       render({ refresh: true });
@@ -450,8 +454,8 @@ async function boot() {
   }
   if (!VIEWS[view]) return;
   await render();
-  if (ctx.mode === 'demo' && transport.recovered?.()) toast('O estado salvo da demonstração era inválido ou de outra versão e foi restaurado para o conjunto inicial.', 'info');
-  if (ctx.mode === 'demo' && !transport.persistent?.()) toast('Este navegador não permite guardar dados locais: a demonstração funciona, mas não sobrevive a recarregar a página.', 'info');
+  if ((__ARANDU_DEMO__ && ctx.mode === 'demo') && transport.recovered?.()) toast('O estado salvo da demonstração era inválido ou de outra versão e foi restaurado para o conjunto inicial.', 'info');
+  if ((__ARANDU_DEMO__ && ctx.mode === 'demo') && !transport.persistent?.()) toast('Este navegador não permite guardar dados locais: a demonstração funciona, mas não sobrevive a recarregar a página.', 'info');
 }
 
 window.addEventListener('pageshow', (event) => { if (event.persisted && window.__aranduCtx) render({ refresh: true }); });

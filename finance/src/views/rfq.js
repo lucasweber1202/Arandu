@@ -1,3 +1,4 @@
+/* global __ARANDU_DEMO__ */
 import { graphContextCard } from './graph-context.js';
 import { negotiationOrigin } from './negotiation-origin.js';
 // Detalhe da solicitação: contexto no topo, operação separada em abas.
@@ -6,7 +7,12 @@ import { PRODUCTS } from '../../../lib/finance/products.mjs';
 import { el, icon, money, percent, fieldValue, formatDate, formatDateTime, relativeDays, daysUntil, plural, productLabel, RFQ_STATUS, PROPOSAL_STATUS, APPROVAL_STATUS, PROVIDER_KINDS, todayIso, timeAgo } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, promptDialog, drawer, field, catalogControl, person, menu, progress, onSubmit, sessionLink } from '../ui.js';
 import { loadEntities, rfqEntityControl } from './entities.js';
-import { comparisonMatrix, weightsPanel, revisionTimeline, collaboration, activityLog, approvalSteps, approvalActions, currentStep, memberName, memberTitle, coverage, approvalSummaryLine, lazyDocuments, keyTerms, isViewerTurn } from './shared.js';
+import { comparisonMatrix, weightsPanel } from './shared/comparison.js';
+import { revisionTimeline, collaboration, activityLog } from './shared/collaboration.js';
+import { approvalSteps, approvalActions, currentStep, approvalSummaryLine, isViewerTurn } from './shared/approvals.js';
+import { memberName, memberTitle } from './shared/people.js';
+import { coverage, keyTerms } from './shared/terms.js';
+import { lazyDocuments } from './shared/documents.js';
 import { proposalChanges } from '../../../lib/finance/comparison-context.mjs';
 import { negotiationNextStep } from '../../../lib/finance/negotiation-next-step.mjs';
 
@@ -37,7 +43,7 @@ const INVITE_CLOSED = Object.freeze({
 export async function rfqDetail(ctx) {
   const id = new URLSearchParams(location.search).get('id');
   let rfq = (ctx.data.rfqs || []).find((item) => item.id === id);
-  if (!rfq && id && ctx.mode !== 'demo') {
+  if (!rfq && id && !(__ARANDU_DEMO__ && ctx.mode === 'demo')) {
     try {
       const detail = await ctx.api(`rfq/${encodeURIComponent(id)}`);
       if (detail.rfq?.id !== id || detail.rfq.organization_id !== ctx.organization.id) throw Object.assign(new Error('Solicitação fora da organização em foco.'), {status:404});
@@ -52,7 +58,7 @@ export async function rfqDetail(ctx) {
       action: linkButton('Ver solicitações', ctx.href('/finance/rfqs.html'), { iconName: 'arrowRight' }) });
   }
   let externalUi=null;
-  if (ctx.mode !== 'demo') {
+  if (!(__ARANDU_DEMO__ && ctx.mode === 'demo')) {
     try { externalUi=await import('./external-proposals.js');rfq=await externalUi.loadExternalDecisionChoices(ctx,rfq); }
     catch { rfq={...rfq,external_decision_error:true,external_decision_alternatives:[]}; }
   }
@@ -63,27 +69,27 @@ export async function rfqDetail(ctx) {
   // exigida": a tela diz o que faltou e não oferece decidir nem pedir aprovação.
   const gaps = new Set();
   const [approvals, decisions, generalPolicy, evaluation, entities] = await Promise.all([
-    (ctx.mode === 'demo' ? ctx.loadApprovals() : ctx.api(`approvals?organization_id=${encodeURIComponent(ctx.organization.id)}&rfq_id=${encodeURIComponent(rfq.id)}`).then(result=>result.rows || [])).then((rows) => rows.filter((row) => row.rfq_id === rfq.id)).catch(()=>{gaps.add('as aprovações'); return [];}),
-    ctx.api(`decisions?organization_id=${encodeURIComponent(ctx.organization.id)}${ctx.mode === 'demo' ? '' : `&rfq_id=${encodeURIComponent(rfq.id)}`}`).then((result) => result.rows || []).catch(() => { gaps.add('a decisão registrada'); return []; }),
+    ((__ARANDU_DEMO__ && ctx.mode === 'demo') ? ctx.loadApprovals() : ctx.api(`approvals?organization_id=${encodeURIComponent(ctx.organization.id)}&rfq_id=${encodeURIComponent(rfq.id)}`).then(result=>result.rows || [])).then((rows) => rows.filter((row) => row.rfq_id === rfq.id)).catch(()=>{gaps.add('as aprovações'); return [];}),
+    ctx.api(`decisions?organization_id=${encodeURIComponent(ctx.organization.id)}${(__ARANDU_DEMO__ && ctx.mode === 'demo') ? '' : `&rfq_id=${encodeURIComponent(rfq.id)}`}`).then((result) => result.rows || []).catch(() => { gaps.add('a decisão registrada'); return []; }),
     ctx.api(`approval-policy?organization_id=${encodeURIComponent(ctx.organization.id)}`).catch(() => { gaps.add('a política de aprovação'); return { required_for_decision: false }; }),
     // Exigência pela policy v2 (sem proposta escolhida ainda): a decisão sem
     // pedido só passa quando nenhuma policy pede etapa ou bloqueio.
     ['collecting', 'comparing'].includes(rfq.status) && (proposals.length || rfq.external_decision_alternatives?.length)
-      ? ctx.api('approval-policies/preview', { method: 'POST', body: JSON.stringify({ rfq_id: rfq.id }) }).then((out) => out.evaluation).catch((error) => { if (error.status !== 404) gaps.add('a exigência de aprovação'); return null; })
+      ? ctx.send('approval-policies/preview', { rfq_id: rfq.id }).then((out) => out.evaluation).catch((error) => { if (error.status !== 404) gaps.add('a exigência de aprovação'); return null; })
       : Promise.resolve(null),
     // Entidades não dependem da avaliação da política. Não serializar uma
     // consulta de contexto depois das consultas de aprovação.
     loadEntities(ctx)
   ]);
   externalUi?.normalizeExternalApprovals(approvals,rfq);
-  if (ctx.mode === 'demo' && ctx.approvalsError) gaps.add('as aprovações');
+  if ((__ARANDU_DEMO__ && ctx.mode === 'demo') && ctx.approvalsError) gaps.add('as aprovações');
   const governanceGap = gaps.size ? ['a decisão registrada', 'a política de aprovação', 'a exigência de aprovação', 'as aprovações'].filter(item=>gaps.has(item)) : null;
   const policy = { ...generalPolicy, required_for_decision: Boolean(generalPolicy.required_for_decision || evaluation?.approval_required), evaluation };
   const decision = decisions.find((row) => row.rfq_id === rfq.id) || null;
   const contract = decision ? (Object.hasOwn(decision, 'contract') ? decision.contract : (ctx.data.contracts || []).find((row) => row.decision_id === decision.id)) : null;
   // A decisão e seu contrato são fatos posteriores ao resumo: projetar a etapa
   // já comprovada por esses vínculos, sem escrever nem reabrir o processo.
-  if (ctx.mode !== 'demo' && decision) rfq = {...rfq, status:contract ? 'contracted' : 'decided'};
+  if (!(__ARANDU_DEMO__ && ctx.mode === 'demo') && decision) rfq = {...rfq, status:contract ? 'contracted' : 'decided'};
   const pending = approvals.find((row) => row.status === 'pending') || null;
   const days = daysUntil(rfq.response_deadline);
   const live = ['open', 'collecting'].includes(rfq.status);
@@ -92,7 +98,7 @@ export async function rfqDetail(ctx) {
   const transition = async (status, { title, description, tone = 'primary', confirmLabel }) => {
     if (!await confirmDialog({ title, description, confirmLabel, tone })) return;
     try {
-      await ctx.api('transition', { method: 'POST', body: JSON.stringify({ kind: 'rfq', id: rfq.id, from: rfq.status, status }) });
+      await ctx.send('transition', { kind: 'rfq', id: rfq.id, from: rfq.status, status });
       toast({ open: 'Solicitação aberta para propostas.', comparing: 'Coleta encerrada. Propostas prontas para avaliação.', collecting: 'Coleta reaberta.', cancelled: 'Solicitação cancelada.' }[status] || 'Estado atualizado.');
       ctx.reload();
     } catch (error) { toast(error.message, 'error'); }
@@ -141,7 +147,7 @@ export async function rfqDetail(ctx) {
   root.append(nextStepCard(ctx, rfq, { pending, approvals, decision, contract, policy, governanceGap, manage }));
   root.append(negotiationOrigin(ctx, rfq, { decision, contract, pending }));
   // Processos e atividades de relacionamento vinculados a esta negociação (CRM).
-  if (ctx.mode !== 'demo') {
+  if (!(__ARANDU_DEMO__ && ctx.mode === 'demo')) {
     // Copilot da negociação: pergunta sobre esta solicitação, não sobre a organização inteira.
     import('./copilot.js').then((m) => m.setCopilotContext({ type: 'rfq', id: rfq.id, label: rfq.title })).catch(() => {});
     const crmSlot = el('div');
@@ -207,7 +213,7 @@ function overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract,
   // Quadro de respostas (portal + propostas externas, de quem é a vez): fora do
   // build de demonstração, que não tem API nem empacota o módulo.
   let board = null;
-  if (!__ARANDU_DEMO__ && ctx.mode !== 'demo') {
+  if (!__ARANDU_DEMO__ && !(__ARANDU_DEMO__ && ctx.mode === 'demo')) {
     board = el('div');
     import('./negotiation-board.js').then((m) => { if (board.parentNode) board.replaceWith(m.responseBoardCard(ctx, rfq)); }).catch(() => board.remove());
   }
@@ -318,9 +324,9 @@ function inviteForm(ctx, rfq) {
     event.preventDefault();
     submit.disabled = true;
     try {
-      const result = await ctx.api('invites/send', { method: 'POST', body: JSON.stringify({ rfq_id: rfq.id, provider_id: select.value }) });
+      const result = await ctx.send('invites/send', { rfq_id: rfq.id, provider_id: select.value });
       const name = select.selectedOptions[0].textContent.split(' · ')[0];
-      if (ctx.mode === 'demo') {
+      if ((__ARANDU_DEMO__ && ctx.mode === 'demo')) {
         toast(`Convite simulado para ${name}. Nenhum e-mail foi enviado. Troque para “Provedor” no topo para responder como a Atlas.`, 'info');
       } else if (result.invitationToken) {
         const description = result.recipient_mode === 'organization_open'
@@ -360,7 +366,7 @@ function editDrawer(ctx, rfq) {
     save.disabled = true;
     save.querySelector('.btn-label').textContent = 'Publicando…';
     try {
-      const result = await ctx.api('rfqs', { method: 'PATCH', body: JSON.stringify({ rfq_id: rfq.id, expected_revision: rfq.revision || 1, title: entries.title, description: entries.description, response_deadline: entries.response_deadline, demand }) });
+      const result = await ctx.send('rfqs', { rfq_id: rfq.id, expected_revision: rfq.revision || 1, title: entries.title, description: entries.description, response_deadline: entries.response_deadline, demand }, 'PATCH');
       dialog.close();
       toast(result.revision > (rfq.revision || 1) ? `Revisão ${result.revision} publicada.` : 'Nenhuma mudança material: a revisão continua a mesma.');
       ctx.reload();
@@ -419,7 +425,7 @@ function comparisonTab(ctx, rfq, decision = null) {
   const wrap = el('div', { class: 'stack' });
   const matrix = el('div', {}, loading('Carregando comparação…'));
   const weightsSlot = el('div');
-  const fetchComparison = async (weights = {}) => ctx.api('comparison', { method: 'POST', body: JSON.stringify({ rfq_id: rfq.id, weights }) });
+  const fetchComparison = async (weights = {}) => ctx.send('comparison', { rfq_id: rfq.id, weights });
   const load = () => {
     matrix.replaceChildren(loading('Carregando comparação…'));
     fetchComparison().then(({ comparison }) => {
@@ -430,7 +436,7 @@ function comparisonTab(ctx, rfq, decision = null) {
     })
       .catch(() => matrix.replaceChildren(errorState({ title: 'Comparação indisponível', error: 'As condições não puderam ser consultadas. Tente novamente.', onRetry: load })));
   };
-  if (ctx.mode === 'demo') matrix.replaceChildren(comparisonMatrix(rfq, proposals));
+  if ((__ARANDU_DEMO__ && ctx.mode === 'demo')) matrix.replaceChildren(comparisonMatrix(rfq, proposals));
   else load();
   // Coleta aberta: a matriz é parcial. Diz quantas convidadas responderam, sem
   // tratar quem ainda não enviou como pior nem antecipar o resultado.
@@ -440,7 +446,7 @@ function comparisonTab(ctx, rfq, decision = null) {
     wrap.append(el('p', { class: 'callout callout-info compact', id: 'comparison-partial', role: 'note' }, [icon('info', { size: 14 }), el('span', { text:
       `Coleta em andamento: ${answered} de ${invited.size} ${invited.size === 1 ? 'instituição convidada enviou' : 'instituições convidadas enviaram'} proposta. Respostas ainda podem chegar ou ganhar nova versão até o encerramento da coleta${answered === 1 ? '; com uma só proposta não há comparação lado a lado' : ''}.` })]));
   }
-  if (!__ARANDU_DEMO__ && ctx.mode !== 'demo') {
+  if (!__ARANDU_DEMO__ && !(__ARANDU_DEMO__ && ctx.mode === 'demo')) {
     const ready = el('div');
     wrap.append(ready);
     import('./negotiation-board.js').then((m) => { if (ready.parentNode) ready.replaceWith(m.readinessSection(ctx, rfq)); }).catch(() => ready.remove());
@@ -451,11 +457,11 @@ function comparisonTab(ctx, rfq, decision = null) {
   const panel = () => weightsPanel(rfq, proposals, { initial: ctx.weights[rfq.id] || recorded,
     initialNote: recorded && Object.keys(recorded).length ? 'Pesos registrados na decisão desta solicitação.' : null,
     onApplied: (weights) => { ctx.weights[rfq.id] = weights; },
-    calculate: ctx.mode === 'demo' ? null : async weights => (await fetchComparison(weights)).weighted });
+    calculate: (__ARANDU_DEMO__ && ctx.mode === 'demo') ? null : async weights => (await fetchComparison(weights)).weighted });
   if (proposals.length > 1) wrap.append(panel());
   else wrap.append(weightsSlot);
   if (proposals.length) {
-    ctx.api('signals', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, event: 'comparison_viewed', entity_type: 'rfq', entity_id: rfq.id }) }).catch(() => {});
+    ctx.send('signals', { organization_id: ctx.organization.id, event: 'comparison_viewed', entity_type: 'rfq', entity_id: rfq.id }).catch(() => {});
     wrap.append(el('div', { class: 'row-actions' }, [button('Exportar processo (JSON)', { size: 'sm', iconName: 'download', attrs: { id: 'export-rfq' }, onClick: () => exportProcess(ctx, rfq) }),
       el('span', { class: 'muted small', text: 'Registro factual: demanda, propostas, critérios e decisão, com datas. Sem recomendação.' })]));
   }
@@ -467,7 +473,7 @@ async function exportProcess(ctx, rfq) {
     const result = await ctx.api(`export?rfq_id=${encodeURIComponent(rfq.id)}`);
     const blob = new Blob([JSON.stringify(result.export, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const link = el('a', { href: url, download: `arandu-${ctx.mode === 'demo' ? 'demo-' : ''}rfq-${rfq.id.slice(0, 8)}.json` });
+    const link = el('a', { href: url, download: `arandu-${(__ARANDU_DEMO__ && ctx.mode === 'demo') ? 'demo-' : ''}rfq-${rfq.id.slice(0, 8)}.json` });
     document.body.append(link);
     link.click();
     link.remove();
@@ -516,14 +522,14 @@ export function approvalCard(ctx, request, rfq, { onChange, compact = false } = 
     node.append(el('div', { class: 'row-actions' }, button('Substituir este pedido', { variant: 'ghost', size: 'sm', iconName: 'edit', onClick: async () => {
       const reason = await promptDialog({ title: 'Substituir o pedido?', description: 'O pedido atual é encerrado como substituído (por exemplo, para reavaliar sob a versão nova da policy). Nada muda sozinho: depois você pede uma nova aprovação.', label: 'Motivo', minLength: 3, confirmLabel: 'Substituir', tone: 'danger' });
       if (reason === null) return;
-      try { await ctx.api('approvals/supersede', { method: 'POST', body: JSON.stringify({ request_id: request.id, reason }) }); toast('Pedido substituído. Solicite uma nova aprovação.'); onChange?.(); }
+      try { await ctx.send('approvals/supersede', { request_id: request.id, reason }); toast('Pedido substituído. Solicite uma nova aprovação.'); onChange?.(); }
       catch (error) { toast(error.message, 'error'); }
     } })));
   }
   if (request.status === 'pending' && request.requested_by === ctx.viewer?.id) {
     node.append(el('div', { class: 'row-actions' }, button('Cancelar pedido de aprovação', { variant: 'ghost', size: 'sm', iconName: 'x', onClick: async () => {
       if (!await confirmDialog({ title: 'Cancelar o pedido?', description: 'Os aprovadores deixam de ver a pendência. O histórico é mantido.', confirmLabel: 'Cancelar pedido', tone: 'danger' })) return;
-      try { await ctx.api('approvals/cancel', { method: 'POST', body: JSON.stringify({ request_id: request.id }) }); toast('Pedido de aprovação cancelado.'); onChange?.(); }
+      try { await ctx.send('approvals/cancel', { request_id: request.id }); toast('Pedido de aprovação cancelado.'); onChange?.(); }
       catch (error) { toast(error.message, 'error'); }
     } })));
   }
@@ -617,7 +623,7 @@ function approvalRequestForm(ctx, rfq, latest) {
   const refresh = async () => {
     const proposalId = new FormData(form).get('proposal_id');
     try {
-      const out = await ctx.api('approval-policies/preview', { method: 'POST', body: JSON.stringify({ rfq_id: rfq.id, proposal_id: proposalId, declared }) });
+      const out = await ctx.send('approval-policies/preview', { rfq_id: rfq.id, proposal_id: proposalId, declared });
       evaluation = out.evaluation;
       previewFailed = false;
     } catch (failure) {
@@ -685,7 +691,7 @@ function approvalRequestForm(ctx, rfq, latest) {
         ? { rfq_id: rfq.id, proposal_id: proposalId, assignments, rationale: rationale.value, justification: justification.value.trim() || null, declared }
         : { rfq_id: rfq.id, proposal_id: proposalId, approver_ids: order, rationale: rationale.value };
       const external=proposals.find(row=>row.id===proposalId&&row.origin==='buyer_recorded_external');
-      await ctx.api(external?'external-proposals/approval':'approvals/request', { method: 'POST', body: JSON.stringify(external?{...payload,id:external.id,expected_version:external.version,rfq_revision:rfq.revision,request_key:externalRequestKey}:payload) });
+      await ctx.send(external?'external-proposals/approval':'approvals/request', external?{...payload,id:external.id,expected_version:external.version,rfq_revision:rfq.revision,request_key:externalRequestKey}:payload);
       toast(evaluation ? 'Aprovação solicitada pela policy. Os aprovadores da primeira etapa foram avisados.' : `Aprovação solicitada. ${memberName(ctx.members, order[0])} foi avisado(a).`);
       ctx.reload();
     } catch (failure) {
@@ -805,7 +811,7 @@ function decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage, 
     submit.disabled = true;
     try {
       const external=chosen?.origin==='buyer_recorded_external';
-      await ctx.api(external?'external-proposals/decision':'decisions', { method: 'POST', body: JSON.stringify(external?{id:chosen.id,expected_version:chosen.version,rfq_revision:rfq.revision,request_key:externalRequestKey,rationale:data.get('rationale'),weights:useWeights.checked?weights||{}:{}}:{ rfq_id: rfq.id, proposal_id: data.get('proposal_id'), expected_version: chosen?.version, rationale: data.get('rationale'), criteria: { weights: useWeights.checked ? weights || {} : {} } }) });
+      await ctx.send(external?'external-proposals/decision':'decisions', external?{id:chosen.id,expected_version:chosen.version,rfq_revision:rfq.revision,request_key:externalRequestKey,rationale:data.get('rationale'),weights:useWeights.checked?weights||{}:{}}:{ rfq_id: rfq.id, proposal_id: data.get('proposal_id'), expected_version: chosen?.version, rationale: data.get('rationale'), criteria: { weights: useWeights.checked ? weights || {} : {} } });
       if (ctx.decisionConflicts) delete ctx.decisionConflicts[rfq.id];
       toast(chosen?.origin==='buyer_recorded_external'?'Decisão interna registrada. O vínculo contratual é uma etapa separada.':'Decisão registrada. Agora registre o contrato.');
       ctx.reload();

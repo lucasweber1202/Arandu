@@ -130,7 +130,7 @@ export function entitySettings(ctx, entities) {
   for (const row of tree) {
     const archive = admin && row.status === 'active' ? button('Arquivar', { size: 'sm', variant: 'ghost', iconName: 'x', onClick: async () => {
       if (!await confirmDialog({ title: `Arquivar ${row.short_name || row.legal_name}?`, description: 'Processos e contratos existentes continuam com o histórico. A entidade deixa de aceitar processos novos e novas concessões de escopo.', confirmLabel: 'Arquivar', tone: 'danger' })) return;
-      try { await ctx.api('entities', { method: 'PATCH', body: JSON.stringify({ entity_id: row.id, status: 'archived' }) }); toast('Entidade arquivada.'); ctx.reload(); }
+      try { await ctx.send('entities', { entity_id: row.id, status: 'archived' }, 'PATCH'); toast('Entidade arquivada.'); ctx.reload(); }
       catch (error) { toast(error.message, 'error'); }
     } }) : null;
     list.append(el('li', { class: `entity-row depth-${row.depth}`, dataset: { entity: 'legal_entity', id: row.id } }, [
@@ -152,7 +152,7 @@ export function entitySettings(ctx, entities) {
       button('Salvar moeda', { type: 'submit', iconName: 'check' })]);
     onSubmit(baseForm, async (event) => {
       event.preventDefault();
-      try { await ctx.api('entities/currency', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, base_currency: base.value.trim().toUpperCase() }) }); toast('Moeda base atualizada.'); }
+      try { await ctx.send('entities/currency', { organization_id: ctx.organization.id, base_currency: base.value.trim().toUpperCase() }); toast('Moeda base atualizada.'); }
       catch (error) { toast(error.message, 'error'); }
     });
 
@@ -184,7 +184,7 @@ export function entitySettings(ctx, entities) {
       if (body.kind !== 'business_unit') delete body.parent_id;
       for (const [key, value] of Object.entries(body)) if (value === '') delete body[key];
       try {
-        await ctx.api('entities', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, ...body }) });
+        await ctx.send('entities', { organization_id: ctx.organization.id, ...body });
         toast('Entidade cadastrada.');
         ctx.reload();
       } catch (error) { toast(error.message, 'error'); }
@@ -226,7 +226,7 @@ export function memberScopes(ctx, entities) {
           const ids = [...editor.querySelectorAll('input[name="entity_ids"]:checked')].map((input) => input.value);
           if (scope.value === 'entities' && !ids.length) { toast('Escolha ao menos uma entidade para o escopo restrito.', 'error'); return; }
           try {
-            await ctx.api('entity-scopes', { method: 'PUT', body: JSON.stringify({ organization_id: ctx.organization.id, user_id: member.user_id, scope: scope.value, entity_ids: ids }) });
+            await ctx.send('entity-scopes', { organization_id: ctx.organization.id, user_id: member.user_id, scope: scope.value, entity_ids: ids }, 'PUT');
             toast('Escopo atualizado. A mudança vale na próxima leitura dessa pessoa.');
             ctx.reload();
           } catch (error) { toast(error.message, 'error'); }
@@ -255,7 +255,7 @@ export function rfqEntityControl(ctx, entities, rfq) {
   const save = button('Reatribuir', { size: 'sm', onClick: async () => {
     if (select.value === (rfq.legal_entity_id || '')) return;
     if (!await confirmDialog({ title: 'Reatribuir a entidade do processo?', description: 'Quem enxerga o processo passa a ser definido pela nova entidade. A mudança fica registrada na trilha e não é possível depois da decisão.', confirmLabel: 'Reatribuir' })) return;
-    try { await ctx.api('rfq-entity', { method: 'POST', body: JSON.stringify({ rfq_id: rfq.id, legal_entity_id: select.value || null }) }); toast('Entidade reatribuída.'); ctx.reload(); }
+    try { await ctx.send('rfq-entity', { rfq_id: rfq.id, legal_entity_id: select.value || null }); toast('Entidade reatribuída.'); ctx.reload(); }
     catch (error) { toast(error.message, 'error'); }
   } });
   return el('span', { class: 'entity-control' }, [current, el('details', { class: 'inline-details' }, [el('summary', { text: 'Alterar' }), el('span', { class: 'inline-form' }, [select, save])])]);
@@ -271,7 +271,7 @@ export function contractEntityControl(ctx, entities, contract) {
   const save = button('Atribuir entidade', { size: 'sm', onClick: async () => {
     if (!select.value) { toast('Escolha a entidade do contrato.', 'error'); return; }
     if (!await confirmDialog({ title: 'Atribuir entidade ao contrato?', description: 'A atribuição é feita uma única vez e fica na trilha. Mudanças materiais posteriores entram como aditivo.', confirmLabel: 'Atribuir' })) return;
-    try { await ctx.api('contract-entity', { method: 'POST', body: JSON.stringify({ contract_id: contract.id, legal_entity_id: select.value }) }); toast('Entidade atribuída ao contrato.'); ctx.reload(); }
+    try { await ctx.send('contract-entity', { contract_id: contract.id, legal_entity_id: select.value }); toast('Entidade atribuída ao contrato.'); ctx.reload(); }
     catch (error) { toast(error.message, 'error'); }
   } });
   return el('span', { class: 'entity-control' }, [tag('Nível de grupo', 'accent'), select, save]);

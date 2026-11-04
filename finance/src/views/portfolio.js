@@ -147,7 +147,7 @@ function facilityTable(ctx, entities, facilities, result) {
       el('td', { 'data-label': 'Ações' }, [button('Relações', { size: 'sm', onClick: () => drawer({ title: facility.name, body: graphContextCard(ctx, { type: 'facility', id: facility.id }) }) }), manage ? el('div', { class: 'row-actions' }, [
         button('Saldo', { size: 'sm', onClick: () => balanceForm(ctx, facility) }),
         button('Cronograma', { size: 'sm', variant: 'ghost', onClick: () => scheduleForm(ctx, facility) }),
-        button('Confirmar', { size: 'sm', variant: 'ghost', onClick: async () => { try { await ctx.api('facilities/confirm', { method: 'POST', body: JSON.stringify({ facility_id: facility.id }) }); toast('Dado confirmado como atual.'); ctx.reload(); } catch (error) { toast(error.message, 'error'); } } }),
+        button('Confirmar', { size: 'sm', variant: 'ghost', onClick: async () => { try { await ctx.send('facilities/confirm', { facility_id: facility.id }); toast('Dado confirmado como atual.'); ctx.reload(); } catch (error) { toast(error.message, 'error'); } } }),
         button('Editar', { size: 'sm', variant: 'ghost', onClick: () => facilityForm(ctx, entities, facility) })
       ]) : null])
     ]));
@@ -224,7 +224,7 @@ function facilityForm(ctx, entities, facility = null) {
     if (controls.name.value.trim().length < 2 || !controls.provider_id.value) { toast('Informe nome e provedor.', 'error'); return false; }
     const body = Object.fromEntries(Object.entries(controls).map(([key, control]) => [key, control.value.trim?.() ?? control.value]));
     for (const key of Object.keys(body)) if (body[key] === '') delete body[key];
-    await ctx.api('facilities', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, ...(facility ? { facility_id: facility.id } : {}), ...body }) });
+    await ctx.send('facilities', { organization_id: ctx.organization.id, ...(facility ? { facility_id: facility.id } : {}), ...body });
     toast(facility ? 'Facility atualizada.' : 'Facility registrada.');
     ctx.reload();
     return true;
@@ -243,7 +243,7 @@ function balanceForm(ctx, facility) {
     el('p', { class: 'muted small span-2', text: 'Cada fotografia é guardada com data e origem; fotografias anteriores não são alteradas.' })]);
   return submitDrawer({ title: `Saldo de ${facility.name}`, form, label: 'Registrar fotografia', onSubmit: async () => {
     if (!outstanding.value && !used.value) { toast('Informe saldo devedor ou uso do limite.', 'error'); return false; }
-    await ctx.api('facility-balances', { method: 'POST', body: JSON.stringify({ facility_id: facility.id, as_of: asOf.value, outstanding_amount: outstanding.value || null, used_limit_amount: used.value || null, source: source.value, source_reference: reference.value || null }) });
+    await ctx.send('facility-balances', { facility_id: facility.id, as_of: asOf.value, outstanding_amount: outstanding.value || null, used_limit_amount: used.value || null, source: source.value, source_reference: reference.value || null });
     toast('Fotografia de saldo registrada.');
     ctx.reload();
     return true;
@@ -266,7 +266,7 @@ function scheduleForm(ctx, facility) {
   return submitDrawer({ title: `Cronograma de ${facility.name}`, form, label: 'Registrar cronograma', onSubmit: async () => {
     const items = [...rows.children].map((row) => row.read()).filter(Boolean);
     if (!items.length) { toast('Informe ao menos uma parcela com data e principal.', 'error'); return false; }
-    await ctx.api('facility-schedule', { method: 'POST', body: JSON.stringify({ facility_id: facility.id, expected_version: facility.schedule_version || 0, items }) });
+    await ctx.send('facility-schedule', { facility_id: facility.id, expected_version: facility.schedule_version || 0, items });
     toast('Cronograma registrado.');
     ctx.reload();
     return true;
@@ -295,7 +295,7 @@ function guaranteeForm(ctx, entities, guarantee = null, result = null) {
     if (controls.description.value.trim().length < 3) { toast('Descreva a garantia.', 'error'); return false; }
     const body = Object.fromEntries(Object.entries(controls).map(([key, control]) => [key, control.value.trim?.() ?? control.value]));
     for (const key of Object.keys(body)) if (body[key] === '') delete body[key];
-    await ctx.api('guarantees', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, ...(guarantee ? { guarantee_id: guarantee.id } : {}), ...body }) });
+    await ctx.send('guarantees', { organization_id: ctx.organization.id, ...(guarantee ? { guarantee_id: guarantee.id } : {}), ...body });
     toast('Garantia salva.');
     ctx.reload();
     return true;

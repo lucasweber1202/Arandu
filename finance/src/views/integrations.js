@@ -1,3 +1,4 @@
+/* global __ARANDU_DEMO__ */
 // Integrações (Public API v1 & Webhooks) em Configurações — só administração.
 //
 // Token de conta de serviço e segredo de webhook aparecem uma única vez, na
@@ -58,8 +59,8 @@ export function integrationSettings(ctx, entities) {
   };
   render();
   // Sandbox legado sem backend: catálogo estático. Produto real: ERP Hub com o adaptador Business Central.
-  const hub = ctx.mode === 'demo' ? erpHub() : el('div', {}, loading());
-  if (ctx.mode !== 'demo') import('./erp-hub.js').then((m) => hub.replaceWith(m.erpHubSection(ctx, { contracts: ctx.data?.contracts || [] })));
+  const hub = (__ARANDU_DEMO__ && ctx.mode === 'demo') ? erpHub() : el('div', {}, loading());
+  if (!(__ARANDU_DEMO__ && ctx.mode === 'demo')) import('./erp-hub.js').then((m) => hub.replaceWith(m.erpHubSection(ctx, { contracts: ctx.data?.contracts || [] })));
   return el('div', { class: 'stack' }, [hub, box]);
 }
 
@@ -73,7 +74,7 @@ function accountsSection(ctx, result, entityOptions, render, reveal) {
         credential.revoked_at ? tag('revogada') : live ? tag('ativa', 'success') : tag('expirada', 'warning'),
         live ? button('Revogar', { size: 'sm', variant: 'ghost', onClick: async () => {
           if (!await confirmDialog({ title: 'Revogar esta credencial?', description: 'Integrações que usam este token param na próxima chamada.', confirmLabel: 'Revogar', tone: 'danger' })) return;
-          try { await ctx.api('service-accounts/credentials-revoke', { method: 'POST', body: JSON.stringify({ credential_id: credential.id }) }); toast('Credencial revogada.'); render(); } catch (error) { toast(error.message, 'error'); }
+          try { await ctx.send('service-accounts/credentials-revoke', { credential_id: credential.id }); toast('Credencial revogada.'); render(); } catch (error) { toast(error.message, 'error'); }
         } }) : null]);
     });
     return el('li', { class: 'card' }, el('div', { class: 'card-body stack-sm' }, [
@@ -85,7 +86,7 @@ function accountsSection(ctx, result, entityOptions, render, reveal) {
       active ? el('div', { class: 'row-actions' }, [
         button('Emitir token', { size: 'sm', iconName: 'plus', onClick: async () => {
           try {
-            const out = await ctx.api('service-accounts/credentials', { method: 'POST', body: JSON.stringify({ service_account_id: account.id, expires_in_days: 90 }) });
+            const out = await ctx.send('service-accounts/credentials', { service_account_id: account.id, expires_in_days: 90 });
             reveal.replaceChildren(revealOnce(`Token de ${account.name}`, out.token, 'Copie agora: ele não será mostrado de novo. Válido por 90 dias. Envie no cabeçalho Authorization: Bearer.'));
             toast('Token emitido.');
             render().then(() => reveal.scrollIntoView?.({ block: 'nearest' }));
@@ -93,7 +94,7 @@ function accountsSection(ctx, result, entityOptions, render, reveal) {
         } }),
         button('Revogar conta', { size: 'sm', variant: 'danger-ghost', onClick: async () => {
           if (!await confirmDialog({ title: `Revogar ${account.name}?`, description: 'Todas as credenciais param na próxima chamada e os webhooks criados por esta conta são desativados. O histórico continua.', confirmLabel: 'Revogar conta', tone: 'danger' })) return;
-          try { await ctx.api('service-accounts/revoke', { method: 'POST', body: JSON.stringify({ service_account_id: account.id }) }); toast('Conta revogada.'); render(); } catch (error) { toast(error.message, 'error'); }
+          try { await ctx.send('service-accounts/revoke', { service_account_id: account.id }); toast('Conta revogada.'); render(); } catch (error) { toast(error.message, 'error'); }
         } })]) : null
     ]));
   })) : emptyState({ title: 'Nenhuma conta de serviço', text: 'Crie uma conta para cada sistema que vai integrar.', compact: true, iconName: 'shield' });
@@ -109,8 +110,8 @@ function accountsSection(ctx, result, entityOptions, render, reveal) {
   onSubmit(form, async (event) => {
     event.preventDefault();
     try {
-      await ctx.api('service-accounts', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, name: name.value.trim(), scopes: checked(scopes),
-        entity_scope: scope.value, entity_ids: scope.value === 'entities' ? checked(entities) : [] }) });
+      await ctx.send('service-accounts', { organization_id: ctx.organization.id, name: name.value.trim(), scopes: checked(scopes),
+        entity_scope: scope.value, entity_ids: scope.value === 'entities' ? checked(entities) : [] });
       toast('Conta criada. Emita um token para começar.'); render();
     } catch (error) { toast(error.message, 'error'); }
   });
@@ -130,11 +131,11 @@ function webhooksSection(ctx, result, entityOptions, render, reveal) {
       tag(DELIVERY_LABEL[delivery.status] || delivery.status, DELIVERY_TONE[delivery.status] || 'neutral'),
       el('span', { class: 'muted', text: ` ${formatDateTime(delivery.created_at)} · tentativas ${delivery.attempts}${delivery.last_status_code ? ` · HTTP ${delivery.last_status_code}` : ''}${delivery.last_error_code ? ` · ${delivery.last_error_code}` : ''}${delivery.replay_of ? ' · reenvio' : ''}` }),
       ['succeeded', 'failed', 'dead', 'cancelled'].includes(delivery.status) && hook.status === 'active' ? button('Reenviar', { size: 'sm', variant: 'ghost', onClick: async () => {
-        try { await ctx.api('webhooks/replay', { method: 'POST', body: JSON.stringify({ delivery_id: delivery.id }) }); toast('Reenvio na fila.'); render(); } catch (error) { toast(error.message, 'error'); }
+        try { await ctx.send('webhooks/replay', { delivery_id: delivery.id }); toast('Reenvio na fila.'); render(); } catch (error) { toast(error.message, 'error'); }
       } }) : null
     ])))]) : el('span', { class: 'small muted', text: 'Nenhuma entrega ainda.' }),
     el('div', { class: 'row-actions' }, button(hook.status === 'active' ? 'Desativar' : 'Reativar', { size: 'sm', variant: 'ghost', onClick: async () => {
-      try { await ctx.api('webhooks/status', { method: 'POST', body: JSON.stringify({ endpoint_id: hook.id, active: hook.status !== 'active' }) }); toast('Webhook atualizado.'); render(); } catch (error) { toast(error.message, 'error'); }
+      try { await ctx.send('webhooks/status', { endpoint_id: hook.id, active: hook.status !== 'active' }); toast('Webhook atualizado.'); render(); } catch (error) { toast(error.message, 'error'); }
     } }))
   ])))) : emptyState({ title: 'Nenhum webhook', text: 'Receba eventos mínimos (ids, tipo e estado) assinados com HMAC.', compact: true, iconName: 'send' });
 
@@ -146,13 +147,13 @@ function webhooksSection(ctx, result, entityOptions, render, reveal) {
   onSubmit(form, async (event) => {
     event.preventDefault();
     try {
-      const out = await ctx.api('webhooks', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, url: url.value.trim(), events: checked(events), entity_ids: checked(entities) }) });
+      const out = await ctx.send('webhooks', { organization_id: ctx.organization.id, url: url.value.trim(), events: checked(events), entity_ids: checked(entities) });
       reveal.replaceChildren(revealOnce('Segredo de assinatura', out.secret, 'Copie agora: ele não será mostrado de novo. Use-o para verificar o cabeçalho Arandu-Signature.'));
       toast('Webhook criado.'); render();
     } catch (error) { toast(error.message, 'error'); }
   });
   const dispatch = button('Enviar pendentes agora', { size: 'sm', iconName: 'send', onClick: async () => {
-    try { const out = await ctx.api('webhooks/dispatch', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id }) }); toast(`${out.succeeded} entregue(s), ${out.failed + out.dead} com falha.`); render(); }
+    try { const out = await ctx.send('webhooks/dispatch', { organization_id: ctx.organization.id }); toast(`${out.succeeded} entregue(s), ${out.failed + out.dead} com falha.`); render(); }
     catch (error) { toast(error.message, 'error'); }
   } });
   return el('section', { class: 'stack-sm', 'aria-label': 'Webhooks' }, [el('h3', { text: 'Webhooks' }), unconfigured, reveal, list, el('div', { class: 'row-actions' }, dispatch),

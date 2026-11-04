@@ -1,3 +1,4 @@
+/* global __ARANDU_DEMO__ */
 // Quadro de respostas e "Antes de comparar" da negociação (lib/finance/
 // negotiation-board.mjs). Lê o que a tela já carregou (convites e propostas do
 // portal) e a lista canônica de propostas externas; não grava nada.
@@ -66,7 +67,7 @@ function channelLine(row, channel) {
 export function responseBoardCard(ctx, rfq) {
   const body = el('div', {}, loading('Montando o quadro de respostas…'));
   // Copilot no contexto desta negociação (mesmo contrato e fontes da tela; ação material só com confirmação).
-  const ask = ctx.mode === 'demo' ? null : el('button', { type: 'button', class: 'btn btn-sm btn-ghost', onclick: () => import('./copilot.js').then((m) => m.openCopilot(ctx, {
+  const ask = (__ARANDU_DEMO__ && ctx.mode === 'demo') ? null : el('button', { type: 'button', class: 'btn btn-sm btn-ghost', onclick: () => import('./copilot.js').then((m) => m.openCopilot(ctx, {
     context: { type: 'rfq', id: rfq.id, label: rfq.title },
     question: 'Resuma as respostas desta negociação: quem respondeu, por qual canal, o que ainda aguarda a instituição ou a conferência da empresa e quais condições faltam, com as fontes.' })) }, el('span', { class: 'btn-label', text: 'Resumir respostas' }));
   const node = card({ title: 'Quadro de respostas', id: 'quadro-respostas', subtitle: 'Por instituição: convite, proposta pelo portal e propostas registradas pela empresa, com de quem é a vez. Sem ordenação comercial.', body, actions: ask ? [ask] : null });
@@ -83,7 +84,7 @@ export function responseBoardCard(ctx, rfq) {
           row.channels.length ? el('ul', { class: 'plain-list' }, row.channels.map((c) => channelLine(row, c))) : null,
           ...row.notes.map((text) => el('span', { class: 'small warn-text', text }))
         ]),
-        ctx.mode === 'demo' ? null : el('a', { class: 'btn btn-sm btn-ghost', href: ctx.href(row.relationshipHref), text: 'Relacionamento' })
+        (__ARANDU_DEMO__ && ctx.mode === 'demo') ? null : el('a', { class: 'btn btn-sm btn-ghost', href: ctx.href(row.relationshipHref), text: 'Relacionamento' })
       ]);
     }));
     body.replaceChildren(...[externalNote(ext), head, board.rows.length ? list : el('p', { class: 'muted', text: 'Nenhuma instituição convidada e nenhuma proposta registrada ainda.' })].filter(Boolean));

@@ -1,3 +1,4 @@
+/* global __ARANDU_DEMO__ */
 // Financial Relationship Workspace (CRM visual 1.0).
 //
 // Consome somente o contrato `financial-crm-v1` (docs/FINANCIAL_CRM_V1.md):
@@ -208,7 +209,7 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
       el('div', {}, [el('h3', { id: 'crm-title', text: 'Relacionamento comercial' }),
         el('p', { class: 'muted small', text: 'Contatos, reuniões, compromissos e processos registrados pela sua equipe. São declarações da organização: não comprovam envio, aceite da instituição nem mudam a negociação financeira.' })]),
       el('div', { class: 'crm-actions' }, [
-        provider && ctx.mode !== 'demo' ? button('Resumir com o Copilot', { size: 'sm', variant: 'ghost', iconName: 'sparkles', onClick: () => import('./copilot.js').then((m) => m.openCopilot(ctx, { context: { type: 'provider', id: provider.id, label: provider.name }, question: 'Resuma nosso relacionamento com esta instituição: contatos, atividades pendentes, processos e contratos.' })) }) : null,
+        provider && !(__ARANDU_DEMO__ && ctx.mode === 'demo') ? button('Resumir com o Copilot', { size: 'sm', variant: 'ghost', iconName: 'sparkles', onClick: () => import('./copilot.js').then((m) => m.openCopilot(ctx, { context: { type: 'provider', id: provider.id, label: provider.name }, question: 'Resuma nosso relacionamento com esta instituição: contatos, atividades pendentes, processos e contratos.' })) }) : null,
         state.loaded ? button('Atualizar', { size: 'sm', variant: 'ghost', iconName: 'refresh', onClick: load }) : null])
     ]);
   }
@@ -317,9 +318,9 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
         if (row) {
           const changed = Object.fromEntries(Object.entries(values).filter(([k, v]) => k === 'source_reference' || (row[k] ?? null) !== v));
           if (Object.keys(changed).length === 1) return Promise.reject(Object.assign(new Error('Nenhum campo foi alterado.'), { status: 422, message: 'Nenhum campo foi alterado.' }));
-          return ctx.api('crm-contacts', { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, id: row.id, expected_version: row.version, request_key: key, values: changed }) });
+          return ctx.send('crm-contacts', { organization_id: ctx.organization.id, id: row.id, expected_version: row.version, request_key: key, values: changed }, 'PATCH');
         }
-        return ctx.api('crm-contacts', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, legal_entity_id: entity?.value || null, provider_id: provider?.id || null, counterparty_organization_id: counterparty?.id || null, request_key: key, values }) });
+        return ctx.send('crm-contacts', { organization_id: ctx.organization.id, legal_entity_id: entity?.value || null, provider_id: provider?.id || null, counterparty_organization_id: counterparty?.id || null, request_key: key, values });
       }
     });
   }
@@ -330,7 +331,7 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
     if (!ok) return;
     const source = archiving ? 'Arquivado pela equipe na Central de Relacionamentos' : 'Reativado pela equipe na Central de Relacionamentos';
     try {
-      await ctx.api(resource, { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, id: row.id, expected_version: row.version, request_key: uid(), values: { status, source_reference: source } }) });
+      await ctx.send(resource, { organization_id: ctx.organization.id, id: row.id, expected_version: row.version, request_key: uid(), values: { status, source_reference: source } }, 'PATCH');
       toast(archiving ? 'Registro arquivado.' : 'Registro reativado.');
       reload();
     } catch (error) { toast(crmErrorMessage(error), 'error'); if (error.status === 409) reload(); }
@@ -381,7 +382,7 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
     const ok = await confirmDialog({ title: status === 'cancelled' ? `Cancelar "${a.subject}"?` : 'Confirmar', description: 'A atividade continua no histórico como cancelada.', confirmLabel: 'Cancelar compromisso', tone: 'danger' });
     if (!ok) return;
     try {
-      await ctx.api('crm-activities', { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, id: a.id, expected_version: a.version, request_key: uid(), values: { status, source_reference: 'Cancelado pela equipe na Central de Relacionamentos' } }) });
+      await ctx.send('crm-activities', { organization_id: ctx.organization.id, id: a.id, expected_version: a.version, request_key: uid(), values: { status, source_reference: 'Cancelado pela equipe na Central de Relacionamentos' } }, 'PATCH');
       toast('Compromisso cancelado.'); reload();
     } catch (error) { toast(crmErrorMessage(error), 'error'); if (error.status === 409) reload(); }
   }
@@ -397,7 +398,7 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
         { key: 'source_reference', label: 'Fonte', control: source, required: true }
       ],
       done: 'Atividade registrada como realizada.', onSaved: reload, onConflict: reload,
-      send: (values, key) => ctx.api('crm-activities', { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, id: a.id, expected_version: a.version, request_key: key, values: { ...values, status: 'recorded' } }) })
+      send: (values, key) => ctx.send('crm-activities', { organization_id: ctx.organization.id, id: a.id, expected_version: a.version, request_key: key, values: { ...values, status: 'recorded' } }, 'PATCH')
     });
   }
   function referenceSelect(current = null) {
@@ -446,12 +447,12 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
         if (row) {
           const changed = Object.fromEntries(Object.entries(body).filter(([k, v]) => k === 'source_reference' || (row[k] ?? null) !== v));
           if (Object.keys(changed).length === 1) return Promise.reject(Object.assign(new Error('Nenhum campo foi alterado.'), { status: 422 }));
-          return ctx.api('crm-activities', { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, id: row.id, expected_version: row.version, request_key: key, values: changed }) });
+          return ctx.send('crm-activities', { organization_id: ctx.organization.id, id: row.id, expected_version: row.version, request_key: key, values: changed }, 'PATCH');
         }
         const ref = readReference(reference)();
         if (ref.related_type) Object.assign(body, ref);
         for (const k of ['occurred_at', 'due_on']) if (body[k] === undefined || body[k] === null) delete body[k];
-        return ctx.api('crm-activities', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, legal_entity_id: null, request_key: key, values: body }) });
+        return ctx.send('crm-activities', { organization_id: ctx.organization.id, legal_entity_id: null, request_key: key, values: body });
       }
     });
     sync();
@@ -546,7 +547,7 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
       if (!outcome) { revert(); return; }
     }
     try {
-      await ctx.api('crm-processes', { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, id: p.id, expected_version: p.version, request_key: uid(), values: { stage: next, ...(outcome ? { outcome } : {}), source_reference: 'Etapa atualizada pela equipe na Central de Relacionamentos' } }) });
+      await ctx.send('crm-processes', { organization_id: ctx.organization.id, id: p.id, expected_version: p.version, request_key: uid(), values: { stage: next, ...(outcome ? { outcome } : {}), source_reference: 'Etapa atualizada pela equipe na Central de Relacionamentos' } }, 'PATCH');
       toast(`Etapa atualizada para ${STAGES[next]}.`);
       reload();
     } catch (error) { revert(); toast(crmErrorMessage(error), 'error'); if (error.status === 409) reload(); }
@@ -601,11 +602,11 @@ export function crmWorkspace(ctx, { provider = null, contracts = [], rfqs = [], 
         if (row) {
           const changed = Object.fromEntries(Object.entries(values).filter(([k, v]) => k === 'source_reference' || (row[k] ?? null) !== v));
           if (Object.keys(changed).length === 1) return Promise.reject(Object.assign(new Error('Nenhum campo foi alterado.'), { status: 422 }));
-          return ctx.api('crm-processes', { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, id: row.id, expected_version: row.version, request_key: key, values: changed }) });
+          return ctx.send('crm-processes', { organization_id: ctx.organization.id, id: row.id, expected_version: row.version, request_key: key, values: changed }, 'PATCH');
         }
         const body = { ...values, ...Object.fromEntries(Object.entries(readReference(reference)()).filter(([, v]) => v)) };
         if (!['won', 'lost'].includes(body.stage) && body.outcome == null) delete body.outcome;
-        return ctx.api('crm-processes', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, legal_entity_id: null, request_key: key, values: body }) });
+        return ctx.send('crm-processes', { organization_id: ctx.organization.id, legal_entity_id: null, request_key: key, values: body });
       }
     });
   }

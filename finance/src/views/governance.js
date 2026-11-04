@@ -23,7 +23,7 @@ const OFFBOARDING_LABEL = {
 };
 const SCOPE_LABEL = { organization: 'Organização inteira', retention_class: 'Classe de retenção', legal_entity: 'Entidade', rfq: 'Solicitação', contract: 'Contrato', provider: 'Provedor' };
 
-function post(ctx, path, body) { return ctx.api(path, { method: 'POST', body: JSON.stringify(body) }); }
+function post(ctx, path, body) { return ctx.send(path, body); }
 function bytes(value) { return value >= 1e6 ? `${(value / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round((value || 0) / 1e3))} kB`; }
 
 export function governanceSettings(ctx) {

@@ -6,7 +6,7 @@
 import { el, icon, formatDate, relativeDays, plural, productLabel, renewalStage, RFQ_STATUS } from '../core.js';
 import { button, emptyState, confirmDialog, toast } from '../ui.js';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
-import { TASK_EDITORS } from './shared.js';
+import { TASK_EDITORS } from './shared/tasks.js';
 import { entityName } from './entities.js';
 
 // Limites do resumo (`overview`): atingir um deles significa que pode haver mais registros.
@@ -245,7 +245,7 @@ function renegotiateButton(ctx, item) {
       description: `Se já houver uma renegociação em andamento para este contrato${item.providerName ? ` com ${item.providerName}` : ''}, ela é aberta. Senão, criamos um rascunho ligado ao contrato; convites, propostas e decisões anteriores não são copiados e o contrato passa para “Em renovação”. Nenhuma instituição é convidada automaticamente.` })) return;
     target.disabled = true;
     try {
-      const result = await ctx.api('contract-renewal-rfq', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, contract_id: item.contractId }) });
+      const result = await ctx.send('contract-renewal-rfq', { organization_id: ctx.organization.id, contract_id: item.contractId });
       toast('Abrindo a renegociação.');
       location.assign(ctx.href(`/finance/rfq.html?id=${encodeURIComponent(result.id)}&de=relacionamentos`));
     } catch (error) {

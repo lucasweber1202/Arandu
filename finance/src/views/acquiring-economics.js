@@ -92,7 +92,7 @@ export function acquiringEconomicsPanel(ctx, { contract, proposals = [], externa
     busy = true; submit.disabled = true;
     result.replaceChildren(el('p', { class: 'muted small', text: 'Calculando com os termos registrados…' }));
     try {
-      const out = await ctx.api('acquiring-economics', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, contract_id: contract.id, proposal_id: choice.id, proposal_version: choice.version, profile: read.profile }) });
+      const out = await ctx.send('acquiring-economics', { organization_id: ctx.organization.id, contract_id: contract.id, proposal_id: choice.id, proposal_version: choice.version, profile: read.profile });
       result.replaceChildren(renderAnalysis(ctx, out.analysis, choice));
     } catch (error) {
       // Leitura sem efeito colateral: repetir é seguro. O formulário fica preenchido.

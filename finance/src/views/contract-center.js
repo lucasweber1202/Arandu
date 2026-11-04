@@ -1,3 +1,4 @@
+/* global __ARANDU_DEMO__ */
 import { graphContextCard } from './graph-context.js';
 // Contract & Renewal Center v2 na interface: contrato como objeto operacional.
 //
@@ -389,7 +390,7 @@ function openImportContract(ctx, entities, { providerId: presetProvider = null }
         const fingerprint = JSON.stringify(material);
         if (providerIntent && providerIntent.fingerprint !== fingerprint) throw Object.assign(new Error('Os dados desta intenção mudaram. Confira o recibo antes de iniciar outro cadastro.'), { status: 409, code: 'provider_creation_conflict' });
         if (!providerIntent) providerIntent = { key: crypto.randomUUID(), fingerprint };
-        const created = await ctx.api('providers', { method: 'POST', body: JSON.stringify({ ...material, request_key: providerIntent.key }) });
+        const created = await ctx.send('providers', { ...material, request_key: providerIntent.key });
         providerId = created.row?.id;
         if (!providerId) throw new Error('O servidor não confirmou o cadastro da instituição. Confira o recibo.');
         // Um novo envio depois de falha no contrato reaproveita a instituição criada.
@@ -407,7 +408,7 @@ function openImportContract(ctx, entities, { providerId: presetProvider = null }
       const fingerprint = JSON.stringify(material);
       // A mesma chave só acompanha o mesmo conteúdo material; conteúdo novo é intenção nova.
       if (!intent || intent.fingerprint !== fingerprint) intent = { key: crypto.randomUUID(), fingerprint, entity: material.legal_entity_id };
-      const result = await ctx.api('contract-import', { method: 'POST', body: JSON.stringify({ ...material, request_key: intent.key }) });
+      const result = await ctx.send('contract-import', { ...material, request_key: intent.key });
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(result?.id || '')) { const unconfirmed = new Error('O servidor não confirmou o registro.'); unconfirmed.status = 502; throw unconfirmed; }
       const task = result.next_task;
       toast(result.replayed ? 'Este registro já estava gravado. Nada foi duplicado.' : task ? `Contrato registrado. Próxima ação: revisar a renovação até ${formatDate(task.due_on)} (em Tarefas).` : 'Contrato registrado na carteira, sem renovação pendente.');
@@ -455,14 +456,14 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
   const after = (message) => { toast(message); load(); ctx.reload?.(); };
 
   let lastDetail = null;
-  if (ctx.mode !== 'demo') import('./copilot.js').then((m) => { m.setCopilotContext({ type: 'contract', id: contract.id, label: contract.title || contract.provider_name || 'Contrato' }); dialog.addEventListener('close', () => m.clearCopilotContext(contract.id)); });
+  if (!(__ARANDU_DEMO__ && ctx.mode === 'demo')) import('./copilot.js').then((m) => { m.setCopilotContext({ type: 'contract', id: contract.id, label: contract.title || contract.provider_name || 'Contrato' }); dialog.addEventListener('close', () => m.clearCopilotContext(contract.id)); });
   function render(detail) {
     lastDetail = detail;
     const current = detail.contract;
     const effective = detail.effective;
     const sections = [];
     // The legacy browser sandbox does not implement contextual task writes.
-    if (ctx.mode !== 'demo') {
+    if (!(__ARANDU_DEMO__ && ctx.mode === 'demo')) {
       const label = current.title || current.provider_name || 'Contrato';
       const ask = (question) => import('./copilot.js').then((m) => m.openCopilot(ctx, { context: { type: 'contract', id: current.id, label }, question }));
       sections.push(el('div', { class: 'crm-actions contract-copilot', role: 'group', 'aria-label': 'Perguntar ao Copilot sobre este contrato' }, [
@@ -485,20 +486,20 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
     sections.push(el('section', { class: 'cc-section' }, [el('div', { class: 'cc-head' }, [el('h3', { text: `Termos vigentes${effective ? ` (v${effective.version})` : ''}` }), termsActions]),
       termsList(current.product, effective?.terms, current.currency),
       detail.versions.length ? el('details', { class: 'cc-history' }, [el('summary', { text: `Histórico de versões (${detail.versions.length})` }), versions]) : null]));
-    if (ctx.mode !== 'demo') {
+    if (!(__ARANDU_DEMO__ && ctx.mode === 'demo')) {
       const crmSlot = el('div');
       sections.push(crmSlot);
       import('./crm-workspace.js').then((m) => { if (crmSlot.parentNode) crmSlot.replaceWith(m.crmLinkedPanel(ctx, { relatedId: current.id, providerId: current.provider_id, providerName: current.provider_name, noun: 'este contrato' })); });
     }
     // Próximas ações e conciliação de tarifas do contrato (mesmas fontes da Central).
     // O build de demonstração não tem API e não empacota o módulo.
-    if (!__ARANDU_DEMO__ && ctx.mode !== 'demo') {
+    if (!__ARANDU_DEMO__ && !(__ARANDU_DEMO__ && ctx.mode === 'demo')) {
       const nextSlot = el('div');
       sections.splice(Math.min(1, sections.length), 0, nextSlot);
       import('./context-signals.js').then((m) => { if (nextSlot.parentNode) nextSlot.replaceWith(m.contractContextSection(ctx, current)); }).catch(() => nextSlot.remove());
     }
     // Condições especializadas (fiança, câmbio, hedge): mesma fonte do registro canônico.
-    if (ctx.mode !== 'demo') {
+    if (!(__ARANDU_DEMO__ && ctx.mode === 'demo')) {
       const slot = el('div');
       sections.push(slot);
       import('./product-terms-panel.js').then((m) => { const node = m.specializedTermsSection(ctx, { contract: current, effective, contracts: ctx.data?.contracts || [], onSaved: () => after('Condições registradas.') }); if (node && slot.isConnected) slot.replaceWith(node); else slot.remove(); });
@@ -562,7 +563,7 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
       if (!select.value) { select.closest('.field').setError('Escolha quem passa a responder pelo contrato.'); select.focus(); return; }
       submit.disabled = true; select.disabled = true; status.textContent = 'Conferindo a alteração no servidor…';
       try {
-        await ctx.api('contract-owner', { method: 'POST', body: JSON.stringify({ contract_id: current.id, expected_owner_id: current.owner_id, owner_id: select.value }) });
+        await ctx.send('contract-owner', { contract_id: current.id, expected_owner_id: current.owner_id, owner_id: select.value });
         const reread = await ctx.api(`contract-detail?id=${encodeURIComponent(current.id)}`);
         if (reread.contract?.owner_id !== select.value) throw new Error('A alteração não foi confirmada na releitura. Atualize o contrato antes de tentar de novo.');
         toast('Responsável pelo contrato alterado.');
@@ -600,7 +601,7 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
       event.preventDefault();
       if (current.current_version && reason.value.trim().length < 3) { toast('Explique a correção.', 'error'); return; }
       try {
-        await ctx.api('contract-terms', { method: 'POST', body: JSON.stringify({ contract_id: current.id, expected_version: current.current_version, terms: { ...editor.read(), ...(terms?.product_terms ? { product_terms: terms.product_terms } : {}) }, reason: reason.value.trim() || null }) });
+        await ctx.send('contract-terms', { contract_id: current.id, expected_version: current.current_version, terms: { ...editor.read(), ...(terms?.product_terms ? { product_terms: terms.product_terms } : {}) }, reason: reason.value.trim() || null });
         after('Termos gravados como nova versão.');
       } catch (error) { toast(error.message, 'error'); }
     });
@@ -630,11 +631,11 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
       if (!effectiveFrom.value) { toast('Informe a vigência do aditivo.', 'error'); return; }
       if (!await confirmDialog({ title: 'Registrar aditivo?', description: 'Aditivo é histórico: não pode ser editado nem apagado depois. Datas anteriores ficam preservadas nele.', confirmLabel: 'Registrar' })) return;
       try {
-        await ctx.api('contract-amendments', { method: 'POST', body: JSON.stringify({
+        await ctx.send('contract-amendments', {
           contract_id: current.id, title: title.value.trim(), effective_from: effectiveFrom.value, signed_on: signed.value || null, summary: summary.value.trim() || null,
           new_ends_on: newEnds.value || null, new_notice_days: newNotice.value === '' ? null : Number(newNotice.value),
           ...(changeTerms.checked ? { terms: { ...editor.read(), ...(terms?.product_terms ? { product_terms: terms.product_terms } : {}) }, expected_version: current.current_version } : {})
-        }) });
+        });
         after('Aditivo registrado.');
       } catch (error) { toast(error.message, 'error'); }
     });
@@ -663,8 +664,8 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
       event.preventDefault();
       if (title.value.trim().length < 2 || !due.value) { toast('Informe título e data do marco.', 'error'); return; }
       try {
-        await ctx.api('contract-milestones', { method: 'POST', body: JSON.stringify({ contract_id: current.id, kind: kind.value, title: title.value.trim(), due_on: due.value,
-          lead_days: Number(lead.value || 30), recurrence: recurrence.value, ends_after: until.value || null, owner_id: owner.value || null }) });
+        await ctx.send('contract-milestones', { contract_id: current.id, kind: kind.value, title: title.value.trim(), due_on: due.value,
+          lead_days: Number(lead.value || 30), recurrence: recurrence.value, ends_after: until.value || null, owner_id: owner.value || null });
         after('Marco criado. A tarefa aparece quando a antecedência começar.');
       } catch (error) { toast(error.message, 'error'); }
     });
@@ -673,7 +674,7 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
 
   async function settle(item, action) {
     try {
-      const result = await ctx.api('contract-milestones', { method: 'PATCH', body: JSON.stringify({ milestone_id: item.id, action }) });
+      const result = await ctx.send('contract-milestones', { milestone_id: item.id, action }, 'PATCH');
       after(result.status === 'scheduled' ? 'Ocorrência concluída; o marco avançou para a próxima data.' : action === 'done' ? 'Marco concluído.' : 'Marco cancelado.');
     } catch (error) { toast(error.message, 'error'); }
   }

@@ -116,7 +116,7 @@ function termsForm(ctx, { contract, effective, modalities, onSaved }) {
     const product_terms = { schema_version: PRODUCT_TERMS_VERSION, modality: modality.value, values };
     const currency = values.currency || values.base_currency || effective?.terms?.currency;
     try {
-      await ctx.api('contract-terms', { method: 'POST', body: JSON.stringify({ contract_id: contract.id, expected_version: contract.current_version, terms: { ...(effective?.terms || {}), ...(currency ? { currency } : {}), product_terms }, reason: reason.value.trim() || null }) });
+      await ctx.send('contract-terms', { contract_id: contract.id, expected_version: contract.current_version, terms: { ...(effective?.terms || {}), ...(currency ? { currency } : {}), product_terms }, reason: reason.value.trim() || null });
       dialog.close(); toast('Condições registradas em nova versão do contrato.'); onSaved?.();
     } catch (error) {
       errors.replaceChildren(el('span', { text: error.status === 409 ? 'O contrato mudou desde que você o abriu, ou a versão perderia termos especializados. Nada foi sobrescrito: recarregue o contrato.'
@@ -158,7 +158,7 @@ export function openGuaranteeSimulator(ctx, { contract, contracts = [] }) {
     if (bad) { result.replaceChildren(el('p', { class: 'callout callout-error compact', role: 'alert', text: bad })); return; }
     run.disabled = true; result.replaceChildren(loading('Calculando…'));
     try {
-      const out = await ctx.api('guarantee-economics', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, sources, scenarios: list }) });
+      const out = await ctx.send('guarantee-economics', { organization_id: ctx.organization.id, sources, scenarios: list });
       result.replaceChildren(analysisView(ctx, out.analysis));
     } catch (error) {
       result.replaceChildren(el('p', { class: 'callout callout-error compact', role: 'alert', text: error.status === 404 ? 'Um dos contratos não está disponível neste contexto (precisa ser fiança da mesma entidade).' : error.status === 400 ? 'Fontes ou cenários recusados pelo servidor: confira datas, moeda, valor e premissa.' : 'Não foi possível calcular agora. Nada foi gravado.' }));

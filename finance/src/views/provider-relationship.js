@@ -237,8 +237,8 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
     onSubmit(form, async (event) => {
       event.preventDefault();
       try {
-        await ctx.api('provider-contacts', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, provider_id: provider.id, name: name.value.trim(), title: title.value.trim() || null,
-          email: email.value.trim() || null, phone: phone.value.trim() || null, legal_entity_id: entity.value || null, is_primary: primary.checked }) });
+        await ctx.send('provider-contacts', { organization_id: ctx.organization.id, provider_id: provider.id, name: name.value.trim(), title: title.value.trim() || null,
+          email: email.value.trim() || null, phone: phone.value.trim() || null, legal_entity_id: entity.value || null, is_primary: primary.checked });
         after('Contato adicionado.');
       } catch (error) { toast(error.message, 'error'); }
     });
@@ -257,8 +257,8 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
     onSubmit(form, async (event) => {
       event.preventDefault();
       try {
-        await ctx.api('provider-relationships', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, provider_id: provider.id, legal_entity_id: entity.value,
-          status: status.value, categories: [...categories.querySelectorAll('input:checked')].map((input) => input.value), since_on: since.value || null }) });
+        await ctx.send('provider-relationships', { organization_id: ctx.organization.id, provider_id: provider.id, legal_entity_id: entity.value,
+          status: status.value, categories: [...categories.querySelectorAll('input:checked')].map((input) => input.value), since_on: since.value || null });
         after('Relação registrada.');
       } catch (error) { toast(error.message, 'error'); }
     });
@@ -286,8 +286,8 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
       event.preventDefault();
       if (title.value.trim().length < 3) { toast('Dê um título à questão.', 'error'); return; }
       try {
-        await ctx.api('provider-issues', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, provider_id: provider.id, title: title.value.trim(), category: category.value,
-          severity: severity.value, contract_id: contract.value || null, legal_entity_id: contract.value ? null : entity.value || null, due_on: due.value || null, description: description.value.trim() || null }) });
+        await ctx.send('provider-issues', { organization_id: ctx.organization.id, provider_id: provider.id, title: title.value.trim(), category: category.value,
+          severity: severity.value, contract_id: contract.value || null, legal_entity_id: contract.value ? null : entity.value || null, due_on: due.value || null, description: description.value.trim() || null });
         after('Questão registrada.');
       } catch (error) { toast(error.message, 'error'); }
     });
@@ -300,7 +300,7 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
       el('div', { class: 'form-actions' }, button('Marcar como resolvida', { variant: 'primary', type: 'submit', iconName: 'check' }))]);
     onSubmit(form, async (event) => {
       event.preventDefault();
-      try { await ctx.api('provider-issues', { method: 'PATCH', body: JSON.stringify({ issue_id: issue.id, status: 'resolved', resolution: resolution.value.trim() }) }); after('Questão resolvida.'); }
+      try { await ctx.send('provider-issues', { issue_id: issue.id, status: 'resolved', resolution: resolution.value.trim() }, 'PATCH'); after('Questão resolvida.'); }
       catch (error) { toast(error.message, 'error'); }
     });
     inline(`Resolver: ${issue.title}`, form);
@@ -330,8 +330,8 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
       const values = Object.fromEntries([...scores.querySelectorAll('input')].filter((input) => input.value !== '').map((input) => [input.name, Number(input.value)]));
       if (!Object.keys(values).length || !start.value || !end.value) { toast('Informe o período e ao menos uma nota.', 'error'); return; }
       try {
-        await ctx.api('provider-reviews', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, provider_id: provider.id, template_id: template.value,
-          period_start: start.value, period_end: end.value, scores: values, comment: comment.value.trim() || null }) });
+        await ctx.send('provider-reviews', { organization_id: ctx.organization.id, provider_id: provider.id, template_id: template.value,
+          period_start: start.value, period_end: end.value, scores: values, comment: comment.value.trim() || null });
         after('Avaliação registrada.');
       } catch (error) { toast(error.message, 'error'); }
     });
@@ -361,7 +361,7 @@ export function scorecardSettings(ctx) {
         const slug = (text) => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').replace(/^([0-9])/, 'c_$1').slice(0, 40);
         const items = criteria.value.split('\n').map((line) => line.split(';').map((part) => part.trim())).filter((parts) => parts[0]).map(([label, weight, scale]) => ({ key: slug(label), label, weight: Number(weight), scale_max: Number(scale || 5) }));
         try {
-          await ctx.api('scorecard-templates', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, template_key: slug(name.value) || 'scorecard', name: name.value.trim(), criteria: items }) });
+          await ctx.send('scorecard-templates', { organization_id: ctx.organization.id, template_key: slug(name.value) || 'scorecard', name: name.value.trim(), criteria: items });
           toast('Scorecard salvo.');
           box.replaceChildren(loading());
           load();

@@ -1,6 +1,6 @@
 import {el, formatDate, formatDateTime, RFQ_STATUS} from '../core.js';
 import {button, field, loading, errorState, toast, onSubmit} from '../ui.js';
-import {TASK_EDITORS, taskChangeError} from './shared.js';
+import { TASK_EDITORS, taskChangeError } from './shared/tasks.js';
 
 // A composition of existing tasks, not another obligation or audit store.
 export function contractWork(ctx, contract) {
@@ -55,7 +55,7 @@ export function contractWork(ctx, contract) {
     control.disabled=true;notice.textContent='Conferindo a alteração no servidor…';
     const wanted=task.status==='open'?'done':'open';
     try {
-      await ctx.api('tasks',{method:'PATCH',body:JSON.stringify({organization_id:ctx.organization.id,task_id:task.id,status:wanted})});
+      await ctx.send('tasks', {organization_id:ctx.organization.id,task_id:task.id,status:wanted}, 'PATCH');
       const result=await ctx.api(`tasks?organization_id=${encodeURIComponent(ctx.organization.id)}&task_id=${encodeURIComponent(task.id)}`);
       if(result.rows?.find(row=>row.id===task.id)?.status!==wanted)throw new Error('Não confirmamos a alteração. Atualize as tarefas antes de tentar novamente.');
       const message=wanted==='done'?'Tarefa concluída. Consulte Concluídas para acompanhar o registro.':'Tarefa reaberta.';
@@ -83,7 +83,7 @@ export function contractWork(ctx, contract) {
       saving=true;submit.disabled=true;retry.disabled=true;feedback.textContent='Conferindo o registro da tarefa…';
       for(const control of [title,due,assignee].filter(Boolean))control.disabled=true;
       try {
-        const data=await ctx.api('tasks',{method:'POST',body:JSON.stringify({...pending.body,idempotency_key:pending.key})});
+        const data=await ctx.send('tasks', {...pending.body,idempotency_key:pending.key});
         if(!data.row?.id)throw new Error('Não confirmamos o registro da tarefa.');
         pending=null;title.value='';due.value='';if(assignee)assignee.value='';retry.hidden=true;
         feedback.textContent='Tarefa registrada neste contrato. Acompanhe-a na lista de pendentes.';filter.value='open';await load();

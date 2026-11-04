@@ -1,3 +1,4 @@
+/* global __ARANDU_DEMO__ */
 // Propostas recebidas fora do portal (v3.7). A empresa transcreve a oferta que
 // recebeu por e-mail, documento ou outro canal; o Arandu nunca a atribui ao banco
 // como envio autenticado. Contrato: docs/EXTERNAL_FINANCIAL_PROPOSALS_V37.md.
@@ -8,7 +9,8 @@ import { externalComparisonProposal } from '../../../lib/finance/external-propos
 import { PRODUCTS } from '../../../lib/finance/products.mjs';
 import { el, icon, formatDateTime, formatDate, plural } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, drawer, field, catalogControl, toast, onSubmit, definitionList } from '../ui.js';
-import { keyTerms, coverage, memberName } from './shared.js';
+import { keyTerms, coverage } from './shared/terms.js';
+import { memberName } from './shared/people.js';
 
 // Espelho dos papéis da API (RLS e RPC continuam decidindo): só orienta a tela.
 const WRITE_ROLES = ['admin', 'finance_manager', 'analyst'];
@@ -58,7 +60,7 @@ export function externalProposalsSection(ctx, rfq, { onChange = null } = {}) {
   });
   // Sandbox público sem backend: não há persistência. Explica o recurso sem
   // botão que pareça gravar.
-  if (ctx.mode === 'demo') {
+  if ((__ARANDU_DEMO__ && ctx.mode === 'demo')) {
     body.append(el('p', { class: 'callout callout-info compact', id: 'external-demo-note', role: 'note' }, [icon('info', { size: 14 }),
       el('span', { text: 'Nesta demonstração sem servidor, o registro de propostas externas não é gravado. No ambiente com backend, a equipe registra a transcrição, confere com o material recebido e a inclui na comparação, sem permitir escolher ou contratar essa proposta por aqui.' })]));
     return section;
@@ -162,7 +164,7 @@ export function externalContractContinuation(ctx, rfq, decision) {
     if(!record||!confirmed.checked){status.textContent='Escolha o contrato e confirme a conferência do registro.';return;}
     submit.disabled=true;
     try {
-      await ctx.api('external-proposals/contract',{method:'POST',body:JSON.stringify({id:decision.external_proposal_id,expected_version:decision.external_proposal_version,rfq_revision:decision.external_rfq_revision,request_key:requestKey,decision_id:decision.id,contract_id:record.id,expected_contract_version:record.current_version,confirmed_contract_record:true})});
+      await ctx.send('external-proposals/contract', {id:decision.external_proposal_id,expected_version:decision.external_proposal_version,rfq_revision:decision.external_rfq_revision,request_key:requestKey,decision_id:decision.id,contract_id:record.id,expected_contract_version:record.current_version,confirmed_contract_record:true});
       toast('Vínculo contratual confirmado. A assinatura não foi verificada pelo Arandu.');ctx.reload();
     } catch(error) {
       status.textContent=error.status&&error.status<500?explain(error):'O resultado ainda é desconhecido. Consulte antes de tentar novamente.';
@@ -305,7 +307,7 @@ function editor(ctx, rfq, { record = null, onSaved }) {
     if (!payload || save.disabled) return;
     save.disabled = true; back.disabled = true;
     try {
-      const result = await ctx.api(record ? 'external-proposals/versions' : 'external-proposals', { method: 'POST', body: JSON.stringify(payload) });
+      const result = await ctx.send(record ? 'external-proposals/versions' : 'external-proposals', payload);
       toast(result.replayed ? 'Este registro já havia sido gravado; nada foi duplicado.' : `Versão ${result.version} gravada. Aguardando conferência.`);
       sheet.close();
       // Quem pode conferir segue direto para a conferência desta versão: são
@@ -353,7 +355,7 @@ function review(ctx, row, action, reload) {
     if (!material.checked || (confirm && hasDocument && !documentRead.checked)) return fail('Marque as declarações de leitura. Nada foi registrado.');
     submit.disabled = true;
     try {
-      await ctx.api(`external-proposals/${action}`, { method: 'POST', body: JSON.stringify({ id: row.id, expected_version: row.current_version, reason: text, material_reviewed: true, document_read: hasDocument && documentRead.checked }) });
+      await ctx.send(`external-proposals/${action}`, { id: row.id, expected_version: row.current_version, reason: text, material_reviewed: true, document_read: hasDocument && documentRead.checked });
       toast(confirm ? 'Conferência registrada. A proposta entra na comparação como fonte externa.' : 'Proposta retirada da análise. O histórico foi preservado.');
       sheet.close();
     } catch (failure) {

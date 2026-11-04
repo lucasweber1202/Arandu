@@ -97,7 +97,7 @@ export function openCopilot(ctx, { context = pageContext, question = '' } = {}) 
     const token = current = {};
     send.disabled = true; stop.hidden = false;
     try {
-      const result = await ctx.api('copilot/ask', { method: 'POST', body: JSON.stringify({ organization_id: ctx.organization.id, question: full }) });
+      const result = await ctx.send('copilot/ask', { organization_id: ctx.organization.id, question: full });
       if (token !== current || turn.state === 'cancelled') return;
       Object.assign(turn, { state: 'done', result });
     } catch (error) {
@@ -207,7 +207,7 @@ export function reviewAction(ctx, action) {
     if (values.notes === null) delete values.notes;
     pending = true; save.disabled = true; errors.hidden = true;
     try {
-      const result = await ctx.api('copilot/confirm', { method: 'POST', body: JSON.stringify({ organization_id: p.organization_id || ctx.organization.id, ...(p.legal_entity_id ? { legal_entity_id: p.legal_entity_id } : {}), request_key: p.request_key || (p.request_key = uid()), values, confirmation: true }) });
+      const result = await ctx.send('copilot/confirm', { organization_id: p.organization_id || ctx.organization.id, ...(p.legal_entity_id ? { legal_entity_id: p.legal_entity_id } : {}), request_key: p.request_key || (p.request_key = uid()), values, confirmation: true });
       dialog.close();
       const provider = values.related_type === 'provider' ? values.related_id : null;
       toast(result.replayed ? 'Esta atividade já tinha sido registrada; nada foi duplicado.' : 'Atividade registrada.', 'success',

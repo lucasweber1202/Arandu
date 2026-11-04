@@ -146,7 +146,7 @@ export function openFeeImport(ctx, { contracts = [], contractId = null } = {}) {
   }
   const body = () => ({ organization_id: ctx.organization.id, contract_id: contract.value, file: { name: state.file.name, format: state.format, content_base64: toBase64(state.bytes) }, mapping: state.mapping, source_reference: source.value.trim(), ...(state.format === 'csv' ? { delimiter: delimiter.value } : {}) });
   async function runPreview() {
-    const out = await ctx.api('fee-imports/preview', { method: 'POST', body: JSON.stringify(body()) });
+    const out = await ctx.send('fee-imports/preview', body());
     state.preview = out.preview;
     state.confirmKey = uid();
     state.selected = new Set(state.preview.rows.filter((r) => r.state === 'valid').map((r) => r.line));
@@ -187,7 +187,7 @@ export function openFeeImport(ctx, { contracts = [], contractId = null } = {}) {
       if (!ok) return;
       confirm.disabled = true;
       try {
-        const out = await ctx.api('fee-imports/confirm', { method: 'POST', body: JSON.stringify({ ...body(), confirmation: true, preview_fingerprint: p.fingerprint, selected_lines: [...state.selected].sort((a, b) => a - b), request_key: state.confirmKey }) });
+        const out = await ctx.send('fee-imports/confirm', { ...body(), confirmation: true, preview_fingerprint: p.fingerprint, selected_lines: [...state.selected].sort((a, b) => a - b), request_key: state.confirmKey });
         stepFour(out.receipt || out);
       } catch (error) {
         errBox.replaceChildren(el('span', { text: importErrorMessage(error) }), ...(sessionLink(error) ? [' ', sessionLink(error)] : []));

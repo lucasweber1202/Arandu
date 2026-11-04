@@ -18,7 +18,7 @@ const REASON_LABEL = {
   connection_inactive: 'conexão inativa', state_invalid: 'tentativa expirada ou inválida', broker_failed: 'provedor não concluiu', email_unverified: 'e-mail não confirmado'
 };
 
-function post(ctx, path, body) { return ctx.api(path, { method: 'POST', body: JSON.stringify(body) }); }
+function post(ctx, path, body) { return ctx.send(path, body); }
 
 export function ssoSettings(ctx) {
   const box = el('div', { class: 'stack sso-settings' }, loading());

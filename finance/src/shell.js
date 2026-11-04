@@ -1,3 +1,4 @@
+/* global __ARANDU_DEMO__ */
 // Estrutura do espaço de trabalho: barra lateral, barra superior, navegação
 // móvel, busca (Ctrl/Cmd+K), central de notificações e faixa da demonstração.
 
@@ -164,7 +165,7 @@ export function renderTopbar(ctx) {
     [brandMark(), el('span', { class: 'topbar-org', text: ctx.organization?.legal_name || 'Arandu' })]);
   const actions = el('div', { class: 'topbar-actions' });
   // No celular a faixa da demonstração rola para fora da tela: este selo fica sempre visível.
-  if (ctx.mode === 'demo') actions.append(el('span', { class: 'demo-chip', title: 'Ambiente demonstrativo. Dados fictícios.' }, [icon('info', { size: 12 }), el('span', { text: 'Demo · dados fictícios' })]));
+  if ((__ARANDU_DEMO__ && ctx.mode === 'demo')) actions.append(el('span', { class: 'demo-chip', title: 'Ambiente demonstrativo. Dados fictícios.' }, [icon('info', { size: 12 }), el('span', { text: 'Demo · dados fictícios' })]));
   // Ambiente de demonstração com banco próprio: o produto real, com empresa fictícia.
   // A troca de persona volta à entrada por persona: o servidor abre nova sessão no
   // MESMO workspace do visitante (POST /api/auth/demo-login), nunca no navegador.
@@ -179,7 +180,7 @@ export function renderTopbar(ctx) {
     ]);
     actions.append(searchButton);
     // Copilot: o sandbox legado (/demo, sem backend) não tem o recurso.
-    if (ctx.mode !== 'demo') {
+    if (!(__ARANDU_DEMO__ && ctx.mode === 'demo')) {
       const copilot = el('button', { type: 'button', id: 'copilot-trigger', class: 'btn btn-ghost btn-sm copilot-trigger', 'aria-label': 'Abrir o Copilot financeiro' }, [icon('sparkles', { size: 16 }), el('span', { class: 'copilot-trigger-text', text: 'Copilot' })]);
       copilot.addEventListener('click', () => import('./views/copilot.js').then((m) => m.openCopilot(ctx)));
       actions.append(copilot);
@@ -195,7 +196,7 @@ export function renderTopbar(ctx) {
       el('p', { class: 'account-name', text: ctx.viewer.name || 'Sua conta' }),
       el('p', { class: 'account-detail', text: [ctx.viewer.title, ctx.organization?.legal_name].filter(Boolean).join(' · ') }),
       ctx.audience === 'company' ? el('a', { class: 'menu-item', href: ctx.href('/finance/settings.html') }, [icon('settings'), el('span', { text: 'Configurações' })]) : null,
-      ctx.mode === 'demo'
+      (__ARANDU_DEMO__ && ctx.mode === 'demo')
         ? el('a', { class: 'menu-item', href: '/demo/index.html' }, [icon('swap'), el('span', { text: 'Sair da demonstração' })])
         : el('button', { type: 'button', class: 'menu-item', id: 'logout' }, [icon('logout'), el('span', { text: 'Sair' })])
     ]);
@@ -219,7 +220,7 @@ export function renderTopbar(ctx) {
 
 // ----------------------------------------------------------- faixa demo
 export function renderDemoBanner(ctx) {
-  if (ctx.mode !== 'demo') return;
+  if (!(__ARANDU_DEMO__ && ctx.mode === 'demo')) return;
   document.querySelector('.demo-banner')?.remove();
   const persona = ctx.persona;
   const banner = el('div', { class: 'demo-banner', role: 'region', 'aria-label': 'Ambiente demonstrativo' });
@@ -430,7 +431,7 @@ export function notificationItem(ctx, row, { onOpen = null } = {}) {
     if (row.read_at) return;
     event.preventDefault();
     const destination = link.href;
-    ctx.api('notifications', { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id, ids: [row.id] }) })
+    ctx.send('notifications', { organization_id: ctx.organization.id, ids: [row.id] }, 'PATCH')
       .catch(() => {}).finally(() => { onOpen?.(); location.assign(destination); });
   });
   return link;
@@ -476,7 +477,7 @@ export function installNotificationCenter(ctx, bell) {
   markAll.addEventListener('click', async () => {
     markAll.disabled = true;
     try {
-      await ctx.api('notifications', { method: 'PATCH', body: JSON.stringify({ organization_id: ctx.organization.id }) });
+      await ctx.send('notifications', { organization_id: ctx.organization.id }, 'PATCH');
       rows = rows.map((row) => ({ ...row, read_at: row.read_at || new Date().toISOString() }));
       draw();
       toast('Notificações marcadas como lidas.');

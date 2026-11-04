@@ -1,10 +1,12 @@
+/* global __ARANDU_DEMO__ */
 // Portal da instituição: ver oportunidades, entender a demanda, responder e
 // acompanhar. Mais simples que o portal da empresa, de propósito.
 
 import { PRODUCTS, PRODUCT_IDS } from '../../../lib/finance/products.mjs';
 import { greeting, el, icon, formatDate, formatDateTime, relativeDays, daysUntil, productLabel, demandHeadline, fieldValue, PROPOSAL_STATUS, timeAgo } from '../core.js';
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, definitionList, toast, confirmDialog, field, catalogControl, saveIndicator, onSubmit } from '../ui.js';
-import { collaboration, revisionDiff } from './shared.js';
+import { collaboration } from './shared/collaboration.js';
+import { revisionDiff } from './shared/terms.js';
 import { proposalChanges } from '../../../lib/finance/comparison-context.mjs';
 
 const OPEN = ['open', 'collecting'];
@@ -81,7 +83,7 @@ async function acceptInvite(ctx, invite, { button: trigger = null } = {}) {
   const retried = triedInvites.has(invite.demo_token);
   triedInvites.add(invite.demo_token);
   try {
-    const result = await ctx.api('invites/accept', { method: 'POST', body: JSON.stringify({ token: invite.demo_token, provider_organization_id: ctx.organization.id }) });
+    const result = await ctx.send('invites/accept', { token: invite.demo_token, provider_organization_id: ctx.organization.id });
     toast('Convite aceito. A solicitação já está nas suas oportunidades.');
     if (result.proposal_id) location.assign(ctx.href(`/provider/proposal.html?proposal=${encodeURIComponent(result.proposal_id)}`));
     else location.assign(ctx.href('/provider/rfqs.html'));
@@ -195,7 +197,7 @@ export async function providerProposal(ctx) {
   const rows = ctx.data.assignments || [];
   const wanted = new URLSearchParams(location.search).get('proposal');
   let assignment = rows.find((row) => row.proposal_id === wanted) || (!wanted ? rows.find((row) => ['todo', 'outdated'].includes(assignmentState(row).key)) || rows[0] : null);
-  if (wanted && ctx.mode !== 'demo') {
+  if (wanted && !(__ARANDU_DEMO__ && ctx.mode === 'demo')) {
     try {
       const result = await ctx.api(`assignments?organization_id=${encodeURIComponent(ctx.organization.id)}&proposal_id=${encodeURIComponent(wanted)}`);
       assignment = result.rows?.find(row=>row.proposal_id === wanted);
@@ -309,7 +311,7 @@ export async function providerProposal(ctx) {
     indicator.set('saving', 'Salvando…');
     chain = chain.then(async () => {
       await ready;
-      const result = await ctx.api('proposal-draft', { method: 'PATCH', body: JSON.stringify({ proposal_id: assignment.proposal_id, terms, expected_revision: revision, base_version: assignment.version || 0 }) });
+      const result = await ctx.send('proposal-draft', { proposal_id: assignment.proposal_id, terms, expected_revision: revision, base_version: assignment.version || 0 }, 'PATCH');
       revision = result.revision;
       indicator.set(dirty ? 'dirty' : 'saved', dirty ? 'Alterações não salvas…' : `Rascunho salvo às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`);
     }).catch((error) => {
@@ -353,7 +355,7 @@ export async function providerProposal(ctx) {
     window.addEventListener('beforeunload', (event) => {
       if (!pendingChanges()) return;
       if (dirty) save();
-      if (ctx.mode !== 'demo') event.preventDefault();
+      if (!(__ARANDU_DEMO__ && ctx.mode === 'demo')) event.preventDefault();
     });
   }
 
@@ -379,7 +381,7 @@ export async function providerProposal(ctx) {
     sending = true;
     submit.querySelector('.btn-label').textContent = 'Enviando…';
     try {
-      const result = await ctx.api('proposals', { method: 'POST', body: JSON.stringify({ proposal_id: assignment.proposal_id, terms, note: note.value || null }) });
+      const result = await ctx.send('proposals', { proposal_id: assignment.proposal_id, terms, note: note.value || null });
       toast(result.replay ? 'Nada mudou desde a última versão enviada.' : `Proposta enviada como versão ${result.version}.`);
       setTimeout(() => location.reload(), 600);
     } catch (error) {
@@ -515,7 +517,7 @@ export async function providerInvite(ctx) {
       }
       decline.disabled = true; submit.disabled = true;
       try {
-        const result = await ctx.api('invites/decline', { method: 'POST', body: JSON.stringify(declinePayload) });
+        const result = await ctx.send('invites/decline', declinePayload);
         stateNode.className = 'callout callout-success';
         stateNode.textContent = `Convite recusado${result.declined_at ? ` em ${formatDateTime(result.declined_at)}` : ''}. A empresa vê a recusa; nenhuma proposta foi criada.${result.replayed ? ' (A recusa já estava registrada.)' : ''}`;
         stateNode.dataset.state = 'declined';
@@ -544,7 +546,7 @@ export async function providerInvite(ctx) {
       submit.disabled = true;
       const retried = attempts++ > 0;
       try {
-        const result = await ctx.api('invites/accept', { method: 'POST', body: JSON.stringify({ token: tokenInput.value.trim(), provider_organization_id: select.value }) });
+        const result = await ctx.send('invites/accept', { token: tokenInput.value.trim(), provider_organization_id: select.value });
         stateNode.className = 'callout callout-success';
         stateNode.textContent = 'Convite aceito. A solicitação já aparece nas suas oportunidades.';
         toast('Convite aceito.');

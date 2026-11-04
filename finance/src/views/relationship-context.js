@@ -1,3 +1,4 @@
+/* global __ARANDU_DEMO__ */
 // Fatos dos registros existentes. Sem estado paralelo nem cálculo financeiro.
 import { el, formatDate, productLabel, renewalStage, CONTRACT_STATUS, RFQ_STATUS } from '../core.js';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
@@ -29,7 +30,7 @@ export function relationshipContext(ctx, detail) {
       const proposals = (detail.proposals || []).filter(row => row.rfq_id === rfq.id);
       return el('li', {}, [el('a', { href: href(`/finance/rfq.html?id=${rfq.id}`), text: rfq.title || 'Solicitação' }), el('p', { class: 'small muted', text: `${RFQ_STATUS[rfq.status]?.label || 'Estado não informado'} · prazo ${date(rfq.response_deadline)} · ${invites.length} convite(s) carregado(s) · ${proposals.filter(row => row.current_version > 0 && row.status !== 'withdrawn').length} proposta(s) submetida(s) não retirada(s). Abra o processo para revisão, decisão e contratação.` })]);
     }, 'Nenhuma solicitação disponível neste recorte.'),
-    ctx.mode === 'demo' ? null : el('nav', { class: 'row-actions', 'aria-label': 'Jornadas desta instituição' }, quickLinks.map(([page, text]) => el('a', { href: href(`/finance/${page}.html?provider_id=${encodeURIComponent(provider.id)}`), text }))),
+    (__ARANDU_DEMO__ && ctx.mode === 'demo') ? null : el('nav', { class: 'row-actions', 'aria-label': 'Jornadas desta instituição' }, quickLinks.map(([page, text]) => el('a', { href: href(`/finance/${page}.html?provider_id=${encodeURIComponent(provider.id)}`), text }))),
     graphContextCard(ctx, { type: 'provider', id: provider.id, title: 'Garantias, documentos e relações financeiras' })
   ].filter(Boolean));
 }

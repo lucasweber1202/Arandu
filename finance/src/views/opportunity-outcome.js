@@ -46,7 +46,7 @@ export function opportunityOutcome(ctx, id, { manage = false, onDone = null } = 
     if (!resolution) return;
     busy = true;
     try {
-      const out = await ctx.api('opportunities/complete-negotiation', { method: 'POST', body: JSON.stringify({ opportunity_id: id, decision_id: decision.id, expected_status: opportunity.status, confirmed: true, resolution }) });
+      const out = await ctx.send('opportunities/complete-negotiation', { opportunity_id: id, decision_id: decision.id, expected_status: opportunity.status, confirmed: true, resolution });
       toast(out.replayed ? 'Esta conclusão já estava registrada.' : 'Conclusão registrada.');
       render(await load()); onDone?.();
     } catch (error) {

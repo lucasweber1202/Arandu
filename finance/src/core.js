@@ -4,7 +4,6 @@
 // `textContent`/`setAttribute`. Não existe `innerHTML` com conteúdo dinâmico
 // neste cliente — é o que torna inofensivo um título de RFQ com `<script>`.
 
-import { PRODUCTS } from '../../lib/finance/products.mjs';
 
 export function el(tag, props = {}, children = []) {
   const node = document.createElement(tag);
@@ -225,14 +224,17 @@ export const PROVIDER_KINDS = Object.freeze({
 });
 // Contratos da carteira cobrem categorias sem concorrência no Arandu (garantia,
 // câmbio, seguro…): o rótulo nunca cai no código interno da categoria.
-const CATEGORY_LABELS = Object.freeze({
+// Os rótulos longos de crédito e adquirência são os mesmos de PRODUCTS (paridade
+// verificada em tests/e2e/finance-frontend-architecture.spec.js); o core não
+// importa o catálogo completo, que só as telas de demanda/proposta carregam.
+export const CATEGORY_LABELS = Object.freeze({
   credit: ['Crédito', 'Crédito empresarial'], acquiring: ['Adquirência', 'Adquirência e meios de pagamento'],
   cash_management: ['Cash management', 'Cash management / serviços bancários'], guarantee: ['Garantia', 'Garantia / fiança / seguro-garantia'],
   fx: ['Câmbio', 'Câmbio'], insurance: ['Seguro', 'Seguro'], other: ['Outro produto', 'Outro produto financeiro']
 });
 export function productLabel(id, { short = false } = {}) {
   if (short) return CATEGORY_LABELS[id]?.[0] || (id ? 'Produto financeiro' : '');
-  return PRODUCTS[id]?.label || CATEGORY_LABELS[id]?.[1] || (id ? 'Produto financeiro' : '');
+  return CATEGORY_LABELS[id]?.[1] || (id ? 'Produto financeiro' : '');
 }
 
 /** Resumo de uma linha da demanda, usado em listas e na caixa de aprovação. */

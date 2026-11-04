@@ -14,7 +14,7 @@ import { graphContextCard } from './graph-context.js';
 // Detalhe: { title, lines, links:[{href, text}], sections:[{title, items}], graph:{type,id,kind,title}, actions:[form] }
 // Formulário: { label, primary, title, intro, fields:[[chave, rótulo, tipo|opções, atributos]], post, fixed }
 
-const post = (ctx, path, body) => ctx.api(path, { method: 'POST', body: JSON.stringify(body) });
+const post = (ctx, path, body) => ctx.send(path, body);
 // Rede de proteção da apresentação: textos compostos no servidor ainda podem
 // trazer identificador interno ou instante ISO (ex.: origem do plano de
 // implantação). Aqui viram o que a pessoa reconhece — contrato pelo nome,

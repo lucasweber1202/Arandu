@@ -4,7 +4,7 @@
 // mostra, filtrado pelo objeto aberto — nenhuma agenda ou cálculo paralelo.
 import { el, icon, todayIso, renewalStage, formatDate, relativeDays } from '../core.js';
 import { tag, loading } from '../ui.js';
-import { TASK_EDITORS } from './shared.js';
+import { TASK_EDITORS } from './shared/tasks.js';
 import { relationshipSignals, feeSignals, feeWindow, feeReconciliationLines } from '../../../lib/finance/central-signals.mjs';
 
 const enc = encodeURIComponent;
