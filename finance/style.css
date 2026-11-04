@@ -1443,3 +1443,11 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 /* Aviso de conexão: fixo no rodapé, acima da navegação móvel, sem cobrir o conteúdo inteiro. */
 .connectivity-notice{position:fixed;left:50%;bottom:calc(var(--s4) + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:80;align-items:center;max-width:min(560px,calc(100vw - 32px));box-shadow:var(--shadow-md)}
 @media (max-width:760px){.connectivity-notice{bottom:calc(72px + env(safe-area-inset-bottom,0px))}}
+/* Linha do tempo do relacionamento: mês, data e origem de cada evento. */
+.rel-timeline-month{display:grid;gap:var(--s2)}
+.rel-timeline-month-title{font-size:var(--fs-sm);color:var(--text-secondary);text-transform:capitalize}
+.rel-timeline-list{list-style:none;margin:0;padding:0;display:grid;gap:var(--s2)}
+.rel-timeline-item{display:grid;grid-template-columns:minmax(96px,auto) 1fr;gap:var(--s3);align-items:baseline;min-width:0}
+.rel-timeline-when{font-size:var(--fs-sm);color:var(--text-secondary);white-space:nowrap}
+.rel-timeline-body{display:grid;gap:2px;min-width:0;overflow-wrap:anywhere}
+@media (max-width:520px){.rel-timeline-item{grid-template-columns:1fr;gap:2px}}
