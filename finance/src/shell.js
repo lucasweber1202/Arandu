@@ -404,3 +404,30 @@ export function installNotificationCenter(ctx, bell) {
   refresh();
   return { refresh };
 }
+
+// ------------------------------------------------------- conexão
+// Aviso persistente quando a rede cai: escrita já é recusada antes de sair
+// (ctx.api), mas a pessoa precisa saber ANTES de preencher e enviar. Ao voltar,
+// nada é recarregado sozinho (formulário em edição não se perde): a pessoa
+// escolhe atualizar os dados. Só no portal real; o sandbox não depende de rede.
+export function installConnectivityNotice(ctx, { onRefresh } = {}) {
+  if (ctx.mode !== 'real' || installConnectivityNotice.installed) return;
+  installConnectivityNotice.installed = true;
+  let node = null;
+  const clear = () => { node?.remove(); node = null; };
+  const show = (online) => {
+    clear();
+    node = el('div', { class: `connectivity-notice callout compact ${online ? 'callout-info' : 'callout-warning'}`, id: 'connectivity-notice', role: 'status', 'aria-live': 'polite' }, [
+      icon(online ? 'refresh' : 'alert', { size: 14 }),
+      el('span', { text: online
+        ? 'Conexão restabelecida. Os dados desta tela podem estar desatualizados.'
+        : 'Sem conexão. Você pode continuar lendo; nada será enviado até a rede voltar.' }),
+      online ? button('Atualizar dados', { size: 'sm', onClick: () => { clear(); onRefresh?.(); } }) : null,
+      online ? iconButton('x', 'Fechar aviso', { onClick: clear }) : null
+    ].filter(Boolean));
+    document.body.append(node);
+  };
+  window.addEventListener('offline', () => show(false));
+  window.addEventListener('online', () => show(true));
+  if (!navigator.onLine) show(false);
+}
