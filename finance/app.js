@@ -13,9 +13,9 @@
 
 import { el, icon, ROLE_LABELS, needsRenewalAttention } from './src/core.js';
 import { emptyState, linkButton, errorState, loading, toast, SESSION_EXPIRED_WRITE } from './src/ui.js';
-import { renderSidebar, renderTopbar, renderMobileNav, renderDemoBanner, installCommandCenter, installNotificationCenter } from './src/shell.js';
+import { renderSidebar, renderTopbar, renderMobileNav, renderDemoBanner, installCommandCenter, installNotificationCenter, installConnectivityNotice } from './src/shell.js';
 import { locate } from '../lib/finance/navigation.mjs';
-import { requestedAction } from '../lib/finance/intents.mjs';
+import { requestedAction } from '../lib/finance/intent-actions.mjs';
 import { canRole } from '../lib/finance/permissions.mjs';
 /* global __ARANDU_DEMO__ */
 const DEMO_BUILD = typeof __ARANDU_DEMO__ !== 'undefined' && __ARANDU_DEMO__ === true;
@@ -403,21 +403,20 @@ async function render({ refresh = false, rebuildShell = false } = {}) {
   }
   if (node) root.replaceChildren(node);
   root.setAttribute('aria-busy', 'false');
-  runRequestedIntent();
   workspace?.afterRender(ctx, { failure });
   focusDeepLink();
   openRequestedAction();
 }
 
 // Intake por objetivo: `?acao=` abre o formulário do fluxo de destino uma vez
-// (lista fechada em lib/finance/intents.mjs; sem botão — sem permissão — nada acontece).
+// (lista fechada em lib/finance/intent-actions.mjs; sem botão — sem permissão — nada acontece).
 function openRequestedAction() {
   const action = requestedAction(location.search);
   if (!action) return;
   const url = new URL(location.href);
   url.searchParams.delete('acao');
   history.replaceState(null, '', url.pathname + url.search + url.hash);
-  document.querySelector(`[data-intent="${action}"]`)?.click();
+  document.querySelector(`#main [data-intent="${action}"]`)?.click();
 }
 
 // Link direto para um item (busca, notificação, e-mail): leva o foco até ele,
@@ -464,6 +463,7 @@ async function boot() {
   }
   if (!VIEWS[view]) return;
   await render();
+  installConnectivityNotice(ctx, { onRefresh: () => render({ refresh: true }) });
   if ((__ARANDU_DEMO__ && ctx.mode === 'demo') && transport.recovered?.()) toast('O estado salvo da demonstração era inválido ou de outra versão e foi restaurado para o conjunto inicial.', 'info');
   if ((__ARANDU_DEMO__ && ctx.mode === 'demo') && !transport.persistent?.()) toast('Este navegador não permite guardar dados locais: a demonstração funciona, mas não sobrevive a recarregar a página.', 'info');
 }
@@ -473,15 +473,3 @@ boot().catch((error) => {
   root?.replaceChildren(errorState({ title: 'Não foi possível carregar o portal', error, onRetry: () => location.reload() }));
 });
 
-// ?acao=<intent> abre a ação da tela com data-intent igual (ex.: "Registrar
-// contrato existente" a partir dos primeiros passos), uma vez, e sai da URL.
-// Só nomes simples; a ação continua sujeita a papel e às regras da tela.
-function runRequestedIntent() {
-  const url = new URL(location.href);
-  const intent = url.searchParams.get('acao');
-  if (!intent) return;
-  url.searchParams.delete('acao');
-  history.replaceState(null, '', url.pathname + url.search + url.hash);
-  if (!/^[a-z-]{3,40}$/.test(intent)) return;
-  document.querySelector(`#main [data-intent="${intent}"]`)?.click();
-}
