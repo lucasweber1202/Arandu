@@ -91,3 +91,50 @@ motor do sandbox (~55 KB) é contado como produto porque inclui
 congelado de 330.000. Isso só se resolve com a migração de `arandu-demo` para
 `ARANDU_ENV=demo` (cutover), que remove o sandbox do build. Ainda candidatos:
 detalhe do contrato (versões/aditivos/marcos), `policy.js`, `provider.js`.
+
+## v8.0 — contrato como objeto operacional (04/11/2026)
+
+`contract-center/summary.js` abre o workspace do contrato com um **Resumo do
+contrato** derivado só de `contract-detail`: instituição (link para o
+relacionamento), produto, vigência, data-limite do aviso de não renovação
+(mesma regra `renewalStage` da carteira e da Central; sem aviso prévio
+registrado é “Não calculável”, nunca zero presumido), renovação automática,
+moeda, origem (negociação com link para a decisão, carteira existente ou
+registro manual), versão dos termos vigentes e responsável. “O que falta para
+decidir” lista lacunas factuais (termos não estruturados, fim de vigência ou
+aviso prévio ausentes, sem responsável, sem referência documental), cada uma
+dizendo o que impede e, para quem pode, a ação existente (estruturar termos,
+registrar aditivo). Prazo de aviso passado e fim de vigência passado com
+cadastro ainda vigente geram avisos distintos; nada muda de status sozinho.
+Documentos e evidências do contrato ficam no mesmo bloco.
+
+`contract-center/renewal.js` é a única implementação da ação de renovação
+(lista de contratos e workspace): o servidor reabre a concorrência de renovação
+existente ou cria rascunho com a demanda do contrato; convites, propostas e
+decisões nunca são copiados.
+
+`lazyDocuments` (Passport, contrato, RFQ) só lê `private-documents` ao abrir o
+painel, uma vez; falha ao carregar o módulo vira aviso com recarga, sem painel
+vazio nem marcação de carregado. Isso **não** explica o
+`net::ERR_TOO_MANY_RETRIES` da integração efêmera da #316 (falha de transporte
+sem resposta HTTP); ver handoff abaixo.
+
+Medições locais (bytes publicados): produto 767.171 (v7.0) → 768.812 com o
+resumo, a ação única de renovação e helpers de texto (`textSpan/textStrong/
+textItem`, 282 chamadas) que compensaram a maior parte do código novo. Build
+demonstrativo legado: 795.228 (margem de 4.772 até 800.000 — curta; o código
+de produto novo também entra ali). Maior rota (`rfq`): 157.254.
+
+### Handoff para o backend (#316)
+
+No frontend, `GET private-documents` acontece em três lugares: `documents.js`
+(ao abrir um painel de documentos: Passport, contrato, proposta), e
+`external-proposals.js` (lista de documentos da RFQ para vincular proposta
+externa). Na jornada do Passport a leitura só ocorre após o clique no painel,
+uma vez por painel, com `organization_id` da organização ativa e o par
+`entity_type/entity_id`. Não há retry automático no frontend (o erro vira
+estado de falha). `ERR_TOO_MANY_RETRIES` é emitido pela pilha de rede do
+Chromium quando a conexão é reiniciada repetidamente antes de qualquer resposta
+HTTP; a investigação deve seguir no servidor local da integração efêmera
+(processo do app, keep-alive/HTTP2, reinício durante a fase) — não removendo a
+leitura nem a asserção do teste.
