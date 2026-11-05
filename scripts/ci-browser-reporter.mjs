@@ -43,6 +43,14 @@ export default class BrowserReceipt {
     const report={format_version:1,sha:this.sha,group,mode:plan?'plan':'execution',result:result.status,workers:this.workers,
       wall_ms:performance.now()-this.start,cases:this.cases,results:this.results,
       limitations:['Setup/teardown are top-level Playwright hook durations.','Network request counts are not measured by this reporter.','Explicit skips remain SKIPPED; they are never labeled PASS.']};
+    if(!plan) {
+      const final=new Map();for(const row of this.results)if(!final.has(row.id)||final.get(row.id).retry<row.retry)final.set(row.id,row);
+      console.log('ARANDU_BROWSER_COUNTS '+JSON.stringify({sha:this.sha,group,result:result.status,planned:this.cases.length,
+        executed:final.size,attempts:this.results.length,retries:this.results.filter(r=>r.retry>0).length,
+        flaky:[...final.values()].filter(r=>r.retry>0&&r.status===r.expected_status).length,
+        skipped:[...final.values()].filter(r=>r.status==='skipped').length,
+        passed:[...final.values()].filter(r=>r.status==='passed'&&r.expected_status==='passed').length}));
+    }
     if(plan)console.log(`BROWSER_PLAN cases=${this.cases.length} sha=${this.sha}`);
     fs.mkdirSync(process.env.ARANDU_BROWSER_PROFILE_DIR,{recursive:true});
     fs.writeFileSync(path.join(process.env.ARANDU_BROWSER_PROFILE_DIR,plan?'browser-plan.json':`browser-${group}.json`),JSON.stringify(report,null,2)+'\n');

@@ -91,6 +91,9 @@ function classifyPath(path, { status, readSource }) {
     return { risk: 'D', why: 'critical surface' };
   }
   const removed = status === 'removed';
+  // Passive raster test evidence is not a contract or executable document.
+  // Critical path terms above still win. SVG/HTML/JSON/Markdown stay closed.
+  if (/^docs\/evidence\/[a-z0-9_./-]+\.(?:png|jpg|webp)$/.test(path)) return { risk: 'A', why: 'passive raster test evidence' };
   if (/^(?:README|CHANGELOG)\.md$/.test(path)) return { risk: 'A', why: 'explanatory doc' };
   const doc = path.match(/^docs\/([A-Za-z0-9_]+)\.md$/);
   if ((doc && FUNCTIONAL_DOCS.has(doc[1])) || FUNCTIONAL_DOC.test(path)) return { risk: 'A', why: 'functional doc' };

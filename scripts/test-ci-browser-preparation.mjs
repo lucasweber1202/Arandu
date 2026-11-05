@@ -33,3 +33,8 @@ assert.match(workflow,/node scripts\/ci-browser-coverage\.mjs --job-outputs/);
 assert.match(workflow,/Cheap explicit Demo build and unchanged budgets before browsers/);
 assert.doesNotMatch(workflow.split(/^  browser-coverage:/m)[1].split(/^  presentation:/m)[0],/continue-on-error:/);
 console.log('CI browser preparation: signed source preservation, transport scope, idempotence and suite fail-fast PASS.');
+
+assert.match(browserWorkflow,/browserEngines/);
+assert.match(browserWorkflow,/install-deps \$BROWSER_ENGINES/);
+assert.match(browserWorkflow,/run: npx playwright install \$BROWSER_ENGINES/);
+assert.match(browserWorkflow,/hashFiles\('package-lock.json'\) }}-\$\{\{ inputs.browser_group }}/);

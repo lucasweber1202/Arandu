@@ -34,6 +34,8 @@ jobs:
         run: npm ci --include=optional
       - name: Validate browser group before preparation
         run: node --input-type=module -e "import {browserProjects} from './scripts/ci-browser-groups.mjs'; browserProjects(process.env.ARANDU_BROWSER_GROUP)"
+      - name: Select engines from the validated browser group
+        run: node --input-type=module -e "import fs from 'node:fs'; import {browserEngines} from './scripts/ci-browser-groups.mjs'; fs.appendFileSync(process.env.GITHUB_ENV,'BROWSER_ENGINES='+browserEngines(process.env.ARANDU_BROWSER_GROUP).join(' ')+'\n')"
       - name: Build identical regular product from candidate checkout
         run: npm run build
       - name: Build size budget
@@ -43,14 +45,14 @@ jobs:
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
 
       # Cache de binários por ABI do runner, arquitetura, Playwright e lockfile.
-      # Dependências apt e verificação dos três motores rodam em todo job.
+      # Dependências apt e probe de cada motor do grupo rodam em todo job.
       # Salvar antes dos testes preserva o cache mesmo se a suíte for cancelada.
       - name: Restore Playwright browsers
         id: browser-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-ubuntu-24.04-${{ runner.arch }}-${{ steps.playwright.outputs.version }}-${{ hashFiles('package-lock.json') }}
+          key: playwright-ubuntu-24.04-${{ runner.arch }}-${{ steps.playwright.outputs.version }}-${{ hashFiles('package-lock.json') }}-${{ inputs.browser_group }}
           restore-keys: |
             playwright-ubuntu-24.04-${{ runner.arch }}-${{ steps.playwright.outputs.version }}-
 
@@ -61,13 +63,13 @@ jobs:
         timeout-minutes: 25
         env:
           DEBIAN_FRONTEND: noninteractive
-        run: npx playwright install-deps chromium firefox webkit
+        run: npx playwright install-deps $BROWSER_ENGINES
 
-      - name: Verify and install Chromium, Firefox and WebKit
+      - name: Verify and install every engine required by this group
         timeout-minutes: 10
         env:
           PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT: '60000'
-        run: npx playwright install chromium firefox webkit
+        run: npx playwright install $BROWSER_ENGINES
 
       - name: Verify browser launch and page rendering
         timeout-minutes: 2

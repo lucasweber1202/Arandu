@@ -121,10 +121,10 @@ if (exists('.github/workflows/ci.yml')) {
       section=exists('.github/workflows/ci-browser.yml')?read('.github/workflows/ci-browser.yml').split(/^  browser:/m)[1]||'':'';
     }
     const steps = section.split(/      - name:/).slice(1);
-    const binarySteps = steps.filter((step) => /run: npx playwright install (?:--with-deps )?chromium firefox webkit/.test(step));
-    const depsSteps = steps.filter((step) => /run: npx playwright install(?:-deps| --with-deps) chromium firefox webkit/.test(step));
+    const binarySteps = steps.filter((step) => (job==='presentation'?/run: npx playwright install (?:--with-deps )?chromium firefox webkit/:/run: npx playwright install \$BROWSER_ENGINES/).test(step));
+    const depsSteps = steps.filter((step) => (job==='presentation'?/run: npx playwright install(?:-deps| --with-deps) chromium firefox webkit/:/run: npx playwright install-deps \$BROWSER_ENGINES/).test(step));
     if (!binarySteps.length || !depsSteps.length) {
-      problems.push(`.github/workflows/ci.yml: ${job} precisa instalar dependências e os três motores.`);
+      problems.push(`.github/workflows/ci.yml: ${job} precisa instalar dependências e todos os motores exigidos.`);
     }
     for (const step of new Set([...binarySteps, ...depsSteps])) {
       if (/\n\s+if:|continue-on-error: true/.test(step)) {

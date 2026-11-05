@@ -10,3 +10,7 @@ export function browserProjects(group) {
   if(!Object.hasOwn(BROWSER_GROUPS,group))throw new Error('Unknown CI browser group');
   return BROWSER_GROUPS[group];
 }
+
+export function browserEngines(group) {
+  return [...new Set(browserProjects(group).map(project=>project==='firefox-desktop'?'firefox':project==='webkit-desktop'||project==='mobile-safari'?'webkit':'chromium'))];
+}

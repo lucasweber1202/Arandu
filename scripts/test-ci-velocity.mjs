@@ -1,7 +1,10 @@
+import {seedQuotaReport} from './ci/seed-quota-report.mjs';
+import {browserBalance} from './ci/browser-balance.mjs';
+import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import {parseChanges} from './ci/changes.mjs';
-import {reportAttempt,riskReceipt} from './ci/velocity-report.mjs';
-import {BROWSER_GROUPS,browserProjects} from './ci-browser-groups.mjs';
+import {reportAttempt,riskReceipt,browserCounts} from './ci/velocity-report.mjs';
+import {BROWSER_GROUPS,browserProjects,browserEngines} from './ci-browser-groups.mjs';
 import {classifyChanges} from './ci/risk-policy.mjs';
 assert.deepEqual(parseChanges('R100\0old name\0new\nname\0M\0next\0'),[{status:'renamed',previous_filename:'old name',filename:'new\nname'},{status:'modified',filename:'next'}]);
 assert.deepEqual(parseChanges('C100\0old\0new\0'),[{status:'added',filename:'new'}]);
@@ -27,3 +30,34 @@ console.log('CI Velocity: shared diff parser, five projects once, sensitive/unkn
 
 assert.equal(riskReceipt('not a receipt'),null);
 assert.equal(riskReceipt('ARANDU_RISK_RECEIPT '+JSON.stringify({sha:'a'.repeat(40),risk:'D',reasons:[],private:'DO_NOT_SERIALIZE'})).private,undefined);
+
+assert.deepEqual(browserEngines('chromium'),['chromium']);
+assert.deepEqual(browserEngines('firefox'),['firefox']);
+assert.deepEqual(browserEngines('webkit'),['webkit']);
+assert.deepEqual(browserEngines('safari'),['webkit']);
+assert.throws(()=>browserEngines('typo'));
+
+const reused={...job('full / validate-source','40','07','15')};
+const partial=reportAttempt(run,[reused,job('full / presentation','40','41','50')]);
+assert.equal(partial.inherited_jobs.length,1);
+assert.equal(partial.runner_minutes_estimate,1,'copied old jobs must not be billed on a rerun');
+assert.equal(partial.critical_path,null,'partial rerun cannot reconstruct full critical path');
+
+const counts={sha:'a'.repeat(40),group:'chromium',result:'passed',planned:3,executed:3,attempts:4,retries:1,flaky:1,skipped:1,passed:2,secret:'DO_NOT_SERIALIZE'};
+assert.equal(browserCounts('ARANDU_BROWSER_COUNTS '+JSON.stringify(counts))[0].secret,undefined);
+assert.equal(browserCounts('ARANDU_BROWSER_COUNTS '+JSON.stringify({...counts,attempts:-1})).length,0);
+
+const quota=seedQuotaReport({requests:[{channel:'app',method:'POST',resource:'spend/reconcile',actor:'buyer.finance_manager',attempts:83,statuses:{'200':82,'429':1}}]});
+assert.equal(quota.actors[0].non_429_attempts,82);
+assert.equal(quota.actors[0].minimum_span_seconds_if_one_identity,600);
+assert.throws(()=>seedQuotaReport({requests:[{channel:'app',method:'POST',resource:'bad?secret',actor:'buyer',attempts:1}]}));
+const balance=browserBalance(JSON.parse(fs.readFileSync('ops/ci/acceleration-v7/browser-baseline-41898780191.json','utf8')));
+assert.equal(new Set(balance.designs.map(d=>d.total_worker_ms)).size,1,'partition must preserve measured work');
+assert(balance.designs[2].max_worker_ms<balance.designs[0].max_worker_ms);
+
+for(const filename of ['docs/evidence/claude-ux-ui-audit-2026-10-18/rfqs-desktop-before.png','docs/evidence/browser-check/mobile.webp'])assert.equal(classifyChanges([{status:'modified',filename}]).risk,'A',filename);
+for(const filename of ['docs/evidence/auth.png','docs/evidence/contract.svg','docs/evidence/result.json','docs/evidence/notes.md','docs/evidence/frame.png.js','docs/evidence/migration/frame.png','docs/evidence/../frame.png']) {
+ if(filename.includes('../'))assert.throws(()=>classifyChanges([{status:'modified',filename}]));
+ else assert.equal(classifyChanges([{status:'modified',filename}]).risk,'D',filename);
+}
+assert.equal(classifyChanges([{status:'renamed',filename:'docs/evidence/frame.png',previous_filename:'docs/RISK_BASED_CI.md'}]).risk,'D');

@@ -183,6 +183,8 @@ jobs:
     env:
       ARANDU_SITE_URL: https://arandu.example.com
       ARANDU_PRESENTATION_MODE: "true"
+      ARANDU_BROWSER_PROFILE_DIR: reports/ci-performance/presentation
+      ARANDU_BROWSER_GROUP: presentation
       VERCEL_ENV: preview
     steps:
       - name: Checkout

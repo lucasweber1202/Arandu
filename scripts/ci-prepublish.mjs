@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 // Cheap pre-publication checks, never merge/release authorization or deep CI.
-import fs from 'node:fs';
 import { spawnSync,execFileSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
 import { preflight } from './ci/preflight.mjs';
@@ -23,7 +22,7 @@ try {
  if(git('status','--porcelain','--untracked-files=normal'))throw Error('commit_checkpoint_before_prepublish');
  const plan=preflight();risk=plan.risk;
  console.log(JSON.stringify(plan));
- console.log(JSON.stringify({tool:'arandu-ci-prepublish',sha,base,risk,changed_files:changes.map(c=>c.filename),scope:'CHEAP_LOCAL_CHECKS_ONLY',ci_required:true,deep_ci_required:risk==='D'}));
+ console.log(JSON.stringify({tool:'arandu-ci-prepublish',sha,base,risk,changed_files:plan.reasons.map(r=>r.path),scope:'CHEAP_LOCAL_CHECKS_ONLY',ci_required:true,deep_ci_required:risk==='D'}));
  // Match the public site fixture inherited by source/deploy CI jobs. Local
  // integration fixtures must override it themselves, never relax host guards.
  stage('source_contracts',process.execPath,['scripts/run-hermetic.mjs','npm','run','check:all'],{...process.env,ARANDU_SITE_URL:'https://arandu.example.com'});
