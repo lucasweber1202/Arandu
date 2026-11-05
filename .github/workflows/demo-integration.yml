@@ -83,6 +83,7 @@ jobs:
         timeout-minutes: 3
         run: |
           if ! command -v psql >/dev/null 2>&1 || ! command -v age >/dev/null 2>&1 || ! command -v age-keygen >/dev/null 2>&1; then
+            sudo "$(command -v node)" scripts/configure-ci-apt.mjs
             sudo apt-get update && sudo apt-get install -y postgresql-client age
           fi
           bash scripts/ci-demo/run.sh preflight

@@ -40,6 +40,9 @@ sem retries; a integração desse run foi cancelada pela atualização remota da
 branch e não comprova D integral. Como o seed domina, a candidata final usa três
 grupos para reduzir overhead; seu resultado integral ainda exige medição.
 
+O preflight da Demo reutiliza a configuração existente de archive Ubuntu
+assinado e retries de rede limitados antes de instalar ferramentas ausentes;
+não troca chaves de confiança nem aumenta timeouts dos testes.
 Cada grupo instala/prova somente seu motor. Presentation continua com os três.
 O cache de binários tem sufixo de grupo, evitando que jobs paralelos salvem conjuntos
 parciais na mesma chave. Restore de cache antigo pode conter mais motores;
