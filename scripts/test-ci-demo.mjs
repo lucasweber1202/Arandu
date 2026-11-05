@@ -151,7 +151,11 @@ test('recovery usa seed verificado antes da jornada que cadastra fatores MFA', (
   }
 });
 test('Playwright: só Chromium, um worker, sem trace', () => {
-  assert.match(workflow, /npx playwright install --with-deps chromium\n/);
+  assert.match(workflow, /run: node scripts\/ci-demo\/seed-browser\.mjs/);
+  const prepare=fs.readFileSync('scripts/ci-demo/seed-browser.mjs','utf8');
+  assert.match(prepare,/args:\['playwright','install','--with-deps','chromium'\]/);
+  assert.match(prepare,/bash scripts\/ci-demo\/run\.sh seed-pool/);
+  assert.match(workflow,/run: node scripts\/ci-demo\/seed-browser\.mjs --verify/);
   assert.doesNotMatch(workflow, /firefox|webkit/);
   assert.match(runner, /--workers 1 --trace off/);
 });

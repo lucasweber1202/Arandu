@@ -1,6 +1,8 @@
 # CI Velocity 9.0
 
 Base reconciliada: `f26b803a76c28f618801d50ccc92f8928dcf458e` (#331).
+Reconciliação posterior: `d4c40694` (#332), integrada pela atualização remota
+da PR; as alterações funcionais e o contrato de budget dessa main são preservados.
 A própria alteração é D. Nenhum ruleset, fonte dos quatro contextos,
 permissão GitHub, quota de produto ou configuração hospedada é alterado.
 O resultado medido da candidata será publicado na PR após os gates no SHA exato;
@@ -72,6 +74,19 @@ indiscriminadamente ao contador distribuído de buckets alinhados.
 não 429 por papel/domínio, espera e piso condicional por história. Sem identidades,
 payloads ou credenciais. Papéis podem agregar contas; o relatório avisa essa
 limitação. O cálculo não modifica execução, sleeps, Retry-After ou quotas.
+
+A preparação do Chromium da Demo pode se sobrepor a essa janela sem disputar
+comandos de negócio. Após smoke, `seed-browser.mjs` executa o seed oficial e a
+instalação Chromium em dois processos próprios, aguarda ambos e preserva limites
+individuais de 25/15 minutos, dentro dos 26 minutos originais da fase. Falha,
+timeout ou sinal aborta os grupos próprios, drena stdio e mantém FAIL. O seed
+continua coordenando suas cinco histórias e cleanup internos. E2E só começa
+depois de sanidade, pool, recovery e verificação de recibo local ligado a
+SHA/run/tentativa. Recibo ausente, herdado, incompleto ou de falha é recusado.
+A instalação não é substituída pelo recibo: ele comprova a execução real bem
+sucedida do instalador no mesmo job. O marker de timing separa duração dos
+filhos e interseção real, sem atribuir ganho à eliminação do 429. A comparação
+oficial deverá medir o benefício; cenários e quotas permanecem idênticos.
 
 Alternativas futuras: retirar ≥22 comandos da gestora requer revisar formalmente
 cenários/cobertura; uma API batch com accounting por operação poupa round trips,

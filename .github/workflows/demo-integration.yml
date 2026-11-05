@@ -126,10 +126,23 @@ jobs:
         timeout-minutes: 6
         run: bash scripts/ci-demo/run.sh smoke 2>&1 | tee "$CI_DEMO_REPORTS/smoke.txt"
 
+      - name: Playwright version
+        id: playwright_version
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      # Só restauração: reaproveita o cache do CI principal, sem gravar outro.
+      - name: Restore Playwright browsers
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-ubuntu-24.04-${{ runner.arch }}-${{ steps.playwright_version.outputs.version }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            playwright-ubuntu-24.04-${{ runner.arch }}-${{ steps.playwright_version.outputs.version }}-
+
       - name: Phase 2 — Official baseline and four visitor seeds with coordinated global cron
         id: seed
         timeout-minutes: 26
-        run: bash scripts/ci-demo/run.sh seed-pool 2>&1 | grep -v '@' | tee "$CI_DEMO_REPORTS/seed.txt"
+        run: node scripts/ci-demo/seed-browser.mjs
 
       - name: Phase 2 — Seed sanity checks (read-only re-check)
         id: check
@@ -150,26 +163,10 @@ jobs:
         timeout-minutes: 20
         run: bash scripts/ci-demo/run.sh recovery 2>&1 | grep -v '@' | tee "$CI_DEMO_REPORTS/recovery.txt"
 
-      - name: Playwright version
-        id: playwright_version
-        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
-
-      # Só restauração: reaproveita o cache do CI principal, sem gravar outro.
-      - name: Restore Playwright browsers
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-ubuntu-24.04-${{ runner.arch }}-${{ steps.playwright_version.outputs.version }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            playwright-ubuntu-24.04-${{ runner.arch }}-${{ steps.playwright_version.outputs.version }}-
-
-      - name: Install Chromium only
+      - name: Verify Chromium prepared alongside the canonical seed
         id: install_chromium
-        timeout-minutes: 15
-        env:
-          DEBIAN_FRONTEND: noninteractive
-          PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT: '60000'
-        run: npx playwright install --with-deps chromium
+        timeout-minutes: 1
+        run: node scripts/ci-demo/seed-browser.mjs --verify
 
       - name: Phase 3 — Demo E2E, Chromium desktop (1 worker)
         id: e2e_desktop

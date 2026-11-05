@@ -73,6 +73,17 @@ export function browserCounts(log) {
  }
  return values;
 }
+export function demoPreparations(log) {
+ const values=[];
+ for(const line of String(log).split('\n')) {
+  const match=line.match(/ARANDU_SEED_BROWSER_PREPARATION (\{.*\})$/);if(!match)continue;
+  let v;try{v=JSON.parse(match[1]);}catch{continue;}
+  if(!/^[a-f0-9]{40}$/.test(v.sha||'')||!['PASS','FAIL'].includes(v.result)||!Number.isFinite(v.wall_ms)||v.wall_ms<0||!Number.isFinite(v.overlap_ms)||v.overlap_ms<0||!Array.isArray(v.phases))continue;
+  if(!v.phases.every(p=>['seed','browser'].includes(p.name)&&['success','failure','timed_out','cancelled'].includes(p.result)&&Number.isFinite(p.wall_ms)&&p.wall_ms>=0))continue;
+  values.push({sha:v.sha,result:v.result,wall_ms:v.wall_ms,overlap_ms:v.overlap_ms,phases:v.phases.map(p=>({name:p.name,result:p.result,wall_ms:p.wall_ms}))});
+ }
+ return values;
+}
 export function collect(repository,runId) {
  if(!/^[\w.-]+\/[\w.-]+$/.test(repository)||!/^\d+$/.test(String(runId)))throw Error('Invalid repository/run');
  const api=endpoint=>JSON.parse(execFileSync('gh',['api',endpoint],{encoding:'utf8',maxBuffer:32*1024*1024}));
@@ -89,7 +100,11 @@ export function collect(repository,runId) {
   for(const job of jobs.filter(j=>['browser','presentation'].includes(kind(j.name))&&!(Date.parse(j.completed_at)<Date.parse(j.created_at)))) {
    try {browser.push(...browserCounts(execFileSync('gh',['api',`repos/${repository}/actions/jobs/${job.id}/logs`],{encoding:'utf8',maxBuffer:64*1024*1024,stdio:['ignore','pipe','pipe']})));}catch{/* Unavailable evidence remains unmeasured. */}
   }
-  attempts.push({...reportAttempt(run,jobs),browser_counts:browser,browser_flakes:browser.length?browser.reduce((n,b)=>n+b.flaky,0):null,browser_retries:browser.length?browser.reduce((n,b)=>n+b.retries,0):null});
+  const preparation=[];
+  for(const job of jobs.filter(j=>kind(j.name)==='integration'&&!(Date.parse(j.completed_at)<Date.parse(j.created_at)))) {
+   try {preparation.push(...demoPreparations(execFileSync('gh',['api',`repos/${repository}/actions/jobs/${job.id}/logs`],{encoding:'utf8',maxBuffer:64*1024*1024,stdio:['ignore','pipe','pipe']})));}catch{/* Raw logs are never serialized, including signed redirects. */}
+  }
+  attempts.push({...reportAttempt(run,jobs),demo_preparation:preparation,browser_counts:browser,browser_flakes:browser.length?browser.reduce((n,b)=>n+b.flaky,0):null,browser_retries:browser.length?browser.reduce((n,b)=>n+b.retries,0):null});
  }
  return {format_version:1,repository,run_id:Number(runId),pr_numbers:(latest.pull_requests||[]).map(p=>p.number),head_sha:latest.head_sha,
  analyzed_sha:classification?.sha||null,risk:classification?.risk||null,classification_reasons:classification?.reasons||null,classification_note:'Receipt from classify job; unavailable/expired logs leave null, never infer risk from job names',

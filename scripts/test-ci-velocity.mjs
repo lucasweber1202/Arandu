@@ -4,7 +4,7 @@ import {browserBalance} from './ci/browser-balance.mjs';
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import {parseChanges} from './ci/changes.mjs';
-import {reportAttempt,riskReceipt,browserCounts} from './ci/velocity-report.mjs';
+import {reportAttempt,riskReceipt,browserCounts,demoPreparations} from './ci/velocity-report.mjs';
 import {BROWSER_GROUPS,browserProjects,browserEngines} from './ci-browser-groups.mjs';
 import {classifyChanges} from './ci/risk-policy.mjs';
 assert.deepEqual(parseChanges('R100\0old name\0new\nname\0M\0next\0'),[{status:'renamed',previous_filename:'old name',filename:'new\nname'},{status:'modified',filename:'next'}]);
@@ -68,3 +68,7 @@ execFileSync(process.execPath,['--check','scripts/demo/seed.mjs'],{stdio:'pipe'}
 
 assert.deepEqual(browserEngines('presentation'),['chromium','firefox','webkit']);
 assert.throws(()=>browserProjects('presentation'),'presentation must never become a product coverage group');
+
+const preparation={sha:'a'.repeat(40),result:'PASS',wall_ms:600001,overlap_ms:30000,phases:[{name:'seed',result:'success',wall_ms:600000},{name:'browser',result:'success',wall_ms:30000}],secret:'DO_NOT_SERIALIZE'};
+assert.equal(demoPreparations('ARANDU_SEED_BROWSER_PREPARATION '+JSON.stringify(preparation))[0].secret,undefined);
+assert.equal(demoPreparations('ARANDU_SEED_BROWSER_PREPARATION '+JSON.stringify({...preparation,overlap_ms:NaN})).length,0);
