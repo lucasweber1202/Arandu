@@ -146,6 +146,13 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
     sections.push(el('section', { class: 'cc-section' }, [el('div', { class: 'cc-head' }, [el('h3', { text: 'Marcos e obrigações' }),
       manage && ['active', 'renewing'].includes(current.status) ? button('Novo marco', { size: 'sm', iconName: 'plus', onClick: () => milestoneForm(current) }) : null]), milestones]));
 
+    // Covenants e obrigações deste contrato (mesma fonte do registro de covenants).
+    // O build de demonstração não tem API e não empacota o módulo.
+    if (!__ARANDU_DEMO__) {
+      const oblSlot = el('div');
+      sections.push(oblSlot);
+      import('./contract-center/obligations.js').then((m) => { if (oblSlot.parentNode) oblSlot.replaceWith(m.contractObligationsSection(ctx, current, { manage })); }).catch(() => oblSlot.remove());
+    }
     if (detail.children.length) {
       sections.push(el('section', { class: 'cc-section' }, [el('h3', { text: 'Contratos vinculados (filhos)' }),
         el('ul', { class: 'plain-list' }, detail.children.map((child) => textItem(`${child.title || CONTRACT_CATEGORIES[child.product]} · até ${formatDate(child.ends_on)}`)))]));
