@@ -105,6 +105,8 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
       header.replaceChildren(workspaceHead(summary, detail.timeline || []), el('div', { class: 'rel-head-actions' }, [
         // Caixa de trabalho já filtrada por esta instituição (prazos, tarefas e aprovações).
         el('a', { class: 'btn btn-sm btn-secondary', href: ctx.href(`/finance/tasks.html?provider_id=${encodeURIComponent(provider.id)}#deadline-radar`) }, [icon('calendar', { size: 14 }), textSpan(' Prazos desta instituição')]),
+        // Carteira de contratos já recortada nesta instituição (pendências e filtros na URL).
+        el('a', { class: 'btn btn-sm btn-secondary', href: ctx.href(`/finance/contracts.html?provider_id=${encodeURIComponent(provider.id)}`) }, [icon('briefcase', { size: 14 }), textSpan(' Contratos desta instituição')]),
         button('Atualizar relacionamento', { size: 'sm', iconName: 'refresh', onClick: load })]));
       const live = (detail.contracts || []).some(row => ['active', 'renewing'].includes(row.status));
       const start = !live && !detail.pages?.contracts?.has_more && ctx.can('create_rfq') ? el('div', { class: 'callout callout-info compact rel-start' }, [icon('briefcase', { size: 14 }),

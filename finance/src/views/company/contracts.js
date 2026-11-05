@@ -9,6 +9,7 @@ import { CONTRACT_CATEGORIES } from '../../../../lib/finance/contract-terms.mjs'
 import { loadEntities, entityContextSelect, inContext, contractEntityControl, entityName } from '../entities.js';
 import { mods, need } from './capabilities.js';
 import { renewalButton } from '../contract-center/renewal.js';
+import { contractExceptions, CONTRACT_EXCEPTIONS, readPortfolioFilters, writePortfolioFilters, PORTFOLIO_FILTERS, filterContracts, exceptionCounts, institutionSummary } from '../../../../lib/finance/contract-portfolio.mjs';
 
 function lifecycleBar(contract) {
   const start = Date.parse(`${contract.starts_on}T00:00:00Z`);
@@ -106,11 +107,9 @@ export async function contracts(ctx) {
   if (!rows.length) return emptyState({ title: 'Nenhum contrato registrado ainda', text: 'Registre os contratos que a empresa já tem com vigência e aviso prévio: o Arandu abre a tarefa de revisão da renovação e acompanha os marcos. Contratos de uma concorrência no Arandu entram pela decisão.', iconName: 'briefcase',
     action: mods.contractCenter.importContractButton(ctx, entities, { label: 'Registrar o primeiro contrato', variant: 'primary' }) });
   const ordered = [...rows].sort((a, b) => (['active', 'renewing'].includes(b.status) - ['active', 'renewing'].includes(a.status)) || String(a.review_from).localeCompare(String(b.review_from)));
-  // Contratos que pedem ação primeiro.
-  const root = el('div', { class: 'stack' });
   // Destaque por âncora (#contract-…) ou pelo link de origem da implantação (?id=…).
   const focusId = location.hash.startsWith('#contract-') ? location.hash.slice('#contract-'.length) : new URLSearchParams(location.search).get('id');
-  for (const contract of ordered) {
+  const card = (contract) => {
     const next = contractNextAction(contract);
     // Só crédito e adquirência têm concorrência no Arandu. Em renovação, o
     // mesmo botão leva à concorrência já aberta a partir deste contrato.
@@ -118,7 +117,7 @@ export async function contracts(ctx) {
     // O contrato guarda a decisão (decision_id), não a solicitação: a origem é
     // a solicitação cuja decisão registrada é a deste contrato.
     const source = contract.decision_id ? (ctx.data.rfqs || []).find((rfq) => rfq.decision_id && rfq.decision_id === contract.decision_id) : null;
-    root.append(el('article', { class: `contract-card${focusId === contract.id ? ' highlighted' : ''}`, id: `contract-${contract.id}`, tabindex: '-1', dataset: { entity: 'contract', id: contract.id } }, [
+    return (el('article', { class: `contract-card${focusId === contract.id ? ' highlighted' : ''}`, id: `contract-${contract.id}`, tabindex: '-1', dataset: { entity: 'contract', id: contract.id } }, [
       el('header', { class: 'contract-head' }, [
         el('div', {}, [
           el('p', { class: 'contract-kicker', text: `${CONTRACT_CATEGORIES[contract.product] || productLabel(contract.product)}${source ? ` · ${source.title}` : contract.title ? ` · ${contract.title}` : ''}` }),
@@ -128,6 +127,7 @@ export async function contracts(ctx) {
         el('div', { class: 'contract-status' }, [pill(CONTRACT_STATUS[contract.status]), contractDays(contract)])
       ]),
       ['active', 'renewing'].includes(contract.status) ? lifecycleBar(contract) : null,
+      ctx.mode === 'demo' ? null : (() => { const list = contractExceptions(contract, todayIso()); return list.length ? el('ul', { class: 'tag-list contract-exceptions', 'aria-label': 'Pendências do registro' }, list.map((k) => el('li', { title: CONTRACT_EXCEPTIONS[k].hint }, tag(CONTRACT_EXCEPTIONS[k].label, ['past_notice', 'expired'].includes(k) ? 'danger' : ['window'].includes(k) ? 'warning' : 'neutral')))) : null; })(),
       el('div', { class: `next-action-box tone-${next.tone}` }, [icon(next.icon, { size: 16 }), el('span', { class: 'next-action-label', text: 'Próxima ação' }), el('span', { class: 'next-action-text', text: next.text }), restart]),
       el('dl', { class: 'deflist deflist-3' }, [
         ['Vigência', `${formatDate(contract.starts_on)} → ${formatDate(contract.ends_on)}`], ['Prazo do aviso prévio', `${contract.renewal_notice_days} dias antes do fim · ${formatDate(contract.review_from)}`],
@@ -142,7 +142,84 @@ export async function contracts(ctx) {
       lazyDocuments(ctx, 'contract', contract.id, 'Documentos do contrato', { canUpload: ctx.can('upload_document') }),
       contractLifecycleLinks(ctx, contract)
     ]));
+  };
+  // Sandbox legado (/demo): sem capability nova (CLAUDE.md); mantém a lista simples.
+  if (ctx.mode === 'demo') {
+    const root = el('div', { class: 'stack' }, ordered.map(card));
+    if (focusId) queueMicrotask(() => { const target = document.getElementById(`contract-${focusId}`); target?.scrollIntoView({ block: 'start' }); target?.focus({ preventScroll: true }); });
+    return root;
   }
+  return portfolioControlTower(ctx, ordered, { card, focusId, entities });
+}
+
+// ------------------------------------------------- carteira (control tower)
+// Filtros na URL (?provider_id, product, status, owner, excecao, q): o link de
+// uma instituição abre a carteira já recortada, e voltar/recarregar preserva o
+// recorte. Exceções são fatos do registro (lib/finance/contract-portfolio.mjs).
+function portfolioControlTower(ctx, ordered, { card, focusId }) {
+  const today = todayIso();
+  const exceptions = new Map(ordered.map((c) => [c.id, contractExceptions(c, today)]));
+  const providers = [...new Map(ordered.filter((c) => c.provider_id).map((c) => [c.provider_id, { id: c.provider_id, name: c.provider_name || 'Instituição' }])).values()].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+  const products = [...new Set(ordered.map((c) => c.product).filter(Boolean))];
+  const owners = [...new Set(ordered.map((c) => c.owner_id).filter(Boolean))].filter((id) => (ctx.members || []).some((m) => m.user_id === id));
+  const filters = readPortfolioFilters(location.search, { providers, products, members: owners.map((user_id) => ({ user_id })) });
+  const select = (key, label, options) => {
+    const control = el('select', { class: 'input', 'aria-label': label, name: key });
+    for (const [value, text] of options) control.add(new Option(text, value));
+    control.value = filters[key];
+    control.addEventListener('change', () => { filters[key] = control.value; draw(); });
+    return control;
+  };
+  const search = el('input', { type: 'search', class: 'input', placeholder: 'Buscar contrato ou instituição…', value: filters.q, 'aria-label': 'Buscar contrato ou instituição' });
+  search.addEventListener('input', () => { filters.q = search.value.slice(0, 80); draw(); });
+  const controls = {
+    provider_id: select('provider_id', 'Instituição', [['', 'Todas as instituições'], ...providers.map((p) => [p.id, p.name])]),
+    product: select('product', 'Produto', [['', 'Todos os produtos'], ...products.map((k) => [k, CONTRACT_CATEGORIES[k] || productLabel(k)])]),
+    status: select('status', 'Situação', [['', 'Qualquer situação'], ['live', 'Vigentes'], ['active', 'Ativos'], ['renewing', 'Em renovação'], ['ended', 'Encerrados']]),
+    owner: select('owner', 'Responsável', [['', 'Qualquer responsável'], ['none', 'Sem responsável'], ...owners.map((id) => [id, memberName(ctx.members, id)])])
+  };
+  const chips = el('div', { class: 'chips', role: 'group', 'aria-label': 'Pendências da carteira' });
+  const summary = el('section', { class: 'card portfolio-institutions', 'aria-labelledby': 'carteira-inst' });
+  const count = el('p', { class: 'result-count', role: 'status', 'aria-live': 'polite' });
+  const list = el('div', { class: 'stack contract-list' });
+  const clear = button('Limpar filtros', { size: 'sm', variant: 'ghost', onClick: () => { for (const k of Object.keys(filters)) filters[k] = ''; search.value = ''; for (const [k, c] of Object.entries(controls)) c.value = filters[k]; draw(); } });
+  const cards = new Map();
+  const cardFor = (c) => { if (!cards.has(c.id)) cards.set(c.id, card(c)); return cards.get(c.id); };
+
+  function draw() {
+    const scoped = filterContracts(ordered, { ...filters, excecao: '' }, exceptions);
+    const counts = exceptionCounts(scoped, exceptions);
+    chips.replaceChildren(...[['', 'Todos', scoped.length, 'Todos os contratos do recorte'], ['any', 'Com pendência', counts.any, 'Contratos vigentes com ao menos uma pendência'],
+      ...counts.items.map((i) => [i.key, i.label, i.count, i.hint])].map(([key, label, n, hint]) => {
+      const chip = el('button', { type: 'button', class: 'chip', title: hint, 'aria-pressed': String(filters.excecao === key), dataset: { excecao: key } }, [textSpan(label), el('span', { class: 'chip-count', text: String(n) })]);
+      chip.addEventListener('click', () => { filters.excecao = filters.excecao === key ? '' : key; draw(); });
+      return chip;
+    }));
+    // Instituições do recorte (sem o filtro de instituição): leva à carteira dela e ao relacionamento.
+    const inst = institutionSummary(filterContracts(ordered, { ...filters, provider_id: '', excecao: '' }, exceptions), exceptions).slice(0, 8);
+    summary.replaceChildren(el('h2', { class: 'card-title', id: 'carteira-inst', text: 'Por instituição' }),
+      inst.length ? el('ul', { class: 'mini-list', role: 'list' }, inst.map((r) => el('li', { class: `mini-row${filters.provider_id === r.providerId ? ' selected' : ''}`, dataset: { provider: r.providerId } }, [
+        el('div', { class: 'mini-main' }, [
+          el('button', { type: 'button', class: 'link-button mini-title', 'aria-pressed': String(filters.provider_id === r.providerId), onclick: () => { filters.provider_id = filters.provider_id === r.providerId ? '' : r.providerId; controls.provider_id.value = filters.provider_id; draw(); } }, r.name),
+          el('span', { class: 'mini-meta', text: `${plural(r.live, 'contrato vigente', 'contratos vigentes')}${r.withExceptions ? ` · ${r.withExceptions} com pendência` : ''} · ${r.products.map((k) => CONTRACT_CATEGORIES[k] || productLabel(k)).join(', ')}` })]),
+        el('a', { class: 'btn btn-ghost btn-sm', href: ctx.href(`/finance/providers.html?provider_id=${encodeURIComponent(r.providerId)}`), text: 'Relacionamento', 'aria-label': `Relacionamento com ${r.name}` })
+      ]))) : mutedText('Nenhuma instituição no recorte.'));
+    const visible = filterContracts(ordered, filters, exceptions);
+    count.textContent = `${visible.length} de ${ordered.length} contratos`;
+    list.replaceChildren(...visible.map(cardFor));
+    if (!visible.length) list.append(emptyState({ title: 'Nenhum contrato neste recorte', text: 'Ajuste ou limpe os filtros. Os filtros ficam no endereço da página.', iconName: 'search', compact: true, action: clear }));
+    // Só as chaves de filtro mudam; o resto do endereço (?abrir=…, #contract-…) fica.
+    const params = new URLSearchParams(location.search);
+    for (const key of PORTFOLIO_FILTERS) params.delete(key);
+    for (const [key, value] of new URLSearchParams(writePortfolioFilters(filters))) params.set(key, value);
+    const query = params.toString();
+    const next = `${location.pathname}${query ? `?${query}` : ''}${location.hash}`;
+    if (next !== `${location.pathname}${location.search}${location.hash}`) history.replaceState(history.state, '', next);
+  }
+  const root = el('div', { class: 'stack contracts-tower' }, [
+    el('div', { class: 'toolbar' }, [el('div', { class: 'toolbar-search' }, [icon('search'), search]), ...Object.values(controls), count]),
+    el('div', { class: 'toolbar-chips' }, chips), summary, list]);
+  draw();
   if (focusId) queueMicrotask(() => { const target = document.getElementById(`contract-${focusId}`); target?.scrollIntoView({ block: 'start' }); target?.focus({ preventScroll: true }); });
   return root;
 }
