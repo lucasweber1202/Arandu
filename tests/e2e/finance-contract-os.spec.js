@@ -1,0 +1,145 @@
+import { test, expect } from '@playwright/test';
+// Contract & Portfolio OS: carteira com pendências e filtros na URL, contrato com
+// covenants/obrigações, Caixa de Trabalho com prazos de obrigações e instituição
+// levando à carteira recortada.
+// APIs SIMULADAS (overview, contract-detail, covenants, provider-relationship):
+// não é validação contra Supabase real nem ambiente hospedado.
+const ORG = '00000000-0000-4000-8000-0000000000a1';
+const PA = '00000000-0000-4000-8000-0000000000b1';
+const PB = '00000000-0000-4000-8000-0000000000b2';
+const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+const day = (offset) => new Date(Date.now() + offset * 86400000).toISOString().slice(0, 10);
+const contract = (n, over = {}) => ({ id: id(n), organization_id: ORG, provider_id: PA, provider_name: 'Atlas Bank', product: 'credit', origin: 'imported', title: `Contrato ${n}`, status: 'active',
+  starts_on: day(-400), ends_on: day(700), renewal_notice_days: 60, review_from: day(640), current_version: 1, document_reference: 'CCB 1', owner_id: 'u1', currency: 'BRL', legal_entity_id: null, ...over });
+const OK = contract(1, { title: 'Giro em dia' });
+const PAST = contract(2, { title: 'Giro aviso vencido', ends_on: day(40) }); // aviso há 20 dias
+const NOOWNER = contract(3, { title: 'Adquirência sem dono', provider_id: PB, provider_name: 'Boreal Banco', product: 'acquiring', owner_id: null, document_reference: null });
+const CONTRACTS = [OK, PAST, NOOWNER];
+const covenant = (n, over = {}) => ({ id: id(900 + n), title: `Covenant ${n}`, kind_label: 'Covenant financeiro', status: 'awaiting_data', status_label: 'Aguardando dados', has_data: false,
+  due_on: day(10), contract_id: OK.id, provider_id: PA, legal_entity_id: null, owner_id: 'u1', cells: ['x', 'y', 'z', 'w', 'v'], ...over });
+
+async function setup(page, { covenants = 'ok', covenantRows = [covenant(1), covenant(2, { status: 'compliant', status_label: 'Conforme após revisão', has_data: true, title: 'Covenant já conforme' })] } = {}) {
+  const calls = [];
+  await page.route('**/api/finance/**', async (route) => {
+    const req = route.request(); const u = new URL(req.url()); const path = u.pathname.replace('/api/finance/', '');
+    calls.push({ path, query: Object.fromEntries(u.searchParams) });
+    const json = (v, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(v) });
+    if (path === 'organizations') return json({ ok: true, rows: [{ id: ORG, kind: 'BUYER', legal_name: 'Grupo Vitta' }] });
+    if (path === 'overview') return json({ ok: true, organization: { id: ORG, kind: 'BUYER', legal_name: 'Grupo Vitta', sector: 'industry' }, providers: [{ id: PA, name: 'Atlas Bank', status: 'active' }, { id: PB, name: 'Boreal Banco', status: 'active' }], contracts: CONTRACTS, rfqs: [], tasks: [] });
+    if (path === 'members') return json({ ok: true, rows: [{ user_id: 'u1', role: 'admin', display_name: 'Paula Nogueira' }], viewer_id: 'u1' });
+    if (path === 'entities') return json({ ok: true, rows: [], scope: 'group', can_admin: true });
+    if (path === 'contract-detail') {
+      const c = CONTRACTS.find((row) => row.id === u.searchParams.get('id'));
+      return c ? json({ ok: true, contract: c, effective: null, versions: [], amendments: [], milestones: [], children: [], documents: [], events: [], renewal_milestones: [] }) : json({ ok: false }, 404);
+    }
+    if (path === 'covenants') {
+      if (covenants === 'error') return json({ ok: false, error: 'falha' }, 500);
+      if (covenants === 'forbidden') return json({ ok: false, error: 'negado' }, 403);
+      const cid = u.searchParams.get('contract_id');
+      return json({ ok: true, rows: covenantRows.filter((r) => !cid || r.contract_id === cid), next: null, columns: [], cards: [] });
+    }
+    if (path === 'provider-relationship') return json({ ok: true, provider: { id: PA, name: 'Atlas Bank' }, neutrality: 'Fatos.', contracts: [OK, PAST], tasks: [], facilities: [], rfqs: [], invites: [], proposals: [], balances: [], contacts: [], issues: [], relationships: [], map: [], timeline: [], reviews: [], templates: [],
+      metrics: { invited: 0, responded: 0, response_rate: null, median_response_days: null, active_contracts: 2, open_issues: 0, median_resolution_days: null, definitions: {} } });
+    return json({ ok: true, rows: [] });
+  });
+  return calls;
+}
+const card = (page, c) => page.locator(`#contract-${c.id}`);
+
+test('carteira: pendências factuais, filtro por pendência na URL e recarga preserva o recorte', async ({ page }) => {
+  await setup(page);
+  await page.goto('/finance/contracts.html');
+  const chips = page.getByRole('group', { name: 'Pendências da carteira' });
+  await expect(chips.getByRole('button', { name: /Com pendência\s*2/ })).toBeVisible();
+  await expect(card(page, PAST).locator('.contract-exceptions')).toContainText('Aviso prévio vencido');
+  await expect(card(page, NOOWNER).locator('.contract-exceptions')).toContainText('Sem responsável');
+  await expect(card(page, OK).locator('.contract-exceptions')).toHaveCount(0);
+  await chips.getByRole('button', { name: /Aviso prévio vencido/ }).click();
+  await expect(page).toHaveURL(/[?&]excecao=past_notice/);
+  await expect(card(page, PAST)).toBeVisible();
+  await expect(card(page, OK)).toBeHidden();
+  await expect(page.getByRole('status').filter({ hasText: 'contratos' }).first()).toContainText('1 de 3 contratos');
+  await page.reload();
+  await expect(card(page, OK)).toBeHidden();
+  await expect(chips.getByRole('button', { name: /Aviso prévio vencido/ })).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('carteira por instituição: resumo filtra, link de relacionamento e deep link da instituição', async ({ page }) => {
+  await setup(page);
+  await page.goto(`/finance/contracts.html?provider_id=${PB}`);
+  await expect(card(page, NOOWNER)).toBeVisible();
+  await expect(card(page, OK)).toBeHidden();
+  await expect(page.locator('.contracts-tower select[name="provider_id"]')).toHaveValue(PB);
+  const inst = page.locator('.portfolio-institutions');
+  await expect(inst.getByRole('link', { name: 'Relacionamento com Atlas Bank' })).toHaveAttribute('href', new RegExp(`providers\\.html\\?provider_id=${PA}`));
+  await inst.getByRole('button', { name: 'Atlas Bank' }).click();
+  await expect(page).toHaveURL(new RegExp(`provider_id=${PA}`));
+  await expect(card(page, OK)).toBeVisible();
+  await expect(card(page, NOOWNER)).toBeHidden();
+  // Parâmetro forjado é descartado: nada some por um filtro inexistente.
+  await page.goto('/finance/contracts.html?provider_id=00000000-0000-4000-8000-000000000999&owner=intruso');
+  await expect(card(page, OK)).toBeVisible();
+  await expect(card(page, NOOWNER)).toBeVisible();
+});
+
+test('carteira → contrato → covenants deste contrato e volta ao recorte; filtro preservado ao fechar', async ({ page }) => {
+  const calls = await setup(page);
+  await page.goto(`/finance/contracts.html?provider_id=${PA}`);
+  await card(page, OK).getByRole('button', { name: 'Abrir contrato: termos, aditivos e marcos' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Giro em dia' });
+  const obl = dialog.locator('.contract-obligations');
+  await expect(obl.getByRole('heading', { name: 'Covenants e obrigações' })).toBeVisible();
+  await expect(obl).toContainText('Covenant 1');
+  await expect(obl).toContainText('Aguardando dados');
+  await expect(obl).toContainText('dados ausentes');
+  await expect(obl).toContainText('conformidade só após revisão humana');
+  await expect(obl.getByRole('link', { name: 'Registrar ou revisar' })).toHaveAttribute('href', new RegExp(`covenants\\.html\\?contract_id=${OK.id}`));
+  expect(calls.find((c) => c.path === 'covenants' && c.query.contract_id)?.query.contract_id).toBe(OK.id);
+  await page.keyboard.press('Escape');
+  await expect(page).toHaveURL(new RegExp(`provider_id=${PA}`));
+  await expect(card(page, NOOWNER)).toBeHidden();
+});
+
+for (const [mode, rows, text] of [['error', undefined, 'Isso não significa que não existam'], ['forbidden', undefined, 'Seu acesso não permite ver as obrigações'], ['ok', [], 'Ausência de registro não significa conformidade']]) {
+  test(`contrato: covenants ${mode === 'ok' ? 'vazio não é conformidade' : mode === 'error' ? 'que falham são avisados' : 'sem acesso é explicado'}`, async ({ page }) => {
+    await setup(page, { covenants: mode, ...(rows ? { covenantRows: rows } : {}) });
+    await page.goto(`/finance/contracts.html?abrir=contrato#contract-${OK.id}`);
+    await expect(page.getByRole('dialog').locator('.contract-obligations')).toContainText(text);
+  });
+}
+
+test('Caixa de Trabalho: prazo de covenant em aberto entra e leva ao registro do contrato; conforme fica fora', async ({ page }) => {
+  await setup(page);
+  await page.goto('/finance/tasks.html#deadline-radar');
+  const radar = page.locator('#deadline-radar');
+  const item = radar.locator('[data-kind="obligation"]');
+  await expect(item).toHaveCount(1);
+  await expect(item).toContainText('Covenant financeiro: Covenant 1');
+  await expect(item).toContainText('Aguardando dados');
+  await expect(item.getByRole('link')).toHaveAttribute('href', new RegExp(`covenants\\.html\\?contract_id=${OK.id}`));
+  await expect(radar).not.toContainText('Covenant já conforme');
+});
+
+test('Caixa de Trabalho: falha das obrigações é avisada, nunca "nada pendente"', async ({ page }) => {
+  await setup(page, { covenants: 'error' });
+  await page.goto('/finance/tasks.html#deadline-radar');
+  await expect(page.locator('#deadline-radar [data-source="obligations"]')).toContainText('Isso não significa que não haja nenhum');
+});
+
+test('instituição → carteira de contratos já recortada', async ({ page }) => {
+  await setup(page);
+  await page.goto(`/finance/providers.html?provider_id=${PA}`);
+  const link = page.getByRole('dialog', { name: 'Atlas Bank' }).getByRole('link', { name: 'Contratos desta instituição' });
+  await expect(link).toHaveAttribute('href', new RegExp(`contracts\\.html\\?provider_id=${PA}`));
+  await link.click();
+  await expect(card(page, OK)).toBeVisible();
+  await expect(card(page, NOOWNER)).toBeHidden();
+});
+
+test('carteira cabe na largura do celular', async ({ page }) => {
+  await setup(page);
+  await page.setViewportSize({ width: 375, height: 800 });
+  await page.goto('/finance/contracts.html');
+  await expect(card(page, OK)).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+});
