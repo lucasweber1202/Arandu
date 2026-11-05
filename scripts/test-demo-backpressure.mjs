@@ -1,4 +1,5 @@
 import './test-demo-profile.mjs';
+import './test-ci-seed-coordination.mjs';
 import assert from 'node:assert/strict';
 import { retryDelayMs } from './demo/backpressure.mjs';
 assert.equal(retryDelayMs('600'),600000);

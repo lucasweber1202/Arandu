@@ -1,0 +1,7 @@
+{
+  "source_run": 41936120694,
+  "source_head": "34d5baf5e9a1b078cd6b2e03ad6a819164ca59ea",
+  "checks": 41,
+  "check_names_sha256": "b2b826450d8662bd73b5568652bea3e3e9d521063622c2ebaea7c5e2a8cfecdc",
+  "classification": "synthetic_seed_sanity_contract_no_row_contents"
+}

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { seedProfiler } from './demo/profile.mjs';
+import { seedTimingHtml } from './demo/profile-report.mjs';
 let now=0;const p=seedProfiler({clock:()=>now});
 const sensitive='private@example.invalid?token=DO_NOT_LOG';
 await p.phase('setupOrganizations',async()=>{
@@ -14,4 +15,10 @@ assert.equal(result.phases[1].result,'FAIL');assert.equal(result.requests[0].att
 assert.deepEqual(result.requests[0].statuses,{'201':1,'429':1});assert.equal(result.waits.backpressure.requested_ms,534000);assert.equal(result.waits.backpressure.elapsed_ms,534001);
 assert(!JSON.stringify(result).includes('DO_NOT_LOG'));assert(!JSON.stringify(result).includes('private@'));
 assert.equal(result.requests[0].resource,'rfqs/:id');
+const html=seedTimingHtml([{name:'seed-baseline-reset.json',report:result}]);
+assert(html.includes('534.00 s'));assert(html.includes('534.02 s'));assert(html.includes('buyer.finance_manager'));
+assert(!html.includes('DO_NOT_LOG'));assert(!html.includes('private@'));assert(!html.includes('<script'));
+assert.throws(()=>seedTimingHtml([{name:'outside.json',report:result}]),/invalid_seed_profile/);
+assert.throws(()=>seedTimingHtml([{name:'seed-baseline-reset.json',report:{...result,wall_ms:Infinity}}]),/invalid_seed_profile/);
+assert.throws(()=>seedTimingHtml([]),/seed_profiles_missing/);
 console.log('Seed profiler: real elapsed/requested wait, inclusive phases, retries/failures and payload/identity redaction PASS.');

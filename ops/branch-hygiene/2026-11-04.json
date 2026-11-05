@@ -1,0 +1,1853 @@
+{
+  "date_local": "2026-11-04",
+  "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+  "before": 229,
+  "deleted": 27,
+  "after": 202,
+  "preserved_divergent": 26,
+  "operational_aliases_checked": 371,
+  "deployments_checked": 1546,
+  "recent_activity_window_days": 30,
+  "force_push": false,
+  "tags_changed": false,
+  "main_content_changed": false,
+  "deletions": [
+    {
+      "branch": "agent/arandu-admin-auth-mfa",
+      "sha": "6760c164d21004c34b1e684184532d880a17109c",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:16:26.723202+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    },
+    {
+      "branch": "agent/arandu-audit-320-batch-1",
+      "sha": "0502afd613f8267f84ee30aac22c4efd5405851d",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:16:29.351888+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    },
+    {
+      "branch": "agent/arandu-final-consolidation",
+      "sha": "b40124540e72150a4507b450aadfe276bebd7a16",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:16:31.927650+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    },
+    {
+      "branch": "agent/arandu-integrate-pr42-post46",
+      "sha": "a82339ab4a90e3f67a3812e755dcd77c4fe5315e",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:16:35.201621+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    },
+    {
+      "branch": "agent/arandu-product-readiness",
+      "sha": "a6cc72d76776caf9cf64963a805d15010ead089e",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:16:37.839553+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    },
+    {
+      "branch": "agent/arandu-security-privacy-hardening",
+      "sha": "c484b9abf8d00e215fb648075972e23ca4a50470",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:19:04.598802+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    },
+    {
+      "branch": "agent/arandu-sprints2-5-launch",
+      "sha": "878ff1bd4b1076cf7299a8bbe5414be0bee3fd44",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:19:08.281486+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    },
+    {
+      "branch": "agent/arandu-sprints6-12-hardening",
+      "sha": "d21accd0c9196ca8e91cc132babd994a2de6c7d2",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:19:12.338230+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    },
+    {
+      "branch": "agent/arandu-transactions-rls-operations",
+      "sha": "b50ef0105a5f3871141e4b6779e75bd947c05a04",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:19:15.702335+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    },
+    {
+      "branch": "agent/arandu-ux-security-cleanup",
+      "sha": "25c9fd8af9794ac19eac6679c91345f05f355403",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:19:18.714922+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    },
+    {
+      "branch": "claude/arandu-friday-ready-9fcxvs",
+      "sha": "7b77bd6fce02c55b4e74c655b501d41730e1e854",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:21:09.232513+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    },
+    {
+      "branch": "claude/arandu-mudancas-a3r84y",
+      "sha": "992745a8b7652624066264c0f33e4c9a5414ee20",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:21:13.433194+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    },
+    {
+      "branch": "claude/arandu-rc1-closure-taldyw",
+      "sha": "e1e3bd166f0509b227298e25e22b3c7c74a4eba2",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:21:16.640317+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    },
+    {
+      "branch": "claude/arandu-readiness-audit-yjm9ny",
+      "sha": "d64fc01e85996fe837adf5f34c31a4cbdbc7bce1",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:21:20.031596+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    },
+    {
+      "branch": "codex/arandu-mvp-operacao-20260706",
+      "sha": "7f85c9f13fe65be7e56c0da098a78e0dc1985e58",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:21:22.779481+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    },
+    {
+      "branch": "feature/accounts-companies",
+      "sha": "392b9d17f691ac6bb23890bc52046f7955accef4",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:21:58.155708+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    },
+    {
+      "branch": "feature/arandu-commerce-polish",
+      "sha": "144e14c10792704de998fe95c2988800d6eaf9e4",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:22:01.528428+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    },
+    {
+      "branch": "feature/arandu-launch-cleanup-readiness",
+      "sha": "a7ec6603b612c7a28c348649e37767326346c3e4",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:22:04.884222+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    },
+    {
+      "branch": "feature/arandu-mvp-programavel-20260713",
+      "sha": "17623eaab79cf978ff832167c3022c2575c5826e",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:22:07.543088+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    },
+    {
+      "branch": "feature/data-governance",
+      "sha": "cfd51ea6617c88f763c98be5ba438464f0a16728",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:22:10.334604+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    },
+    {
+      "branch": "feature/final-product-layout",
+      "sha": "d1cd50932b160cbbc64069f6f72da83df8874d00",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:24:04.872981+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    },
+    {
+      "branch": "feature/value-intelligence-executive",
+      "sha": "805494c3fb5c4a73ddfa1a0dda1f270800e2826a",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:24:07.918635+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    },
+    {
+      "branch": "fix/vercel-build-runtime-assets",
+      "sha": "b36359a4e2d49e93c43925e229121730fd1ee77b",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:24:10.558062+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    },
+    {
+      "branch": "fix/vercel-runtime-assets",
+      "sha": "155dda0b5c42a4a3ae5cd5dafc2f11c8b46de992",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:24:13.363695+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    },
+    {
+      "branch": "launch-ready-arandu",
+      "sha": "d56cbccfa34a2bf5d1d4a41f765ad8084f9fd282",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:24:15.872577+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    },
+    {
+      "branch": "noop-do-not-use",
+      "sha": "22a16e379aac7c6a5f2c85ff90ad4ad025ba7c0b",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:25:01.276238+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    },
+    {
+      "branch": "product-layout",
+      "sha": "926e89d01308fb0db58c9b67a256ebe0348178ca",
+      "main_sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "at": "2026-11-05T00:25:04.291298+00:00",
+      "reason": "unprotected; no open PR/worktree/operational dependency; zero unique commits; inactive >=30d",
+      "result": "DELETED",
+      "push_exit_code": 0,
+      "absent_after": true
+    }
+  ],
+  "preserved": [
+    {
+      "branch": "agent/arandu-governance-release-hygiene",
+      "sha": "8cf4a7456ad5e5c5758e4e4e3259356c818e9577",
+      "reasons": [
+        "operational_name",
+        "unique_commits"
+      ]
+    },
+    {
+      "branch": "agent/arandu-launch-hardening-remote",
+      "sha": "f66617db6d13e9cf31ccf0e331ccc5b6cede115a",
+      "reasons": [
+        "unique_commits"
+      ]
+    },
+    {
+      "branch": "agent/arandu-presentation-readiness-hardening",
+      "sha": "f06108029b9a4ec1b31ae2ec35f9924d22b32047",
+      "reasons": [
+        "unique_commits"
+      ]
+    },
+    {
+      "branch": "agent/arandu-production-execution",
+      "sha": "153d282ad72d79c81c7daef652bef4a57788b784",
+      "reasons": [
+        "operational_name",
+        "unique_commits"
+      ]
+    },
+    {
+      "branch": "agent/arandu-production-gap-closure",
+      "sha": "f04232651a61b09a1b1bffa1b473bb32359846f9",
+      "reasons": [
+        "operational_name"
+      ]
+    },
+    {
+      "branch": "agent/arandu-production-gates-ops",
+      "sha": "f56461b1f4d3d8ccd0f0209272aaca36ad58cadb",
+      "reasons": [
+        "operational_name",
+        "unique_commits"
+      ]
+    },
+    {
+      "branch": "agent/arandu-production-readiness-final",
+      "sha": "18076944fc5916c19a2d8e9078986994e7f5483b",
+      "reasons": [
+        "operational_name"
+      ]
+    },
+    {
+      "branch": "agent/arandu-seo-pwa-integration",
+      "sha": "56d10a65410dcfb30951c496d43f1a51e019e2a8",
+      "reasons": [
+        "tracked_operational_reference"
+      ]
+    },
+    {
+      "branch": "agent/arandu-sprint1-security-auth",
+      "sha": "8d572fdf30ea1e9037e0563dd45fdb7441066aba",
+      "reasons": [
+        "unique_commits"
+      ]
+    },
+    {
+      "branch": "agent/arandu-staging-rehearsal-evidence",
+      "sha": "48f27ec8d806394ac65563b1dc51bfb2c48d18e2",
+      "reasons": [
+        "operational_name",
+        "unique_commits"
+      ]
+    },
+    {
+      "branch": "agent/arandu-structural-debt-closure",
+      "sha": "46dc1641b0bb6283938ed7f26e1f2b44d16d5d2a",
+      "reasons": [
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "agent/arandu-vercel-release-gate-fixes",
+      "sha": "62bfb0172ee37451e0ac26e2aa499e83856937ec",
+      "reasons": [
+        "operational_name"
+      ]
+    },
+    {
+      "branch": "agent/consolidate-pr37-after-pr38",
+      "sha": "5a9e6859cc7d2883b7bb8a080a30af584ba7791a",
+      "reasons": [
+        "unique_commits"
+      ]
+    },
+    {
+      "branch": "agent/contract-center-v2",
+      "sha": "3b0968dbab3e6590b6496a3536a1b71b9148f38a",
+      "reasons": [
+        "unique_commits",
+        "aliased_deployment",
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "agent/policy-engine-v2",
+      "sha": "29db4183f60d638107edf95e3d37271ca92eea34",
+      "reasons": [
+        "unique_commits",
+        "aliased_deployment",
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "agent/recover-contract-provider-portfolio",
+      "sha": "a90a4e3ff645ab517cb81ea4a6277bf6b7dae27f",
+      "reasons": [
+        "aliased_deployment",
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "agent/recovery-execution",
+      "sha": "e14f728801127c3b94a294c0047711d2c2d02bcf",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "agent/supabase-recovery",
+      "sha": "b397f2bcc52e34052d5bd0795f9031a92b2164ad",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "chore/final-post-merge-reconciliation",
+      "sha": "b64f053ef2ec4874495e64691258f68ebe4c083c",
+      "reasons": [
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "chore/test-vite-upgrade",
+      "sha": "7f85c9f13fe65be7e56c0da098a78e0dc1985e58",
+      "reasons": [
+        "tracked_operational_reference"
+      ]
+    },
+    {
+      "branch": "claude/arandu-beta-launch-2026-08-28",
+      "sha": "0b2db0647d926e532038ed636b090e8973223cfc",
+      "reasons": [
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "claude/arandu-financial-product-fmfeq9",
+      "sha": "72d860cd911b70fc7fc9329400bb5b49b0937e4c",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "claude/catalog-decline-20261031",
+      "sha": "43ec651a98cf36e4f7d1e9d4d286d894a813b70a",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "claude/compassionate-darwin-fw23iw",
+      "sha": "51341fd1e7719a604a5c0bd86c5b36a866693730",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "claude/compassionate-sagan-jj5dnz",
+      "sha": "a25d745e8622dd71a508b769b9c9f8bbb2fc06ae",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "claude/confident-archimedes-o8nku9",
+      "sha": "0dcc0cfe441f8b2dc306e59b3573c54b8cece26f",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "claude/cool-davinci-pcc8gq",
+      "sha": "5d1e04848793650dcb3df3973914dd2db5a0c49f",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "claude/copilot-workspace",
+      "sha": "dd92614e4ce4130a252e96cb75f6b259e25a6237",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "claude/demo-29oct-operational-readiness",
+      "sha": "1e524d04ee96e6fea830a1739bd2e8f429031d8e",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "claude/demo-canonical-consolidation",
+      "sha": "786b961f59b2b5276298fc92dfe09bff68c7760b",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "claude/demo-final-operational-hardening",
+      "sha": "c099314f59b55fc0cd88c41d206c31f1a49e30d9",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "claude/demo-final-station-and-reliability",
+      "sha": "d5524e4fd30acc445532649d8b342a2817a19e2b",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "claude/eager-franklin-0ew309",
+      "sha": "c6b8b45bfd65d0c0ac39f1fac0d363818f8d1b96",
+      "reasons": [
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "claude/eloquent-bohr-59fuk0",
+      "sha": "ab60a51123b1eae4e912ecdfd6e3b215a5dc5f18",
+      "reasons": [
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "claude/erp-ingestion",
+      "sha": "8f63f29b371107a116986302b2750614e88a0c35",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "claude/festive-pasteur-v5tscr",
+      "sha": "1af93ffac59b4dfb474024b8a3444c470d7122a7",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "claude/final-demo-readiness-20261029",
+      "sha": "e1d3393c0f43433c10fb84427ebd4cf0e4018d57",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "claude/financial-workspace-mega-20261030",
+      "sha": "121d8433322c7e90d89a3c1b5b190d93535c0d69",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "claude/financial-workspace-pillars-20261030",
+      "sha": "0b9bb5efecfd3660db3bc49f9310e99600b84c14",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "claude/friendly-goodall-n9k0as",
+      "sha": "1817398a957bb54a800c1929838889361f2cbae9",
+      "reasons": [
+        "aliased_deployment",
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "claude/gallant-pasteur-6wo5ko",
+      "sha": "ac61b34fa8aa305a711dab4d856c7ce18be34354",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "claude/gracious-mendel-2l3lsh",
+      "sha": "924ba393c3e2baaf141ee92f0a3c4b2788683c53",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "claude/happy-fermi-hb3jtq",
+      "sha": "77a942870ff96cb90cd97ee89a70417541e98764",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "claude/hopeful-archimedes-37u43x",
+      "sha": "1629ca9ebb5c6b901d295b033a6393a41a89f886",
+      "reasons": [
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "claude/inspiring-clarke-0c7zaf",
+      "sha": "d3d24938414624c25b1423b08d7b75b7d1fe7e95",
+      "reasons": [
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "claude/inspiring-johnson-xlzfx5",
+      "sha": "fa7d696208754b16d992633eea768ab57e3643a2",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "claude/loving-keller-6w9vng",
+      "sha": "905c912c8622709dafd2e0c881b161eeb7602a3c",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "claude/lucid-hopper-6zcuqj",
+      "sha": "81b12791c5678d55fd61a71e7f7cb1077a079af1",
+      "reasons": [
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "claude/modest-shannon-7vd88r",
+      "sha": "f8612062460482f029c907cc743307d2d968a592",
+      "reasons": [
+        "unique_commits",
+        "aliased_deployment",
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "claude/negotiation-studio-20261030",
+      "sha": "a107145f0ace474602badb4445805f5281849c5d",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "claude/nice-ritchie-qzq10d",
+      "sha": "50e9afa18104f60933ce9f83157c148d53f53754",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "claude/nifty-planck-qxt47c",
+      "sha": "df3521b20dce30f52aaa1ae278b62abcdee5b52c",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "claude/node24-demo-pool",
+      "sha": "87a32d6f4610f4671bc9830b6365bd544d158f2b",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "claude/peaceful-dirac-g36c9w",
+      "sha": "62f38cdf6ed9b379dc7c86570198e1862067f8a6",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "claude/pensive-planck-owo93m",
+      "sha": "2d8478a5500e1b0a0113e1088b2fa9d1ae48b9b2",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "claude/pilot-operational-closure",
+      "sha": "937a85a9570593ae8104ae6129d7391e30c513eb",
+      "reasons": [
+        "operational_name",
+        "aliased_deployment",
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "claude/practical-pascal-tna3lq",
+      "sha": "b6c608013b251cc61dbe7f12f3c6923b7ff06475",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "claude/practical-turing-s07mn2",
+      "sha": "e8ee6bfc5e9b0caed99b8e8aba2bee36f47248b3",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "claude/relationship-360-20261030",
+      "sha": "6a6af0dcb2188664661846feed4ec2e7f069f50c",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "claude/sleepy-dirac-nlmjia",
+      "sha": "90de7f8d01049ae72c961891b69416cc2f38888a",
+      "reasons": [
+        "aliased_deployment",
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "claude/sleepy-gates-rzith4",
+      "sha": "5ae24d8b49f6f8f935a371be96f15c60637e2490",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "claude/stoic-archimedes-5tb1jj",
+      "sha": "9a9b64c8a186cee688222c9f28081bcd019ef938",
+      "reasons": [
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "claude/stoic-sagan-l6oyh2",
+      "sha": "b9a031186e92868c9d7bbf434df0a9f57db85ee7",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "claude/storage-recovery",
+      "sha": "40585db39fa3f2a03bc80cbe48988b1db7e54207",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "claude/trusting-brahmagupta-q1h1o2",
+      "sha": "af5a1dbb56f01c563fac2e8dbfa0d53f179fa3b6",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "claude/v38-consolidated-financial-workspace",
+      "sha": "c9d1a0a7498af343cf339f466daef804f63b252d",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "claude/vibrant-lovelace-gnz9qs",
+      "sha": "54d2fc6123cec6f8faf91277e8396d09f5068c3e",
+      "reasons": [
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "claude/vibrant-planck-m71705",
+      "sha": "525824e318178f0b880ac1aa9acb7b1316d5eeb5",
+      "reasons": [
+        "aliased_deployment",
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "claude/wizardly-cori-2xq6ii",
+      "sha": "ea7d54404eb9780ad4eba3a2c69c1caa27346550",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "claude/wizardly-davinci-jrlvkh",
+      "sha": "ff7785f41dc18fef174ba00d6cd94eb5cfc3787c",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "claude/wonderful-bohr-lsyd9e",
+      "sha": "1996f87792a1664170a2d8b74ae0f4254f3ac913",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "claude/wonderful-shannon-is91mw",
+      "sha": "e2c991f902018f204a1cab92527caac1a0af9f4a",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "claude/youthful-goldberg-gf9xoo",
+      "sha": "b10efd1f966e0c53a167bf917b0b513e65dfa1d0",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/arandu-experiencia-visual",
+      "sha": "0fea0493ac076144a3ce2fcf20465bc966a4696c",
+      "reasons": [
+        "unique_commits"
+      ]
+    },
+    {
+      "branch": "codex/backend-architecture-v7",
+      "sha": "2e7078be69902e4eb387efe735056f5c5b13656e",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "codex/backend-lifecycle-security-20261016",
+      "sha": "c2b966752767795f5c6642f27e6c8783612e2eb5",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/ci-acceleration-v7-20261104",
+      "sha": "34d5baf5e9a1b078cd6b2e03ad6a819164ca59ea",
+      "reasons": [
+        "active_worktree",
+        "open_pr",
+        "unique_commits",
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "codex/covenant-obligation-monitor",
+      "sha": "1f35e5613035a944fe503859c5786b724bf4aa21",
+      "reasons": [
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/demo-release-readiness-20261016",
+      "sha": "c9dcb5222e5108cc0067cc3b09f5a45b02392628",
+      "reasons": [
+        "operational_name",
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/engineering-acceleration-v4",
+      "sha": "8c670286509be62b21a842cc260e2edf97b6c50d",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "codex/enterprise-integrity-m3-20261017",
+      "sha": "3159ede19cfe32b7495f9d4746436347e34ee9d6",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/enterprise-platform-release-20261017",
+      "sha": "93a1219333f89a57b8508258a74bf12dcce348a2",
+      "reasons": [
+        "operational_name",
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/final-release-proof-20261022",
+      "sha": "155bb5598feca1a610fb7e6528a2d1e1d6ace4c5",
+      "reasons": [
+        "operational_name",
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "codex/financial-consolidation-20261104",
+      "sha": "b03fe3e3ab241b2bf156fda997c48c8c809f6d38",
+      "reasons": [
+        "active_worktree",
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "codex/financial-economics-2",
+      "sha": "9c714e58a5eda3e254466f1faf613695860b836d",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "codex/financial-intelligence-engine-20261030",
+      "sha": "b1085fcd8ea2a3523fbb9d0115a78df1539ced61",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "codex/financial-product-registry",
+      "sha": "46367d828a6d2b0a0fe2dabf0e87f2e2b9a517c5",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "codex/financial-spend",
+      "sha": "e7449477f32b1153125cfd03c2445df99556b0fe",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/foundation-20261015",
+      "sha": "e01bc19acc0ea9a3be1f938f17f1d75b1a96d68a",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/hosted-finance-consolidation",
+      "sha": "1ae2fa6b289b421e72252dcf83ad4621e6547188",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "codex/hosted-infrastructure-recovery",
+      "sha": "8b47c77b45fb11a193f9b5ff1f57d8b235721585",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/hosted-operations-20261104",
+      "sha": "9695b4358e63dca632614e2489a35173135c24ae",
+      "reasons": [
+        "active_worktree",
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "codex/hosted-readiness-integrity-20261017",
+      "sha": "ca8adc4b50d908fc5e769560b105626553d3df4b",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/hosted-release-blocker-remediation",
+      "sha": "c46cbdb6c51d60407d180ad84ef5d2da25e6bf3f",
+      "reasons": [
+        "operational_name",
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/hosted-release-execution-readiness",
+      "sha": "738d148b7f24b7c59ae8b61cc746cc7cea7b3e0f",
+      "reasons": [
+        "operational_name",
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/institutional-decline-2",
+      "sha": "ec886b04aac9f7d0bbc0cf175197fc74c00bda07",
+      "reasons": [
+        "unique_commits",
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "codex/m3-operational-hardening-20261016",
+      "sha": "497ad748a3a85fc494a35f2f9251b2e79cad59f5",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/negotiation-continuity-2",
+      "sha": "207d2accfa5e5afbceb8cce254283d0dc703404e",
+      "reasons": [
+        "unique_commits",
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "codex/operational-readiness-20261015",
+      "sha": "eac74e10173dd945d2ecf5a76b41b6819a3411ce",
+      "reasons": [
+        "unique_commits",
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/operational-readiness-evidence-20261015",
+      "sha": "1f4432adb5b692e52c3bfc2c41857ba57b23383c",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/p0-canonical-hosted-demo-20261018",
+      "sha": "3b84e45a3f801ecd4be0163962b7f84e476b3517",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/p0-hosted-canonical-demo-release-20261018",
+      "sha": "742f0bf56e013fb5b4d954a875aec6bde7686e63",
+      "reasons": [
+        "operational_name",
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/p0-oct29-release-assurance",
+      "sha": "32840b494678bb6d3b31c79e349cd7840fdcdc87",
+      "reasons": [
+        "operational_name",
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "codex/p0-public-demo-deployment-proof",
+      "sha": "ae49e032de4b4b8ffac5db8fb6079f590861a762",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/p0-release-final-oct29",
+      "sha": "bf549b973fa4298156aeac1bff128c62a9440519",
+      "reasons": [
+        "operational_name",
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "codex/p0-release-proof-and-operational-readiness-20261029",
+      "sha": "fa6d6f0fd96e771fe6d5a8d11730e0e2a8df2d30",
+      "reasons": [
+        "operational_name",
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "codex/passport-diagnostic",
+      "sha": "b51ed7972907f69fe586ed67d842d36216c4aca1",
+      "reasons": [
+        "unique_commits",
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "codex/passport-evidence-contract",
+      "sha": "92a9da11d17750f35b77577c411078839e6c169c",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/pilot-advisor-hardening",
+      "sha": "94704939823ff3ce664847da0f055be63cbc8bb8",
+      "reasons": [
+        "operational_name",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/platform-crm-1",
+      "sha": "13611177efcae3158a0902c119706b2d77d0e136",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "codex/post-29-relationship-continuity",
+      "sha": "6f752c9d141837f10f67a779daaec6ea1f11065d",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "codex/post-award-implementation",
+      "sha": "d5bfc73943f9f94b4defe561b18986ccb2e874a7",
+      "reasons": [
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/post-oct29-product-evolution",
+      "sha": "41e02f7620fdf869920f71f2e4e8120401694dd3",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "codex/preflight-20261015",
+      "sha": "3e22ca098467a6bb18b217f94c5f69d04c2bf9ce",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/provider-performance",
+      "sha": "99c6f85ed81bb5b7db07b12638e2591f1e59f0ad",
+      "reasons": [
+        "unique_commits",
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/reconcile-institutional-decline",
+      "sha": "b0f4da9df3212ced2cd0b97b90ae39f0ce11f252",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "codex/recovery-consolidation",
+      "sha": "2d6d247de508e1eacc812457060234470e505ec7",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "codex/release-engineering-20261018",
+      "sha": "5f33118c5d9ae8b20e41ce582c5c949c6cf498d6",
+      "reasons": [
+        "operational_name",
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/release-readiness-m3-20261016",
+      "sha": "7a907da54f760b3c8bde16f19d544dffa061582f",
+      "reasons": [
+        "operational_name",
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/risk-based-ci",
+      "sha": "c3390540a342b6a5be586860fb2e9fe20019b4cd",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "codex/task-accountability-m3-20261015",
+      "sha": "3cd93c07311ca38da2c03085e3a91816f4f6fda7",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/v36-release-performance-integrity",
+      "sha": "18d95e884fb561e63824046b572bac01bb57657c",
+      "reasons": [
+        "operational_name",
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/v37-contract-import-integrity",
+      "sha": "bf14574816cde16b44b3004ec6012f89a709fc08",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "codex/v37-demo-reliability",
+      "sha": "7a8aec1f492f3f7e2b8c3dcc13acec5c5fc359e0",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/v37-external-decision-complete",
+      "sha": "265ab67e5f2336035b3e7f26c49c68d4fd770abd",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "codex/v37-external-proposal-integrity",
+      "sha": "27c230838524032f775f70dea49c1a014a477e55",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "codex/v37-financial-integration-performance",
+      "sha": "4aa1beaf22137423a4b0b39e679d99c98213c2d1",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "codex/v37-m3-readiness",
+      "sha": "bad2519cf5d149ec7468032c15a7f9640d87017a",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "codex/v37-provider-intent-integrity",
+      "sha": "98d1b8935dd599e82a872490b918b47b5d3b07e7",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "docs/arandu-guideline-v2-1-enterprise-hardening",
+      "sha": "d6f02a75180874e84d9f5929f9d74f914fa9f616",
+      "reasons": [
+        "aliased_deployment",
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "docs/arandu-master-guidelines-v1",
+      "sha": "58f4786974df2c17883f6dae1bf7d81f0f9578a8",
+      "reasons": [
+        "operational_name",
+        "aliased_deployment",
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "docs/financial-procurement-lifecycle-moat",
+      "sha": "d706d391376746a80720d7243f26182ed9b1270a",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment",
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "docs/financial-procurement-os-guideline-v2",
+      "sha": "7d6223fd30783c38f1164bc583ed8991f42b4b92",
+      "reasons": [
+        "aliased_deployment",
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "docs/frontend-agent-toolkit-20261018",
+      "sha": "f2eb8432c6a3e97593625f87560083ec0ccac0fc",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "docs/guideline-v3-operational-maturity",
+      "sha": "c16ae6642fdc2ac18080347ce19cc8731193c69f",
+      "reasons": [
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "docs/guideline-v3.4-stage0-to-m3",
+      "sha": "89422298a22b03143110ea25a6bb8efca653e285",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "docs/hosted-alignment-main",
+      "sha": "86dfd5151b6c7a58f40385107738b3f3fffcefb5",
+      "reasons": [
+        "operational_name",
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "docs/p0-oct29-operational-handoff",
+      "sha": "100a8a4eafc20c19d2091a3e7759ac87fc2d56a1",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "docs/p0-public-demo-29oct-guideline-v3-5",
+      "sha": "a3f197482f860902713c8249af68aadb1afd3ea5",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "docs/platform-intelligence-mandate",
+      "sha": "efba2478bc3a342cbd7e5ba06b583c92d92b06d4",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "docs/production-deployment-investigation",
+      "sha": "4cc68b52a2e2f221ac9777fbd75efc37171bcadb",
+      "reasons": [
+        "operational_name",
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "docs/v33-verified-delivery-evidence",
+      "sha": "f6ba6b2505dd8309f2dae2f81e87e8594fa696e1",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "docs/v36-benchmark-adocao-performance-20261020",
+      "sha": "bda7705f557501edaf3a1440d799576b7fd620de",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "docs/v37-three-segments-bank-adoption-quality-20261020",
+      "sha": "e34ddee9ae0abae6651fa43bebaa9fa09668f2e0",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "feature/arandu-public-experience-v2",
+      "sha": "cca11c8f629be8d10af7c402f071565a763b91b7",
+      "reasons": [
+        "unique_commits"
+      ]
+    },
+    {
+      "branch": "feature/arandu-visual-commercial-fix",
+      "sha": "a4dd9fe6163433f1d8950b2217f207b96a465755",
+      "reasons": [
+        "unique_commits"
+      ]
+    },
+    {
+      "branch": "feature/arandu-visual-commercial-polish",
+      "sha": "e6b5b9f7de3584d46aa10ab6409d1f4972797f93",
+      "reasons": [
+        "unique_commits"
+      ]
+    },
+    {
+      "branch": "feature/bank-fee-intelligence",
+      "sha": "e889aff2f2a363bf8fe16384fd53c11cca0f3f4c",
+      "reasons": [
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "feature/buyer-lifecycle-actions",
+      "sha": "6b098f1358a33c581c3837d5ff1e41316f1c5d83",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "feature/demo-baseline",
+      "sha": "0beb982ddff0a92e79bede9b5bddb82e64b49e18",
+      "reasons": [
+        "aliased_deployment",
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "feature/demo-presentation-closure",
+      "sha": "3c084f2d572cacf9b5c72f86c451fbbcab82be0b",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "feature/enterprise-sso-foundation",
+      "sha": "b00ef1a90a25d175195d8846642a5360ba1fe875",
+      "reasons": [
+        "aliased_deployment",
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "feature/environment-topology",
+      "sha": "37653228246ebd529e6ad41dedd100d26f3d3869",
+      "reasons": [
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "feature/financial-graph-foundations",
+      "sha": "b3449e2863c25fd42cf30aa3260fb76010f91251",
+      "reasons": [
+        "unique_commits",
+        "aliased_deployment",
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "feature/integrate-financial-graph",
+      "sha": "8177067e505ef0495e6fc1011c383cf1cb09cb32",
+      "reasons": [
+        "aliased_deployment",
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "feature/operational-resilience",
+      "sha": "f0d5117fbd201a5759f4359a70c8cd892de7e66b",
+      "reasons": [
+        "aliased_deployment",
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "feature/opportunity-engine",
+      "sha": "70df5d30fa77b4f2959420c63024627229ee05e0",
+      "reasons": [
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "feature/passport-legal-entity",
+      "sha": "b44925da6c3c9601c0b1689b0932dd52b225159c",
+      "reasons": [
+        "unique_commits",
+        "aliased_deployment",
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "feature/passport-operational-closure-2026-10-02",
+      "sha": "2c17d740bfaf5c6fadcd469869d569632dbdd97a",
+      "reasons": [
+        "aliased_deployment",
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "feature/pilot-hosted-closure",
+      "sha": "d791552fc7c2da33b3f867a42af42c242b3bbfd1",
+      "reasons": [
+        "operational_name",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "feature/pilot-passport-hosted-rollout-2026-10-02",
+      "sha": "f598d3917236bc5c5b7355025fe75c4839c1b825",
+      "reasons": [
+        "operational_name",
+        "aliased_deployment",
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "feature/platform-ingestion",
+      "sha": "79a04c34cc85c49c889a0cd08ac169b5cc9b53b6",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "feature/platform-intelligence-backend",
+      "sha": "02959d1e4b748cbb0916681558a73748c5a44027",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "feature/policy-engine-v2",
+      "sha": "6a8ba3a9966009c11dc0a061d89026029b30fc88",
+      "reasons": [
+        "aliased_deployment",
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "feature/private-product-analytics",
+      "sha": "dd7871514da63888076d15d665c2e1130363ded5",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "feature/procurement-lifecycle-continuity",
+      "sha": "7ddf8a4e22f654030475aec3100cb3d222d85e6d",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "feature/public-api-webhooks",
+      "sha": "6c09146f6249aaae4181d7ccedc1e14a975a17cf",
+      "reasons": [
+        "aliased_deployment",
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "feature/savings-value-realization",
+      "sha": "f4b78a2f19a3a5741a9646e531cdf80a847b102b",
+      "reasons": [
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "feature/stabilize-pilot-contract-actions",
+      "sha": "fe5f9ffaf1da748f83b47f7030c2c8aadfe39862",
+      "reasons": [
+        "operational_name",
+        "aliased_deployment",
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "feature/v33-financial-comparison",
+      "sha": "f5254afdd9f0b8d41e4dbf49f2506d0caf2f0445",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "feature/v33-institution-context",
+      "sha": "f5d5d1d0833d4bca46a872e1c60200c502387beb",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "fix/canonical-lab-resource-preflight",
+      "sha": "d92f4b3383fc08ab9e6ca8807c6210432d4a382a",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "fix/ci-recovery-dynamic-postgres-ports",
+      "sha": "1fa45d0688008cca26b43551e26f78d06b0d954a",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "fix/finance-env-site-url-placeholder",
+      "sha": "bf6b142ef2200aa79b6aa5ef85f65418a902589f",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "fix/ghsa-zod-transitive-20261025",
+      "sha": "d75faf3233109e9108698b325b8ae59feea9a3e6",
+      "reasons": [
+        "recent_activity_30d"
+      ]
+    },
+    {
+      "branch": "fix/hosted-release-verification",
+      "sha": "ad40094ce1981d8a49f7c513365f2e22802c4ff8",
+      "reasons": [
+        "operational_name",
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "fix/operational-release-evidence",
+      "sha": "1daee036acf56fb8f46db4e9062a9a47223bdefb",
+      "reasons": [
+        "operational_name",
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "fix/pilot-webkit-route-performance",
+      "sha": "317d7fc7b643008d83d13fe286c496bca495ae51",
+      "reasons": [
+        "operational_name",
+        "aliased_deployment",
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "fix/playwright-ci-resilience",
+      "sha": "1ee466218bca8c0ece966afee81e4788aae97ec7",
+      "reasons": [
+        "unique_commits",
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "fix/qualification-expiry-job",
+      "sha": "8562afee873b590433658e39088425abf2592f2b",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "fix/release-evidence-financial-inputs",
+      "sha": "3aeef8f57a420a7a6c13b8a822890af2ce0cb24b",
+      "reasons": [
+        "operational_name",
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "fix/stage0-approved-database-identity",
+      "sha": "a3b429d5614dddfb639aad3e7a75cae21b65ca60",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "fix/stage0-live-governance",
+      "sha": "a1a8a34a07e4734aa99faab578dcfc417189809f",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "fix/stage0-offline-deployment-preflight",
+      "sha": "463b0a343d6121980df17372212aabb6ff86e891",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "fix/two-environment-consolidation",
+      "sha": "85e95cd94a023a3012c6b20841c64f2fd159af36",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "fix/v33-intake-relationship-consistency",
+      "sha": "b1b1e699f4077beaf00d716e46037f4377e736e5",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "fix/value-realization-post-merge",
+      "sha": "189bc9d11a092ff4169fa3528b4b85f8afcad016",
+      "reasons": [
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "fix/windows-gate-exit-codes",
+      "sha": "7ae8936109e25131b0f73ac559bbdf125211c694",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "hotfix/arandu-wave0-safari-closure",
+      "sha": "f3d4f8889990124f75a022850a6a216ae766e3b8",
+      "reasons": [
+        "aliased_deployment",
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "launch-readiness-20260625",
+      "sha": "ddce72f7a70979338aabc4478a23613a6951e349",
+      "reasons": [
+        "unique_commits"
+      ]
+    },
+    {
+      "branch": "main",
+      "sha": "9910408244bfb122e5d62a77c692928958ce77bd",
+      "reasons": [
+        "protected",
+        "operational_name",
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "perf/bundle-headroom",
+      "sha": "8701d8225f71d33c86d2629f14c6f2bce0ce3fdc",
+      "reasons": [
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "pilot",
+      "sha": "2241d3b94568acfdb99c8b7b31b53810e356846e",
+      "reasons": [
+        "operational_name",
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "work/arandu-b2b-platform-pivot",
+      "sha": "26a7b3744661d4f891f7508fe8a2ab89efc28e27",
+      "reasons": [
+        "unique_commits",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "work/arandu-enterprise-procurement-depth",
+      "sha": "ab8cedf01b2ead73f482bfac35b1551c690e047b",
+      "reasons": [
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "work/arandu-final-beta-code-closure",
+      "sha": "333737eca8b06a8d368819a20dc8b7e18df56071",
+      "reasons": [
+        "unresolved_alias_prefix"
+      ]
+    },
+    {
+      "branch": "work/arandu-financial-platform-deepening",
+      "sha": "cf466744fc246594c876ba6b90d71ba591e6c3df",
+      "reasons": [
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "work/arandu-financial-procurement-pilot-hardening",
+      "sha": "f67cebc3d10f5515a6bbed4d56bbba89a49f6ee2",
+      "reasons": [
+        "operational_name",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "work/arandu-financial-productization",
+      "sha": "9e63b5fb62344348b13f4e6a897c8f122ea1fa53",
+      "reasons": [
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "work/arandu-first-financial-pilot-readiness",
+      "sha": "d23bbb5c3cb262677afd55ea05a4c7a9bed5bc41",
+      "reasons": [
+        "operational_name",
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "work/arandu-operational-depth",
+      "sha": "7f7b8352063e0ab94018423787f7584b7ca32f2a",
+      "reasons": [
+        "aliased_deployment"
+      ]
+    },
+    {
+      "branch": "work/platform-m3-20261015",
+      "sha": "73e857ab62e6f8b1cf325b331de554d0986c4082",
+      "reasons": [
+        "recent_activity_30d",
+        "aliased_deployment"
+      ]
+    }
+  ]
+}

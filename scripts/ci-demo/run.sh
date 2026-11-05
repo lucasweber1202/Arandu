@@ -99,6 +99,11 @@ case "$phase" in
     ;;
   smoke) local_env; timeout 300 node "$here/smoke.mjs" ;;
   seed) local_env; fresh_app; timeout 1500 node "$root/scripts/demo/seed.mjs" --reset ;;
+  seed-pool)
+    local_env; fresh_app
+    export ARANDU_SEED_PROFILE_DIR="${ARANDU_SEED_PROFILE_DIR:-$out/seed-profile}"
+    timeout 1500 node "$here/seed-pool.mjs"
+    ;;
   check) local_env; fresh_app; timeout 300 node "$root/scripts/demo/seed.mjs" --check ;;
   pool)
     local_env; fresh_app
@@ -107,6 +112,7 @@ case "$phase" in
     timeout 2100 node "$root/scripts/demo/workspaces.mjs" provision --count=4 --concurrency=4
     node "$here/verify-pool.mjs"
     ;;
+  verify-pool) local_env; node "$here/verify-pool.mjs" ;;
   e2e)
     project="${2:?projeto do Playwright (demo-desktop|demo-mobile)}"
     local_env; fresh_app
@@ -141,6 +147,9 @@ case "$phase" in
       docker compose -p arandu-pilot-local logs --no-color --tail 300 "$service" > "$state/$service.log" 2>&1 || echo "logs de $service indisponíveis"
     done
     node "$here/sanitize.mjs" "$out/logs" "$state/app.log" "$state/gateway.log" "$state/db.log" "$state/auth.log" "$state/rest.log" "$state/storage.log"
+    if [ -d "$out/seed-profile" ]; then
+      node "$root/scripts/demo/profile-report.mjs" "$out/seed-profile"
+    fi
     [ -f "$images_env" ] && cp "$images_env" "$out/images.env"
     resources | tee "$out/resources-final.txt"
     ;;
