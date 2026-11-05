@@ -113,3 +113,12 @@ candidato, preservar evidências e corrigir via PR ou reverter código por PR.
 Não restaurar banco automaticamente. Release exige full validation e integração
 real verdes no MESMO SHA; PR rápida não comprova M3/M4/M5 nem autoriza
 publicação/cutover. A própria mudança de CI é D e valida a matriz integral.
+
+## Execução integral 7.0 (classificação v6.2 preservada)
+
+O workflow full passa a usar preflight de fonte/build e dois grupos balanceados
+de navegadores, com união exata de recibos por caso/projeto/SHA. `full` só é
+success com preflight, ambos os grupos, coverage, SQL, apresentação e
+deploy-boundaries concluídos. A integração real continua separada e obrigatória
+para D. Nada nesta divisão reduz a classe de risco ou usa CI anterior como prova.
+Detalhes e métricas: [CI_ACCELERATION_V7.md](CI_ACCELERATION_V7.md).

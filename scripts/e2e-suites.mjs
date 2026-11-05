@@ -4,6 +4,8 @@ export const PRODUCT_E2E = Object.freeze([
   "tests/e2e/finance-passport.spec.js",
   "tests/e2e/finance-entities.spec.js",
   "tests/e2e/finance-contracts.spec.js",
+  "tests/e2e/finance-connectivity.spec.js",
+  "tests/e2e/finance-deadline-radar.spec.js",
   "tests/e2e/finance-portfolio.spec.js",
   "tests/e2e/finance-policy.spec.js",
   "tests/e2e/finance-provider-draft.spec.js",
