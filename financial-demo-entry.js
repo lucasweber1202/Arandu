@@ -140,7 +140,8 @@ export function demoEntry(personas, { enter, next = null, navigate = (url) => lo
     node('p', { class: 'demo-entry-intro', text: 'O ciclo completo em ordem: cada passo entra como a persona indicada e abre a tela do passo. Volte aqui para seguir ao próximo.' }),
     node('ol', { class: 'demo-tour-list' }, steps.map((step, index) => {
       const persona = offered.get(step.persona);
-      const button = node('button', { type: 'button', class: 'demo-persona demo-tour-step', 'data-tour-step': String(index + 1) }, [
+      const button = // Nome acessível próprio do passo: não confunde com o cartão da persona.
+      node('button', { type: 'button', class: 'demo-persona demo-tour-step', 'data-tour-step': String(index + 1), 'aria-label': `Roteiro, passo ${index + 1}: ${step.title}` }, [
         node('span', { class: 'demo-persona-role', text: `Passo ${index + 1} · como ${persona.name}` }),
         node('span', { class: 'demo-persona-name', text: step.title }),
         node('span', { class: 'demo-persona-journey', text: step.text })
