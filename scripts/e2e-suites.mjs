@@ -1,6 +1,7 @@
 // Product suites only. Demo/presentation have separate configs and builds.
 export const PRODUCT_E2E = Object.freeze([
   "tests/e2e/finance-procurement.spec.js",
+  "tests/e2e/perf-journey-weight.spec.js",
   "tests/e2e/finance-passport.spec.js",
   "tests/e2e/finance-entities.spec.js",
   "tests/e2e/finance-contracts.spec.js",

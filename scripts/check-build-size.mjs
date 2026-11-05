@@ -20,10 +20,12 @@ walk(dir);
 
 let profile = null;
 try { profile = JSON.parse(fs.readFileSync('reports/bundle-profile.json', 'utf8')); } catch { profile = null; }
-const result = assessBuildSize({ files, profile });
+const readJson = (file) => { try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return null; } };
+const result = assessBuildSize({ files, profile, growthLog: readJson('docs/perf/bundle-growth-log.json'), journeyBaseline: readJson('docs/perf/journey-js-baseline.json') });
 
 console.log('Arandu Build Size Check');
-for (const key of Object.keys(result.limits)) console.log(`${key}: ${result.metrics[key]} / ${result.limits[key]} bytes`);
+for (const key of Object.keys(result.limits)) console.log(`${key}: ${result.metrics[key]} / ${result.limits[key]} bytes (hard limit)`);
+for (const key of Object.keys(result.capacity)) console.log(`${key}: ${result.metrics[key]} / ${result.capacity[key]} bytes (indicador de capacidade${result.accepted ? `; aceito até ${result.accepted}` : ''})`);
 console.log(`largest route: ${result.largestRoute}`);
 for (const warning of result.warnings) console.log(`AVISO: ${warning}`);
 for (const problem of result.problems) console.error(`FALHA: ${problem}`);
