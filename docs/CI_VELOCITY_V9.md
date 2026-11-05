@@ -108,7 +108,14 @@ O parser NUL compartilhado preserva origem/destino de renomes, cópias, remoçõ
 e nomes com espaços/quebras. Preflight exige checkpoint limpo e main ancestral;
 mostra SHA/base, razões por arquivo, testes, jobs, triggers integrais e referência
 histórica. Sem dados oficiais equivalentes de A/B/C, a estimativa fica não medida;
-para D, mediana/p95 históricos são referências da arquitetura anterior.
+para D, mediana/p95 históricos padrão são referências da arquitetura anterior.
+`npm run ci:preflight -- origin/main --history report.json` aceita uma saída de
+ci:report (ou array de relatórios), filtra classe e arquitetura da matriz,
+remove tentativas duplicadas, falhas e reruns parciais/herdados e calcula mediana,
+intervalo e p95 empírico com tamanho da amostra explícito. Não apresenta p95 com
+uma amostra. O plano também enumera o catálogo PRODUCT_E2E integral para D,
+os cinco projetos, grupos, apresentação, SQL, recovery e integração, sem confundir
+a seleção financeira do fast path com toda a cobertura profunda.
 
 A auditoria encontrou imagens de evidência visual tratadas como desconhecidas.
 PNG/JPG/WebP sob `docs/evidence` são evidência raster passiva e passam a A;

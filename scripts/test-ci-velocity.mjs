@@ -1,3 +1,4 @@
+import {historicalEstimate} from './ci/preflight.mjs';
 import {execFileSync} from 'node:child_process';
 import {seedQuotaReport} from './ci/seed-quota-report.mjs';
 import {browserBalance} from './ci/browser-balance.mjs';
@@ -77,3 +78,15 @@ assert.equal(demoPreparations('ARANDU_SEED_BROWSER_PREPARATION '+JSON.stringify(
 for(const filename of ['tests/e2e/perf-journey-weight.spec.js','tests/e2e/demo-work-os-v3.spec.js','tests/e2e/demo-persona-entry.spec.js','tests/e2e/unknown.spec.js','tests/e2e/finance-unmapped-new.spec.js'])assert.equal(classifyChanges([{status:'modified',filename}]).risk,'D',filename);
 assert.equal(classifyChanges([{status:'modified',filename:'tests/e2e/finance-contract-os.spec.js'}]).risk,'B');
 assert.equal(classifyChanges([{status:'modified',filename:'tests/e2e/public-tour.spec.js'}]).risk,'B');
+
+const history={format_version:1,repository:'fixture/repo',run_id:1,head_sha:'a'.repeat(40),risk:'D',attempts:[100,120].map((seconds,i)=>({attempt:i+1,conclusion:'success',inherited_jobs:[],critical_path:{seconds},attempt_wall_seconds:seconds,jobs:['validate','webkit','safari'].map(name=>({name:name+' / browser'}))}))};
+const forecast=historicalEstimate([history,history],'D');assert.equal(forecast.seconds,110);assert.equal(forecast.samples,2,'duplicate attempts must not bias the estimate');assert.equal(forecast.empirical_p95_seconds,120);
+assert.throws(()=>historicalEstimate(history,'B'));
+for(const change of [a=>a.conclusion='failure',a=>a.critical_path=null,a=>a.inherited_jobs.push({name:'old'}),a=>a.jobs.pop(),a=>a.attempt_wall_seconds=-1]){const invalid=structuredClone(history);invalid.attempts.forEach(change);assert.throws(()=>historicalEstimate(invalid,'D'));}
+assert.equal(historicalEstimate({...history,attempts:[history.attempts[0]]},'D').empirical_p95_seconds,null);
+assert(!JSON.stringify(forecast).includes('fixture/repo'),'only allowlisted reference fields leave the history parser');
+
+assert.throws(()=>historicalEstimate({...history,repository:''},'D'));
+assert.throws(()=>historicalEstimate({...history,run_id:0},'D'));
+assert.throws(()=>historicalEstimate(history,'Z'));
+assert.throws(()=>historicalEstimate({...history,attempts:[{...history.attempts[0],attempt:null}]},'D'));
