@@ -113,10 +113,10 @@ if (exists('.github/workflows/ci.yml')) {
     if (!new RegExp(`^  ${job}:`, 'm').test(ci)) problems.push(`.github/workflows/ci.yml: job ${job} ausente.`);
   }
   // Evaluate each browser job: setup must run on cache hit and on cache miss.
-  for (const job of ['validate', 'validate-mobile', 'presentation']) {
+  for (const job of ['validate', 'validate-mobile', 'validate-webkit', 'validate-safari', 'presentation']) {
     let section = read('.github/workflows/ci-full.yml').split(new RegExp(`^  ${job}:`, 'm'))[1]?.split(/^  [a-z][\w-]*:/m)[0] || '';
     if (job !== 'presentation') {
-      const group=job==='validate'?'gecko_webkit':'chromium_mobile';
+      const group={'validate':'firefox','validate-mobile':'chromium','validate-webkit':'webkit','validate-safari':'safari'}[job];
       if(!section.includes('uses: ./.github/workflows/ci-browser.yml')||!section.includes('needs: validate-source')||!section.includes('browser_group: '+group))problems.push(`.github/workflows/ci-full.yml: ${job} perdeu o grupo ou preflight obrigatório.`);
       section=exists('.github/workflows/ci-browser.yml')?read('.github/workflows/ci-browser.yml').split(/^  browser:/m)[1]||'':'';
     }

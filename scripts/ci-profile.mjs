@@ -5,6 +5,8 @@ const seconds=(start,end)=>{const a=Date.parse(start),b=Date.parse(end);return N
 export function profileRun(run,jobs){
  const classify=name=>{
   const n=name.toLowerCase();
+  if(/teardown/.test(n))return 'teardown';
+  if(/presentation journeys/.test(n))return 'presentation';
   if(/cache/.test(n))return /playwright|browser/.test(n)?'browser_cache':'dependency_cache';
   if(/workspaces|pool/.test(n))return 'pool';
   if(/desktop and mobile journeys|presentation journeys|demo e2e/.test(n))return 'browser_execution';

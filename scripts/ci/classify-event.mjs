@@ -1,3 +1,4 @@
+import { parseChanges } from './changes.mjs';
 import { readFileSync, appendFileSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { classifyChanges, PATHS, REQUIRED } from './risk-policy.mjs';
@@ -16,15 +17,7 @@ if (process.env.GITHUB_EVENT_NAME === 'pull_request') {
   if (!parents.includes(base.sha) || !parents.includes(head.sha)) throw Error('Merge candidate does not match base/head');
   // Strict branch freshness: the candidate must already contain the current base.
   git('merge-base', '--is-ancestor', base.sha, head.sha);
-  const fields = execFileSync('git', ['diff', '--name-status', '-z', '--find-renames', `${base.sha}...${head.sha}`], { encoding: 'utf8' }).split('\0');
-  const changes = [];
-  for (let i = 0; i < fields.length && fields[i];) {
-    const status = fields[i++];
-    const filename = fields[i++];
-    if (status.startsWith('R')) changes.push({ status: 'renamed', previous_filename: filename, filename: fields[i++] });
-    else if (status.startsWith('C')) changes.push({ status: 'added', filename: fields[i++] });
-    else changes.push({ status: { A: 'added', M: 'modified', D: 'removed', T: 'modified' }[status], filename });
-  }
+  const changes = parseChanges(execFileSync('git', ['diff', '--name-status', '-z', '--find-renames', `${base.sha}...${head.sha}`], { encoding: 'utf8' }));
   // Purity is verified on the analysed candidate checkout (merge result).
   plan = classifyChanges(changes, { readSource: (p) => (existsSync(p) ? readFileSync(p, 'utf8') : null) });
 }
@@ -43,3 +36,5 @@ appendFileSync(process.env.GITHUB_OUTPUT, Object.entries(out).map(([k, v]) => `$
 const rows = plan.reasons.map((r) => `| \`${r.path}\` | ${r.status || ''} | ${r.risk} | ${r.why || ''} |`).join('\n');
 appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Risk policy v6.2\nAnalyzed checkout: \`${sha}\`\n\n**Class ${plan.risk} → ${plan.path} path** · required: ${plan.required.join(', ')}\n\nChromium suites (${suites.length}/${all.length}): ${suites.map((s) => `\`${s.replace('tests/e2e/', '')}\``).join(', ')}\n\n| Path | Status | Class | Reason |\n|---|---|---|---|\n${rows}\n\nClassification time: ${Date.now() - started} ms\n`);
 console.log(`Class ${plan.risk} (${plan.path}); ${suites.length} Chromium suites; ${Date.now() - started} ms`);
+
+console.log('ARANDU_RISK_RECEIPT '+JSON.stringify({sha,risk:plan.risk,reasons:plan.reasons,required:plan.required,suites}));
