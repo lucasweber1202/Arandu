@@ -91,6 +91,8 @@ body.public{background:#fff;color:var(--navy);font-family:Inter,system-ui,-apple
 .demo-entry-group h3{margin:0 0 .2rem}
 .demo-entry-intro{color:var(--muted);margin:0 0 .9rem}
 .demo-entry-list{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:.8rem}
+.demo-tour{margin-top:1.6rem}.demo-tour h3{margin:0 0 .2rem}
+.demo-tour-list{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:.8rem}
 .public .demo-persona{display:grid;font-weight:400;gap:.25rem;width:100%;height:100%;text-align:left;font:inherit;color:var(--navy);background:#fff;border:1px solid var(--line);border-radius:10px;padding:1rem 1.1rem;cursor:pointer;align-content:start}
 .public .demo-persona:hover{border-color:var(--teal);background:var(--paper)}
 .demo-persona:focus-visible{outline:3px solid var(--teal);outline-offset:2px}

@@ -1,0 +1,129 @@
+{
+  "description": "Baseline de JavaScript por jornada (Chromium, API simulada). Atualizar só com --update --reason; ver docs/FINANCIAL_BUNDLE_HEADROOM.md.",
+  "tolerance": {
+    "bytes": 0.05,
+    "requests": 0.1
+  },
+  "journeys": [
+    {
+      "id": "buyer",
+      "label": "Comprador: painel → tarefas",
+      "initial": {
+        "decodedBytes": 151904,
+        "requests": 18
+      },
+      "cumulative": {
+        "decodedBytes": 179973,
+        "requests": 29,
+        "transferBytes": 73814,
+        "scriptMs": 5
+      },
+      "executedBytes": 46353
+    },
+    {
+      "id": "institution",
+      "label": "Instituição: portal → proposta",
+      "initial": {
+        "decodedBytes": 130466,
+        "requests": 12
+      },
+      "cumulative": {
+        "decodedBytes": 137261,
+        "requests": 25,
+        "transferBytes": 53680,
+        "scriptMs": 4
+      },
+      "executedBytes": 54764
+    },
+    {
+      "id": "portfolio",
+      "label": "Portfolio: carteira de contratos",
+      "initial": {
+        "decodedBytes": 135277,
+        "requests": 14
+      },
+      "cumulative": {
+        "decodedBytes": 135277,
+        "requests": 14,
+        "transferBytes": 54109,
+        "scriptMs": 14
+      },
+      "executedBytes": 51102
+    },
+    {
+      "id": "contract360",
+      "label": "Contract 360: contrato aberto",
+      "initial": {
+        "decodedBytes": 193190,
+        "requests": 25
+      },
+      "cumulative": {
+        "decodedBytes": 193190,
+        "requests": 25,
+        "transferBytes": 81937,
+        "scriptMs": 18
+      },
+      "executedBytes": 77749
+    },
+    {
+      "id": "relationship360",
+      "label": "Relationship 360: instituição",
+      "initial": {
+        "decodedBytes": 237964,
+        "requests": 26
+      },
+      "cumulative": {
+        "decodedBytes": 237964,
+        "requests": 26,
+        "transferBytes": 96027,
+        "scriptMs": 17
+      },
+      "executedBytes": 79248
+    },
+    {
+      "id": "obligations",
+      "label": "Obrigações: radar → registro de covenants",
+      "initial": {
+        "decodedBytes": 110642,
+        "requests": 11
+      },
+      "cumulative": {
+        "decodedBytes": 117628,
+        "requests": 21,
+        "transferBytes": 48482,
+        "scriptMs": 3
+      },
+      "executedBytes": 37629
+    },
+    {
+      "id": "renewal",
+      "label": "Renovação: contrato em janela → negociações",
+      "initial": {
+        "decodedBytes": 193190,
+        "requests": 25
+      },
+      "cumulative": {
+        "decodedBytes": 243754,
+        "requests": 36,
+        "transferBytes": 100870,
+        "scriptMs": 3
+      },
+      "executedBytes": 44725
+    }
+  ],
+  "history": [
+    {
+      "date": "2026-11-05",
+      "reason": "Baseline inicial medida no HEAD df8cc4d4 (PR #331), antes das funcionalidades do lote.",
+      "cumulative": {
+        "buyer": 179973,
+        "institution": 137261,
+        "portfolio": 135277,
+        "contract360": 193190,
+        "relationship360": 237964,
+        "obligations": 117628,
+        "renewal": 243754
+      }
+    }
+  ]
+}

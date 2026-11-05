@@ -26,6 +26,29 @@ export const PERSONA_GUIDE = {
 
 const DESTINATION = { [BUYER]: '/finance/dashboard.html', [PROVIDER]: '/provider/index.html' };
 
+/**
+ * Roteiro guiado: o ciclo de vida em ordem, cada passo entra como a persona
+ * certa e abre a tela certa. Só descreve o que o dataset canônico garante
+ * (scripts/demo/seed.mjs e seu verificador): crédito com a Atlas em janela de
+ * renovação, concorrência em coleta para a Meridian, aprovação para a Helena,
+ * covenants e documentos registrados. Passo cuja persona o servidor não
+ * oferece some, em vez de prometer o que não está lá.
+ */
+export const GUIDED_TOUR = Object.freeze([
+  { persona: 'juliana', title: 'Carteira e renovação', destination: '/finance/contracts.html?excecao=window',
+    text: 'O contrato de crédito com a Atlas está na janela de renovação. Abra-o: obrigações, documentos com histórico de versões e o que falta para decidir.' },
+  { persona: 'juliana', title: 'Renegociar o contrato existente', destination: '/finance/contracts.html?excecao=window',
+    text: 'No contrato, inicie a renegociação: o rascunho nasce ligado ao contrato e a Atlas pode ser convidada a responder pelo portal.' },
+  { persona: 'meridian', title: 'Portal da instituição', destination: '/provider/index.html',
+    text: 'Como instituição convidada: prepare o rascunho e envie a proposta à concorrência de capital de giro, com autoria própria.' },
+  { persona: 'helena', title: 'Aprovação', destination: '/finance/approvals.html',
+    text: 'A aprovação da nova linha de crédito espera por Helena: a decisão é humana e fica registrada.' },
+  { persona: 'juliana', title: 'Obrigações e prazos', destination: '/finance/tasks.html#deadline-radar',
+    text: 'Covenants, marcos e avisos prévios de todos os contratos na Caixa de Trabalho.' },
+  { persona: 'carlos', title: 'Quem só lê', destination: '/finance/contracts.html',
+    text: 'A mesma carteira para quem só acompanha: veja o que fica indisponível para leitura.' }
+]);
+
 const node = (tag, attrs = {}, children = []) => {
   const element = document.createElement(tag);
   for (const [key, value] of Object.entries(attrs)) {
@@ -73,6 +96,27 @@ export function demoEntry(personas, { enter, next = null, navigate = (url) => lo
   const known = personas.filter((persona) => PERSONA_GUIDE[persona.key]).sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key));
   const other = personas.filter((persona) => !PERSONA_GUIDE[persona.key]);
   const buttons = [];
+  // Entrada única: persona da lista (destino padrão do lado) ou passo do roteiro (destino do passo).
+  const enterAs = async (persona, button, destination = null) => {
+    const guide = PERSONA_GUIDE[persona.key];
+    for (const item of buttons) item.disabled = true;
+    button.setAttribute('aria-busy', 'true');
+    status.dataset.tone = '';
+    status.textContent = `Entrando como ${persona.name}…`;
+    let outcome;
+    try { outcome = await enter(persona.key); } catch { outcome = { ok: false, status: 0, result: null }; }
+    if (outcome.ok) {
+      status.textContent = `Sessão aberta como ${persona.name}. Carregando o workspace…`;
+      // O link que trouxe o visitante vale se for do lado da persona (empresa → /finance, instituição → /provider).
+      const side = guide?.side || BUYER;
+      navigate(destination || (next && next.startsWith(side === PROVIDER ? '/provider/' : '/finance/') ? next : DESTINATION[side]));
+      return;
+    }
+    status.dataset.tone = 'error';
+    status.textContent = outcome.status === 0 ? 'Sem conexão com o servidor. Verifique a rede e tente de novo.' : failureText(outcome.status, outcome.result, outcome.retryAfter);
+    button.removeAttribute('aria-busy');
+    for (const item of buttons) item.disabled = false;
+  };
   const card = (persona) => {
     const guide = PERSONA_GUIDE[persona.key];
     const button = node('button', { type: 'button', class: 'demo-persona', 'data-persona': persona.key }, [
@@ -81,31 +125,31 @@ export function demoEntry(personas, { enter, next = null, navigate = (url) => lo
       guide ? node('span', { class: 'demo-persona-role', text: guide.role }) : null,
       guide ? node('span', { class: 'demo-persona-journey', text: guide.journey }) : null
     ]);
-    button.addEventListener('click', async () => {
-      for (const item of buttons) item.disabled = true;
-      button.setAttribute('aria-busy', 'true');
-      status.dataset.tone = '';
-      status.textContent = `Entrando como ${persona.name}…`;
-      let outcome;
-      try { outcome = await enter(persona.key); } catch { outcome = { ok: false, status: 0, result: null }; }
-      if (outcome.ok) {
-        status.textContent = `Sessão aberta como ${persona.name}. Carregando o workspace…`;
-        // O link que trouxe o visitante vale se for do lado da persona (empresa → /finance, instituição → /provider).
-        const side = guide?.side || BUYER;
-        navigate(next && next.startsWith(side === PROVIDER ? '/provider/' : '/finance/') ? next : DESTINATION[side]);
-        return;
-      }
-      status.dataset.tone = 'error';
-      status.textContent = outcome.status === 0 ? 'Sem conexão com o servidor. Verifique a rede e tente de novo.' : failureText(outcome.status, outcome.result, outcome.retryAfter);
-      button.removeAttribute('aria-busy');
-      for (const item of buttons) item.disabled = false;
-    });
+    button.addEventListener('click', () => enterAs(persona, button));
     buttons.push(button);
     return node('li', {}, button);
   };
   const group = (title, intro, list) => list.length ? node('div', { class: 'demo-entry-group' }, [
     node('h3', { text: title }), intro ? node('p', { class: 'demo-entry-intro', text: intro }) : null,
     node('ul', { class: 'demo-entry-list', role: 'list' }, list.map(card))
+  ]) : null;
+  const offered = new Map(personas.map((persona) => [persona.key, persona]));
+  const steps = GUIDED_TOUR.filter((step) => offered.has(step.persona) && PERSONA_GUIDE[step.persona]);
+  const tour = steps.length ? node('div', { class: 'demo-tour' }, [
+    node('h3', { text: 'Roteiro guiado' }),
+    node('p', { class: 'demo-entry-intro', text: 'O ciclo completo em ordem: cada passo entra como a persona indicada e abre a tela do passo. Volte aqui para seguir ao próximo.' }),
+    node('ol', { class: 'demo-tour-list' }, steps.map((step, index) => {
+      const persona = offered.get(step.persona);
+      const button = // Nome acessível próprio do passo: não confunde com o cartão da persona.
+      node('button', { type: 'button', class: 'demo-persona demo-tour-step', 'data-tour-step': String(index + 1), 'aria-label': `Roteiro, passo ${index + 1}: ${step.title}` }, [
+        node('span', { class: 'demo-persona-role', text: `Passo ${index + 1} · como ${persona.name}` }),
+        node('span', { class: 'demo-persona-name', text: step.title }),
+        node('span', { class: 'demo-persona-journey', text: step.text })
+      ]);
+      button.addEventListener('click', () => enterAs(persona, button, step.destination));
+      buttons.push(button);
+      return node('li', {}, button);
+    }))
   ]) : null;
   section.append(...[
     node('p', { class: 'eyebrow', text: 'DEMONSTRAÇÃO' }),
@@ -120,6 +164,7 @@ export function demoEntry(personas, { enter, next = null, navigate = (url) => lo
     group('Empresa compradora · Vitta Foods', 'Quem conduz, analisa, aprova e acompanha as contratações financeiras.', known.filter((persona) => PERSONA_GUIDE[persona.key].side === BUYER)),
     group('Instituições financeiras', 'Quem responde aos convites da Vitta pelo portal da instituição. Cada uma vê só o que é dela.', known.filter((persona) => PERSONA_GUIDE[persona.key].side === PROVIDER)),
     group('Outras personas', null, other),
+    tour,
     status,
     node('p', { class: 'fine', text: 'Para trocar de persona depois, use "Trocar persona" no topo do workspace; para sair, "Sair" no menu da sua conta. Quem já tem conta entra com e-mail e senha abaixo.' })
   ].filter(Boolean));

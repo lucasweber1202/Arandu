@@ -1,0 +1,19 @@
+{
+  "description": "Registro de crescimento do agregado de JavaScript do produto acima do indicador de capacidade (800.000 bytes). Cada entrada aceita um valor exato, com justificativa e a data de uma baseline de jornadas registrada em docs/perf/journey-js-baseline.json. Crescer além do último valor aceito exige nova entrada. Não altera os hard limits por rota, arquivo, CSS, imagem, total e sandbox.",
+  "entries": [
+    {
+      "date": "2026-11-05",
+      "accepted": 804677,
+      "previous": 798706,
+      "reason": "Onboarding da instituição pelo contrato existente (convite na renegociação), histórico documental paginado e roteiro guiado da Demo. Peso por jornada medido em Chromium (cache frio e quente): todas as sete jornadas dentro da baseline; maior tela 237.964 B < 250.000.",
+      "journeyBaseline": "2026-11-05"
+    },
+    {
+      "date": "2026-11-05",
+      "accepted": 804726,
+      "previous": 804677,
+      "reason": "Nome acessível próprio dos passos do roteiro guiado (+49 B), para não colidir com o cartão da persona; jornadas medidas sem mudança.",
+      "journeyBaseline": "2026-11-05"
+    }
+  ]
+}

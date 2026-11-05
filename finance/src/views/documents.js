@@ -90,6 +90,39 @@ export function documentsPanel(ctx, { entityType, entityId, canUpload = false, s
     return el('span', {}, [input, trigger]);
   };
 
+  // Histórico completo: ao abrir, lê as versões paginadas do servidor
+  // (private-documents/versions), inclusive envios não concluídos, que a lista
+  // resumida omite. Cada download é reautorizado pelo servidor.
+  const VERSION_STATUS = { pending: 'envio não concluído', failed: 'envio falhou', available: null };
+  const versionLine = (row, version) => el('li', { dataset: { version: version.version } }, [
+    textSpan([`v${version.version}`, version.size_bytes ? fileSize(version.size_bytes) : null, formatDateTime(version.completed_at || version.created_at), people(version.uploaded_by),
+      VERSION_STATUS[version.status] || null, version.sha256 ? 'integridade registrada' : null].filter(Boolean).join(' · ')),
+    !version.status || version.status === 'available' ? button('Baixar', { size: 'sm', variant: 'ghost', iconName: 'download', onClick: () => download(row, version.version), attrs: { 'aria-label': `Baixar ${row.title}, versão ${version.version}` } }) : null
+  ]);
+  const versionHistory = (row, older) => {
+    const list = el('ul', { role: 'list' }, older.map((version) => versionLine(row, version)));
+    const note = el('p', { class: 'muted small', role: 'status' });
+    const details = el('details', { class: 'document-history' }, [el('summary', { text: older.length ? `${older.length} ${older.length === 1 ? 'versão anterior' : 'versões anteriores'} · histórico completo` : 'Histórico completo de versões' }), list, note]);
+    let loaded = false;
+    const loadPage = async (cursor = null) => {
+      note.textContent = 'Carregando histórico…';
+      try {
+        const page = await ctx.api(`private-documents/versions?${new URLSearchParams({ organization_id: ctx.orgId, document_id: row.id, limit: '20', ...(cursor ? { cursor } : {}) })}`);
+        if (!cursor) list.replaceChildren();
+        list.append(...(page.rows || []).map((version) => versionLine(row, version)));
+        note.replaceChildren(page.page?.has_more
+          ? button('Carregar versões anteriores', { size: 'sm', variant: 'ghost', onClick: () => loadPage(page.page.next_cursor) })
+          : textSpan('Histórico completo: todas as versões registradas deste documento.'));
+      } catch (error) {
+        // A lista resumida continua na tela; a falha é declarada, não escondida.
+        note.textContent = error.status === 404 || error.status === 503 ? 'Histórico detalhado indisponível neste ambiente; a lista acima vem do resumo do documento.' : 'Não conseguimos carregar o histórico completo agora. A lista acima pode estar incompleta.';
+        loaded = false;
+      }
+    };
+    details.addEventListener('toggle', () => { if (details.open && !loaded) { loaded = true; loadPage(); } });
+    return details;
+  };
+
   const renderRow = (row) => {
     const [current, ...older] = row.versions || [];
     const shared = row.visibility === 'shared';
@@ -105,13 +138,7 @@ export function documentsPanel(ctx, { entityType, entityId, canUpload = false, s
         catch (error) { toastError(error); }
       } }) : null
     ]);
-    const history = older.length ? el('details', { class: 'document-history' }, [
-      el('summary', { text: `${older.length} ${older.length === 1 ? 'versão anterior' : 'versões anteriores'}` }),
-      el('ul', { role: 'list' }, older.map((version) => el('li', {}, [
-        textSpan(`v${version.version} · ${fileSize(version.size_bytes)} · ${formatDateTime(version.completed_at)} · ${people(version.uploaded_by)}`),
-        button('Baixar', { size: 'sm', variant: 'ghost', iconName: 'download', onClick: () => download(row, version.version), attrs: { 'aria-label': `Baixar ${row.title}, versão ${version.version}` } })
-      ])))
-    ]) : null;
+    const history = older.length || (current && current.version > 1) ? versionHistory(row, older) : null;
     return el('li', { class: 'document-row', id: `document-${row.id}` }, [
       el('span', { class: 'document-icon', 'aria-hidden': 'true' }, icon('file', { size: 18 })),
       el('div', { class: 'document-main' }, [
