@@ -2,7 +2,12 @@
 //
 // Duas superfícies, medidas separadamente para que uma não esconda a outra:
 //   * produto  — o que Oficial, Staging/Pilot e a Demo canônica (ARANDU_ENV=demo)
-//     publicam. Mesmo código em todo build. Hard limit de JS inalterado: 800.000.
+//     publicam. Mesmo código em todo build. Desde 05/11/2026 o agregado de JS
+//     (800.000) é INDICADOR DE CAPACIDADE do catálogo, não teto de performance:
+//     passar dele exige registro em docs/perf/bundle-growth-log.json (valor
+//     aceito, justificativa, baseline de jornadas registrada). Sem registro, falha.
+//     Performance é protegida por rota/arquivo (hard) e pelo peso REAL por
+//     jornada (scripts/perf/measure-journeys.mjs + baseline com tolerância).
 //   * sandbox  — camada legada que só existe em build demonstrativo explícito
 //     (chunks 100% de `finance/demo/**`: motor no navegador, seed e Work OS).
 //     Congelada no tamanho medido em 06/10/2026 (327.597 bytes) e corrigida em
@@ -20,7 +25,6 @@
 
 export const LIMITS = Object.freeze({
   total: 3000000,
-  javascript: 800000,
   sandboxJavascript: 382400,
   css: 650000,
   largestJavascript: 100000,
@@ -30,6 +34,9 @@ export const LIMITS = Object.freeze({
   largestCss: 170000,
   largestImage: 750000
 });
+/** Indicadores de capacidade: crescer além exige registro justificado, não é silencioso. */
+export const CAPACITY = Object.freeze({ javascript: 800000 });
+export const MIN_GROWTH_REASON = 40;
 /** Envelope saudável (guideline §24.1): acima disto o build passa, mas avisa. */
 export const HEALTHY_RATIO = 0.9;
 
@@ -72,7 +79,7 @@ export function routeSizes(profile) {
  * @param {{ files: {name: string, size: number}[], profile: object|null }} input
  *   `files`: todo arquivo publicado em dist (caminho relativo a dist).
  */
-export function assessBuildSize({ files, profile }) {
+export function assessBuildSize({ files, profile, growthLog = null, journeyBaseline = null }) {
   const problems = [];
   if (!profile || !Array.isArray(profile.chunks)) problems.push('reports/bundle-profile.json ausente ou inválido: rode o build antes do check (falha fechada).');
   const sandboxFiles = new Set((profile?.chunks || []).filter(sandboxChunk).map((chunk) => chunk.file));
@@ -96,8 +103,32 @@ export function assessBuildSize({ files, profile }) {
     largestImage: max(images)
   };
   for (const key of Object.keys(LIMITS)) if (metrics[key] > LIMITS[key]) problems.push(`${key}: ${metrics[key]} > ${LIMITS[key]} bytes`);
-  const warnings = Object.keys(LIMITS)
-    .filter((key) => metrics[key] <= LIMITS[key] && metrics[key] > LIMITS[key] * HEALTHY_RATIO)
-    .map((key) => `${key} acima do envelope saudável (${Math.round((metrics[key] / LIMITS[key]) * 100)}% do hard limit): reaja antes de encostar no limite.`);
-  return { metrics, limits: LIMITS, routes, largestRoute: largestRoute[0], problems, warnings, ok: problems.length === 0 };
+  const warnings = [...Object.keys(LIMITS), ...Object.keys(CAPACITY)]
+    .filter((key) => { const cap = LIMITS[key] ?? CAPACITY[key]; return metrics[key] <= cap && metrics[key] > cap * HEALTHY_RATIO; })
+    .map((key) => `${key} acima do envelope saudável (${Math.round((metrics[key] / (LIMITS[key] ?? CAPACITY[key])) * 100)}% do ${key in LIMITS ? 'hard limit' : 'indicador de capacidade'}): reaja antes de encostar no limite.`);
+  const capacity = assessCapacity(metrics, growthLog, journeyBaseline);
+  problems.push(...capacity.problems); warnings.push(...capacity.warnings);
+  return { metrics, limits: LIMITS, capacity: CAPACITY, accepted: capacity.accepted, routes, largestRoute: largestRoute[0], problems, warnings, ok: problems.length === 0 };
+}
+
+/**
+ * Agregado de JS acima do indicador: só passa com entrada no registro de
+ * crescimento cujo valor aceito cobre o medido, com justificativa e apontando
+ * uma data presente no histórico da baseline de jornadas (prova de que o peso
+ * real foi medido antes de aceitar o crescimento). Cada novo crescimento acima
+ * do último valor aceito exige nova entrada — o número não sobe sozinho.
+ */
+export function assessCapacity(metrics, growthLog, journeyBaseline) {
+  const problems = []; const warnings = [];
+  const value = metrics.javascript; const cap = CAPACITY.javascript;
+  if (value <= cap) return { problems, warnings, accepted: null };
+  const entries = Array.isArray(growthLog?.entries) ? growthLog.entries : [];
+  const latest = entries.at(-1);
+  const dates = new Set((journeyBaseline?.history || []).map((h) => h.date));
+  if (!latest) problems.push(`javascript: ${value} > ${cap} bytes (indicador de capacidade) sem registro em docs/perf/bundle-growth-log.json`);
+  else if (!Number.isSafeInteger(latest.accepted) || latest.accepted < value) problems.push(`javascript: ${value} bytes acima do último valor aceito (${latest.accepted}); registre nova entrada justificada`);
+  else if (typeof latest.reason !== 'string' || latest.reason.trim().length < MIN_GROWTH_REASON) problems.push(`javascript: entrada de crescimento sem justificativa (>= ${MIN_GROWTH_REASON} caracteres)`);
+  else if (!dates.has(latest.journeyBaseline)) problems.push(`javascript: entrada de crescimento não aponta uma baseline de jornadas registrada (journeyBaseline=${latest.journeyBaseline ?? '—'})`);
+  else warnings.push(`javascript: ${value} bytes acima do indicador de capacidade ${cap} (aceito até ${latest.accepted} em ${latest.date}: ${latest.reason.trim()})`);
+  return { problems, warnings, accepted: latest?.accepted ?? null };
 }

@@ -2,9 +2,12 @@
 // Budgets do build: produto com hard limit inalterado em todo build, sandbox
 // legado congelado e limite por rota (união de fechamentos, sem dupla contagem).
 import assert from 'node:assert/strict';
-import { assessBuildSize, routeSizes, sandboxChunk, LIMITS } from './build-size.mjs';
+import { assessBuildSize, routeSizes, sandboxChunk, LIMITS, CAPACITY } from './build-size.mjs';
 
-assert.equal(LIMITS.javascript, 800000, 'hard limit de JS do produto não muda');
+assert.equal(CAPACITY.javascript, 800000, 'indicador de capacidade de JS do produto não muda');
+assert.equal(LIMITS.javascript, undefined, 'agregado não é mais hard limit');
+assert.equal(LIMITS.largestRouteJavascript, 250000, 'limite por rota preservado');
+assert.equal(LIMITS.css, 650000); assert.equal(LIMITS.largestCss, 170000); assert.equal(LIMITS.largestImage, 750000); assert.equal(LIMITS.total, 3000000);
 assert.equal(LIMITS.largestJavascript, 100000);
 assert.equal(LIMITS.sandboxJavascript, 382400, 'sandbox congelado no tamanho medido');
 
@@ -34,7 +37,29 @@ assert.equal(ok.largestRoute, 'company');
 const grow = (file, bytes) => ({ chunks: profile.chunks.map((item) => (item.file === file ? { ...item, bytes } : item)) });
 const filesOf = (p) => p.chunks.map((item) => ({ name: item.file, size: item.bytes }));
 let p = grow('assets/company.js', 801000);
-assert.match(assessBuildSize({ files: filesOf(p), profile: p }).problems.join(), /javascript: \d+ > 800000/, 'produto acima do hard limit falha mesmo sem sandbox');
+// Agregado acima de 800.000: falha sem registro; passa (com aviso) só com entrada
+// justificada, valor aceito >= medido e baseline de jornadas registrada.
+const big = () => assessBuildSize({ files: filesOf(p), profile: p, growthLog: log, journeyBaseline: jb });
+const jb = { history: [{ date: '2026-11-05', reason: 'baseline', cumulative: {} }] };
+const reason = 'Portal institucional e histórico documental; peso por jornada medido e dentro da baseline.';
+let log = null;
+assert.match(big().problems.join(), /indicador de capacidade\) sem registro/, 'sem registro, agregado acima do indicador falha');
+log = { entries: [{ date: '2026-11-05', accepted: 900000, reason, journeyBaseline: '2026-11-05' }] };
+assert.match(big().problems.join(), /largestJavascript/, 'arquivo de 801 KB continua violando o hard limit por arquivo');
+p = { chunks: [...profile.chunks, ...Array.from({ length: 9 }, (_, i) => chunk(`assets/lazy${i}.js`, 80000, [`finance/src/views/lazy${i}.js`]))] };
+const total = assessBuildSize({ files: filesOf(p), profile: p }).metrics.javascript;
+assert.ok(total > 800000);
+log = null; assert.match(big().problems.join(), /sem registro/);
+log = { entries: [{ date: '2026-11-05', accepted: total - 1, reason, journeyBaseline: '2026-11-05' }] };
+assert.match(big().problems.join(), /acima do último valor aceito/, 'crescer além do aceito exige nova entrada');
+log = { entries: [{ date: '2026-11-05', accepted: total, reason: 'curto', journeyBaseline: '2026-11-05' }] };
+assert.match(big().problems.join(), /sem justificativa/);
+log = { entries: [{ date: '2026-11-05', accepted: total, reason, journeyBaseline: '2026-10-01' }] };
+assert.match(big().problems.join(), /baseline de jornadas registrada/, 'crescimento só com jornadas medidas');
+log = { entries: [{ date: '2026-11-05', accepted: total, reason, journeyBaseline: '2026-11-05' }] };
+const accepted = big();
+assert.equal(accepted.ok, true, accepted.problems.join('; '));
+assert.ok(accepted.warnings.some((w) => /indicador de capacidade/.test(w) && w.includes(reason)), 'aceito continua visível como aviso com a justificativa');
 p = grow('assets/engine.js', LIMITS.sandboxJavascript + 1);
 assert.match(assessBuildSize({ files: filesOf(p), profile: p }).problems.join(), /sandboxJavascript/, 'sandbox não cresce');
 p = { chunks: [...profile.chunks, chunk('assets/policy.js', 99000, ['finance/src/views/policy.js'], ['assets/company.js'])] };
@@ -43,4 +68,4 @@ assert.match(assessBuildSize({ files, profile: null }).problems.join(), /ausente
 const near = grow('assets/company.js', 700000);
 assert.ok(assessBuildSize({ files: filesOf(near), profile: near }).warnings.some((line) => line.startsWith('javascript')), 'envelope saudável avisa antes do hard limit');
 
-console.log('Build size: product hard limit unchanged in every build, frozen sandbox layer, per-route union budget, healthy-envelope warning and fail-closed profile passed.');
+console.log('Build size: product aggregate as justified capacity indicator, hard route/file/CSS/image limits, frozen sandbox layer, per-route union budget, healthy-envelope warning and fail-closed profile passed.');
