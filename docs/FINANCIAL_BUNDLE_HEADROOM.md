@@ -191,3 +191,12 @@ Medido sobre `main@8837d8f` (795.004 bytes):
 - **Duplicação**: nenhum módulo em mais de um chunk (perfil); nenhum literal ≥ 50 caracteres repetido entre chunks; nenhuma janela de 4 linhas idênticas entre arquivos de `finance/src`.
 - **Minificação**: terser (`passes=2`) sobre o output atual reduz 422 bytes (0,05%) — sem ganho de configuração.
 Conclusão: o JS é código de funcionalidade alcançável, majoritariamente texto de interface. **650 KB não é atingível sem remover capacidades**, o que a missão proíbe. Este lote adicionou ~1,7 KB (paginação da carteira e obrigações abertas): 796.721 / 800.000.
+
+## 2026-11-05 — Proposta de reavaliação do orçamento (não aplicada)
+Situação após integrar sinais v8 no Contract 360 e obrigações no Relationship 360: **798.706 / 800.000** (1,3 KB livres).
+
+- **Motivo**: a auditoria Arandu 8.0 mostrou 0 byte morto, 0 duplicação e ganho desprezível de minificação; o total é a soma de todos os chunks, inclusive os carregados só sob demanda (Copilot, policy, SSO, governança), enquanto a experiência depende do que cada rota carrega (maior rota 155 KB de 250 KB).
+- **Impacto de manter 800 KB total**: nenhuma capability nova de frontend cabe sem remover outra; missões de produto (portal institucional, renovação, documentos) ficam bloqueadas por número, não por desempenho.
+- **Alternativas**: (1) manter e exigir remoção compensatória por capability; (2) orçamento por rota/carregamento inicial (já medido: `largestRouteJavascript`) como hard limit e o total como alerta; (3) elevar o total para 900 KB mantendo a maior rota em 250 KB e o sandbox congelado.
+- **Proposta**: (2) — o que afeta o usuário é o JS da rota visitada; o total vira sinal de crescimento a revisar a cada PR. Métricas atuais: maior rota 155.301; total 798.706.
+- **Decisão**: do proprietário. Este documento não altera `scripts/build-size.mjs`.

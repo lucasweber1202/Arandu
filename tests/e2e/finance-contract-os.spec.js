@@ -18,7 +18,7 @@ const CONTRACTS = [OK, PAST, NOOWNER];
 const covenant = (n, over = {}) => ({ id: id(900 + n), title: `Covenant ${n}`, kind_label: 'Covenant financeiro', status: 'awaiting_data', status_label: 'Aguardando dados', has_data: false,
   due_on: day(10), contract_id: OK.id, provider_id: PA, legal_entity_id: null, owner_id: 'u1', cells: ['x', 'y', 'z', 'w', 'v'], ...over });
 
-async function setup(page, { contracts = CONTRACTS, pagedContracts = null, endlessCovenants = false, covenants = 'ok', covenantRows = [covenant(1), covenant(2, { status: 'compliant', status_label: 'Conforme após revisão', has_data: true, title: 'Covenant já conforme' })] } = {}) {
+async function setup(page, { detailExtra = {}, contracts = CONTRACTS, pagedContracts = null, endlessCovenants = false, covenants = 'ok', covenantRows = [covenant(1), covenant(2, { status: 'compliant', status_label: 'Conforme após revisão', has_data: true, title: 'Covenant já conforme' })] } = {}) {
   const calls = [];
   await page.route('**/api/finance/**', async (route) => {
     const req = route.request(); const u = new URL(req.url()); const path = u.pathname.replace('/api/finance/', '');
@@ -36,7 +36,7 @@ async function setup(page, { contracts = CONTRACTS, pagedContracts = null, endle
     }
     if (path === 'contract-detail') {
       const c = CONTRACTS.find((row) => row.id === u.searchParams.get('id'));
-      return c ? json({ ok: true, contract: c, effective: null, versions: [], amendments: [], milestones: [], children: [], documents: [], events: [], renewal_milestones: [] }) : json({ ok: false }, 404);
+      return c ? json({ ok: true, contract: c, effective: null, versions: [], amendments: [], milestones: [], children: [], documents: [], events: [], renewal_milestones: [], ...detailExtra }) : json({ ok: false }, 404);
     }
     if (path === 'covenants') {
       if (covenants === 'error') return json({ ok: false, error: 'falha' }, 500);
@@ -188,4 +188,34 @@ test('carteira grande: falha na leitura completa é dita e as contagens valem s�
   await setup(page, { contracts: many(200), pagedContracts: 'error' });
   await page.goto('/finance/contracts.html');
   await expect(page.locator('[data-coverage="failed"]')).toContainText('primeiros 200 contratos');
+});
+
+test('Contract 360: lacunas vêm dos sinais do servidor (v8) e levam ao bloco que as resolve', async ({ page }) => {
+  const signal = (code, reason) => ({ code, reason, source: { type: 'contract', id: OK.id }, state: 'information_review', permission: {}, action: {} });
+  await setup(page, { detailExtra: { information_quality: { observed_on: day(0), assessment: 'recorded_information_only' },
+    next_actions: [signal('contract_document_missing', 'Nenhum documento privado associado neste escopo; referências externas são consultadas separadamente.'), signal('contract_end_missing', 'Data de término não registrada.')] } });
+  await page.goto(`/finance/contracts.html?abrir=contrato#contract-${OK.id}`);
+  const summary = page.getByRole('dialog').locator('.contract-summary');
+  const gaps = summary.locator('.contract-gaps');
+  await expect(gaps.locator('[data-gap="contract_document_missing"]')).toContainText('Nenhum documento privado associado');
+  await expect(gaps.locator('[data-gap="contract_end_missing"]')).toContainText('Data de término não registrada.');
+  // Regra local não duplica: "Sem referência do documento assinado" (cliente) não aparece quando o servidor responde.
+  await expect(gaps).not.toContainText('Sem referência do documento assinado');
+  await expect(summary).toContainText('Sinais calculados pelo servidor');
+  await expect(summary).toContainText('não avaliam qualidade de crédito nem conformidade');
+  await gaps.locator('[data-gap="contract_document_missing"]').getByRole('button', { name: 'Ver documentos' }).click();
+  await expect(summary.locator('.lazy-documents summary')).toBeFocused();
+});
+
+test('Relationship 360: obrigações em aberto da instituição pelo filtro do servidor; vazio não é conformidade', async ({ page }) => {
+  const calls = await setup(page);
+  await page.goto(`/finance/providers.html?provider_id=${PA}`);
+  const dialog = page.getByRole('dialog', { name: 'Atlas Bank' });
+  const section = dialog.locator('.contract-obligations');
+  await expect(section.getByRole('heading', { name: 'Obrigações em aberto com esta instituição' })).toBeVisible();
+  await expect(section).toContainText('Covenant 1');
+  await expect(section).not.toContainText('Covenant já conforme');
+  const read = calls.find((c) => c.path === 'covenants' && c.query.provider_id === PA);
+  expect(read.query.status).toBe('open');
+  await expect(section.getByRole('link', { name: 'Abrir registro' })).toHaveAttribute('href', new RegExp(`covenants\\.html\\?provider_id=${PA}`));
 });

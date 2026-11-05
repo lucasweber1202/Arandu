@@ -113,6 +113,10 @@ export function providerContextSection(ctx, provider) {
       el('button', { type: 'button', class: 'btn btn-sm btn-ghost', onclick: () => ask('Resuma o relacionamento com esta instituição: contratos, negociações e atividades registradas, com as fontes.') }, el('span', { class: 'btn-label', text: 'Resumir relacionamento' })),
       el('button', { type: 'button', class: 'btn btn-sm btn-ghost', onclick: () => ask('Quais contratos com esta instituição vencem ou entram em aviso prévio nos próximos meses?') }, el('span', { class: 'btn-label', text: 'Vencimentos' })),
       el('button', { type: 'button', class: 'btn btn-sm btn-ghost', onclick: () => ask('Quais cobranças de tarifa desta instituição estão acima da referência contratada e qual o estado da revisão?') }, el('span', { class: 'btn-label', text: 'Tarifas em revisão' }))]);
+    // Obrigações em aberto da instituição (Relationship 360°), carregadas à parte.
+    const obligations = el('div');
+    import('./contract-center/obligations.js').then((m) => { if (obligations.isConnected) obligations.replaceWith(m.providerObligationsSection(ctx, provider)); }).catch(() => obligations.remove());
+    box.after(obligations);
     box.replaceChildren(el('h3', { id: 'rel-signals-title', text: 'Agenda comercial e tarifas desta instituição' }), copilot, ...sourceNotes(result),
       result.items.length ? el('ul', { class: 'milestone-list', role: 'list' }, result.items.map((item) => signalRow(ctx, item, { local: true })))
         : mutedText(`Nenhum compromisso ou processo comercial nos próximos ${HORIZON} dias e nenhuma revisão de tarifa pendente.`),
