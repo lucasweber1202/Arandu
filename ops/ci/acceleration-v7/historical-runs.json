@@ -1,0 +1,680 @@
+{
+  "classification": "public_actions_metadata_no_payload",
+  "runs": [
+    {
+      "run_id": 41851388026,
+      "head_sha": "b03fe3e3ab241b2bf156fda997c48c8c809f6d38",
+      "event": "pull_request",
+      "attempt": 1,
+      "conclusion": "success",
+      "execution_wall_seconds": 1988,
+      "total_runner_seconds": 4475,
+      "measured_queue_seconds": 22,
+      "wall_seconds": 2079,
+      "runner_minutes_estimate": 81,
+      "jobs": [
+        {
+          "name": "classify",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 2,
+          "pre_queue_dependency_and_dispatch_seconds": 89,
+          "duration_seconds": 10,
+          "rounded_runner_minutes": 1,
+          "dispatch_and_dependency_wait_seconds": 91,
+          "stages": {
+            "setup_or_other": 7
+          }
+        },
+        {
+          "name": "full / database",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 2,
+          "pre_queue_dependency_and_dispatch_seconds": 101,
+          "duration_seconds": 358,
+          "rounded_runner_minutes": 6,
+          "dispatch_and_dependency_wait_seconds": 103,
+          "stages": {
+            "setup_or_other": 42,
+            "validation": 305,
+            "recovery": 7
+          }
+        },
+        {
+          "name": "full / deploy-boundaries",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 2,
+          "pre_queue_dependency_and_dispatch_seconds": 101,
+          "duration_seconds": 244,
+          "rounded_runner_minutes": 5,
+          "dispatch_and_dependency_wait_seconds": 103,
+          "stages": {
+            "setup_or_other": 235,
+            "dependencies": 3,
+            "build": 2
+          }
+        },
+        {
+          "name": "integration / demo-integration",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 2,
+          "pre_queue_dependency_and_dispatch_seconds": 101,
+          "duration_seconds": 1553,
+          "rounded_runner_minutes": 26,
+          "dispatch_and_dependency_wait_seconds": 103,
+          "stages": {
+            "setup_or_other": 31,
+            "validation": 19,
+            "dependencies": 2,
+            "build": 1,
+            "images": 101,
+            "supabase_bootstrap_and_migrations": 29,
+            "seed": 611,
+            "seed_check": 4,
+            "pool": 618,
+            "recovery": 41,
+            "browsers": 6,
+            "browser_execution": 77,
+            "adversarial": 5,
+            "artifacts": 4
+          }
+        },
+        {
+          "name": "backend",
+          "conclusion": "skipped",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 0,
+          "pre_queue_dependency_and_dispatch_seconds": 101,
+          "duration_seconds": 0,
+          "rounded_runner_minutes": 0,
+          "dispatch_and_dependency_wait_seconds": 101,
+          "stages": {}
+        },
+        {
+          "name": "fast",
+          "conclusion": "skipped",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 0,
+          "pre_queue_dependency_and_dispatch_seconds": 102,
+          "duration_seconds": 0,
+          "rounded_runner_minutes": 0,
+          "dispatch_and_dependency_wait_seconds": 102,
+          "stages": {}
+        },
+        {
+          "name": "full / validate",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 2,
+          "pre_queue_dependency_and_dispatch_seconds": 347,
+          "duration_seconds": 1711,
+          "rounded_runner_minutes": 29,
+          "dispatch_and_dependency_wait_seconds": 349,
+          "stages": {
+            "setup_or_other": 9,
+            "dependencies": 2,
+            "artifacts": 9,
+            "validation": 54,
+            "build": 1,
+            "browsers": 65,
+            "recovery": 6,
+            "browser_execution": 1561
+          }
+        },
+        {
+          "name": "full / presentation",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 2,
+          "pre_queue_dependency_and_dispatch_seconds": 347,
+          "duration_seconds": 563,
+          "rounded_runner_minutes": 10,
+          "dispatch_and_dependency_wait_seconds": 349,
+          "stages": {
+            "setup_or_other": 8,
+            "dependencies": 2,
+            "browsers": 68,
+            "recovery": 5,
+            "validation": 14,
+            "artifacts": 2,
+            "browser_execution": 460
+          }
+        },
+        {
+          "name": "deploy-boundaries",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 2,
+          "pre_queue_dependency_and_dispatch_seconds": 2060,
+          "duration_seconds": 5,
+          "rounded_runner_minutes": 1,
+          "dispatch_and_dependency_wait_seconds": 2062,
+          "stages": {
+            "setup_or_other": 2
+          }
+        },
+        {
+          "name": "presentation",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 3,
+          "pre_queue_dependency_and_dispatch_seconds": 2060,
+          "duration_seconds": 8,
+          "rounded_runner_minutes": 1,
+          "dispatch_and_dependency_wait_seconds": 2063,
+          "stages": {
+            "setup_or_other": 5
+          }
+        },
+        {
+          "name": "validate",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 3,
+          "pre_queue_dependency_and_dispatch_seconds": 2060,
+          "duration_seconds": 16,
+          "rounded_runner_minutes": 1,
+          "dispatch_and_dependency_wait_seconds": 2063,
+          "stages": {
+            "setup_or_other": 12
+          }
+        },
+        {
+          "name": "database",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 2,
+          "pre_queue_dependency_and_dispatch_seconds": 2060,
+          "duration_seconds": 7,
+          "rounded_runner_minutes": 1,
+          "dispatch_and_dependency_wait_seconds": 2062,
+          "stages": {
+            "setup_or_other": 3
+          }
+        }
+      ],
+      "limitations": [
+        "Runner minutes are per-job rounded estimates, not invoice amounts.",
+        "Queue is job.created_at → started_at. Run creation → job creation includes dependencies and dispatch, not runner queue.",
+        "Stages classify named steps; nested work and cache hits require logs."
+      ]
+    },
+    {
+      "run_id": 41898780191,
+      "head_sha": "9695b4358e63dca632614e2489a35173135c24ae",
+      "event": "pull_request",
+      "attempt": 1,
+      "conclusion": "success",
+      "execution_wall_seconds": 1931,
+      "total_runner_seconds": 4495,
+      "measured_queue_seconds": 21,
+      "wall_seconds": 1936,
+      "runner_minutes_estimate": 82,
+      "jobs": [
+        {
+          "name": "classify",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 3,
+          "pre_queue_dependency_and_dispatch_seconds": 0,
+          "duration_seconds": 9,
+          "rounded_runner_minutes": 1,
+          "dispatch_and_dependency_wait_seconds": 3,
+          "stages": {
+            "setup_or_other": 5
+          }
+        },
+        {
+          "name": "full / deploy-boundaries",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 2,
+          "pre_queue_dependency_and_dispatch_seconds": 13,
+          "duration_seconds": 234,
+          "rounded_runner_minutes": 4,
+          "dispatch_and_dependency_wait_seconds": 15,
+          "stages": {
+            "setup_or_other": 225,
+            "dependencies": 2,
+            "build": 2
+          }
+        },
+        {
+          "name": "full / database",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 2,
+          "pre_queue_dependency_and_dispatch_seconds": 13,
+          "duration_seconds": 375,
+          "rounded_runner_minutes": 7,
+          "dispatch_and_dependency_wait_seconds": 15,
+          "stages": {
+            "setup_or_other": 42,
+            "validation": 322,
+            "recovery": 9
+          }
+        },
+        {
+          "name": "integration / demo-integration",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 2,
+          "pre_queue_dependency_and_dispatch_seconds": 13,
+          "duration_seconds": 1574,
+          "rounded_runner_minutes": 27,
+          "dispatch_and_dependency_wait_seconds": 15,
+          "stages": {
+            "setup_or_other": 28,
+            "validation": 23,
+            "dependencies": 2,
+            "build": 1,
+            "images": 101,
+            "supabase_bootstrap_and_migrations": 21,
+            "seed": 613,
+            "seed_check": 5,
+            "pool": 622,
+            "recovery": 46,
+            "browsers": 8,
+            "browser_execution": 91,
+            "adversarial": 6,
+            "artifacts": 4
+          }
+        },
+        {
+          "name": "backend",
+          "conclusion": "skipped",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 0,
+          "pre_queue_dependency_and_dispatch_seconds": 13,
+          "duration_seconds": 0,
+          "rounded_runner_minutes": 0,
+          "dispatch_and_dependency_wait_seconds": 13,
+          "stages": {}
+        },
+        {
+          "name": "fast",
+          "conclusion": "skipped",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 0,
+          "pre_queue_dependency_and_dispatch_seconds": 13,
+          "duration_seconds": 0,
+          "rounded_runner_minutes": 0,
+          "dispatch_and_dependency_wait_seconds": 13,
+          "stages": {}
+        },
+        {
+          "name": "full / validate",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 2,
+          "pre_queue_dependency_and_dispatch_seconds": 249,
+          "duration_seconds": 1674,
+          "rounded_runner_minutes": 28,
+          "dispatch_and_dependency_wait_seconds": 251,
+          "stages": {
+            "setup_or_other": 10,
+            "dependencies": 3,
+            "artifacts": 9,
+            "validation": 54,
+            "build": 1,
+            "browsers": 74,
+            "recovery": 9,
+            "browser_execution": 1509
+          }
+        },
+        {
+          "name": "full / presentation",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 2,
+          "pre_queue_dependency_and_dispatch_seconds": 249,
+          "duration_seconds": 606,
+          "rounded_runner_minutes": 11,
+          "dispatch_and_dependency_wait_seconds": 251,
+          "stages": {
+            "setup_or_other": 6,
+            "dependencies": 2,
+            "browsers": 84,
+            "recovery": 6,
+            "validation": 14,
+            "artifacts": 2,
+            "browser_execution": 488
+          }
+        },
+        {
+          "name": "presentation",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 2,
+          "pre_queue_dependency_and_dispatch_seconds": 1925,
+          "duration_seconds": 7,
+          "rounded_runner_minutes": 1,
+          "dispatch_and_dependency_wait_seconds": 1927,
+          "stages": {
+            "setup_or_other": 4
+          }
+        },
+        {
+          "name": "database",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 2,
+          "pre_queue_dependency_and_dispatch_seconds": 1925,
+          "duration_seconds": 6,
+          "rounded_runner_minutes": 1,
+          "dispatch_and_dependency_wait_seconds": 1927,
+          "stages": {
+            "setup_or_other": 2
+          }
+        },
+        {
+          "name": "deploy-boundaries",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 2,
+          "pre_queue_dependency_and_dispatch_seconds": 1925,
+          "duration_seconds": 5,
+          "rounded_runner_minutes": 1,
+          "dispatch_and_dependency_wait_seconds": 1927,
+          "stages": {
+            "setup_or_other": 3
+          }
+        },
+        {
+          "name": "validate",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 2,
+          "pre_queue_dependency_and_dispatch_seconds": 1925,
+          "duration_seconds": 5,
+          "rounded_runner_minutes": 1,
+          "dispatch_and_dependency_wait_seconds": 1927,
+          "stages": {
+            "setup_or_other": 3
+          }
+        }
+      ],
+      "limitations": [
+        "Runner minutes are per-job rounded estimates, not invoice amounts.",
+        "Queue is job.created_at → started_at. Run creation → job creation includes dependencies and dispatch, not runner queue.",
+        "Stages classify named steps; nested work and cache hits require logs."
+      ]
+    },
+    {
+      "run_id": 41892913073,
+      "head_sha": "b893995ac07c95b27a4600fac5b06e3b15d432d7",
+      "event": "pull_request",
+      "attempt": 1,
+      "conclusion": "success",
+      "execution_wall_seconds": 1943,
+      "total_runner_seconds": 4559,
+      "measured_queue_seconds": 26,
+      "wall_seconds": 2036,
+      "runner_minutes_estimate": 82,
+      "jobs": [
+        {
+          "name": "classify",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 3,
+          "pre_queue_dependency_and_dispatch_seconds": 89,
+          "duration_seconds": 9,
+          "rounded_runner_minutes": 1,
+          "dispatch_and_dependency_wait_seconds": 92,
+          "stages": {
+            "setup_or_other": 5
+          }
+        },
+        {
+          "name": "full / deploy-boundaries",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 2,
+          "pre_queue_dependency_and_dispatch_seconds": 101,
+          "duration_seconds": 233,
+          "rounded_runner_minutes": 4,
+          "dispatch_and_dependency_wait_seconds": 103,
+          "stages": {
+            "setup_or_other": 226,
+            "dependencies": 2,
+            "build": 2
+          }
+        },
+        {
+          "name": "full / database",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 2,
+          "pre_queue_dependency_and_dispatch_seconds": 101,
+          "duration_seconds": 364,
+          "rounded_runner_minutes": 7,
+          "dispatch_and_dependency_wait_seconds": 103,
+          "stages": {
+            "setup_or_other": 42,
+            "validation": 313,
+            "recovery": 7
+          }
+        },
+        {
+          "name": "integration / demo-integration",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 3,
+          "pre_queue_dependency_and_dispatch_seconds": 101,
+          "duration_seconds": 1591,
+          "rounded_runner_minutes": 27,
+          "dispatch_and_dependency_wait_seconds": 104,
+          "stages": {
+            "setup_or_other": 32,
+            "validation": 20,
+            "dependencies": 1,
+            "build": 1,
+            "images": 107,
+            "supabase_bootstrap_and_migrations": 40,
+            "seed": 613,
+            "seed_check": 4,
+            "pool": 620,
+            "recovery": 50,
+            "browsers": 7,
+            "browser_execution": 84,
+            "adversarial": 5,
+            "artifacts": 4
+          }
+        },
+        {
+          "name": "fast",
+          "conclusion": "skipped",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 0,
+          "pre_queue_dependency_and_dispatch_seconds": 102,
+          "duration_seconds": 0,
+          "rounded_runner_minutes": 0,
+          "dispatch_and_dependency_wait_seconds": 102,
+          "stages": {}
+        },
+        {
+          "name": "backend",
+          "conclusion": "skipped",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 0,
+          "pre_queue_dependency_and_dispatch_seconds": 102,
+          "duration_seconds": 0,
+          "rounded_runner_minutes": 0,
+          "dispatch_and_dependency_wait_seconds": 102,
+          "stages": {}
+        },
+        {
+          "name": "full / validate",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 2,
+          "pre_queue_dependency_and_dispatch_seconds": 336,
+          "duration_seconds": 1674,
+          "rounded_runner_minutes": 28,
+          "dispatch_and_dependency_wait_seconds": 338,
+          "stages": {
+            "setup_or_other": 9,
+            "dependencies": 3,
+            "artifacts": 8,
+            "validation": 54,
+            "build": 1,
+            "browsers": 42,
+            "recovery": 6,
+            "browser_execution": 1550
+          }
+        },
+        {
+          "name": "full / presentation",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 4,
+          "pre_queue_dependency_and_dispatch_seconds": 336,
+          "duration_seconds": 648,
+          "rounded_runner_minutes": 11,
+          "dispatch_and_dependency_wait_seconds": 340,
+          "stages": {
+            "setup_or_other": 11,
+            "dependencies": 2,
+            "browsers": 66,
+            "recovery": 7,
+            "validation": 16,
+            "artifacts": 2,
+            "browser_execution": 540
+          }
+        },
+        {
+          "name": "validate",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 2,
+          "pre_queue_dependency_and_dispatch_seconds": 2013,
+          "duration_seconds": 5,
+          "rounded_runner_minutes": 1,
+          "dispatch_and_dependency_wait_seconds": 2015,
+          "stages": {
+            "setup_or_other": 3
+          }
+        },
+        {
+          "name": "deploy-boundaries",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 2,
+          "pre_queue_dependency_and_dispatch_seconds": 2013,
+          "duration_seconds": 8,
+          "rounded_runner_minutes": 1,
+          "dispatch_and_dependency_wait_seconds": 2015,
+          "stages": {
+            "setup_or_other": 3
+          }
+        },
+        {
+          "name": "database",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 2,
+          "pre_queue_dependency_and_dispatch_seconds": 2013,
+          "duration_seconds": 9,
+          "rounded_runner_minutes": 1,
+          "dispatch_and_dependency_wait_seconds": 2015,
+          "stages": {
+            "setup_or_other": 3
+          }
+        },
+        {
+          "name": "presentation",
+          "conclusion": "success",
+          "runner_labels": [
+            "ubuntu-24.04"
+          ],
+          "queue_seconds": 4,
+          "pre_queue_dependency_and_dispatch_seconds": 2013,
+          "duration_seconds": 18,
+          "rounded_runner_minutes": 1,
+          "dispatch_and_dependency_wait_seconds": 2017,
+          "stages": {
+            "setup_or_other": 15
+          }
+        }
+      ],
+      "limitations": [
+        "Runner minutes are per-job rounded estimates, not invoice amounts.",
+        "Queue is job.created_at → started_at. Run creation → job creation includes dependencies and dispatch, not runner queue.",
+        "Stages classify named steps; nested work and cache hits require logs."
+      ]
+    }
+  ]
+}

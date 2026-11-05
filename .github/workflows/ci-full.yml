@@ -52,16 +52,16 @@ jobs:
       - name: Real synthetic encrypted export and same-backup restore
         run: node scripts/test-recovery-real.mjs
 
-  # Os dois jobs com navegadores (os mais caros) começam depois do
-  # deploy-boundaries (~1 min). Um push novo na mesma branch cancela o run antes
-  # de eles gastarem minutos; se o deploy-boundaries falhar, eles rodam mesmo
-  # assim (`!cancelled()`), então nenhum sinal de cobertura se perde.
-  validate:
-    needs: deploy-boundaries
-    if: ${{ !cancelled() }}
+  # Cheap source + both build budgets gate browser setup. Both measured groups
+  # preserve all five projects; explicit coverage receipts fail closed per SHA.
+  # Full deploy boundaries remain mandatory in parallel, before final contexts.
+  validate-source:
     runs-on: ubuntu-24.04
-    timeout-minutes: 70
+    timeout-minutes: 15
+    outputs:
+      plan: ${{ steps.plan.outputs.receipt }}
     env:
+      ARANDU_BROWSER_PROFILE_DIR: reports/ci-performance
       ARANDU_SITE_URL: https://arandu.example.com
     steps:
       - name: Checkout
@@ -119,94 +119,51 @@ jobs:
       - name: Published financial surface and navigation
         run: npm run check:financial-surface && npm run check:financial-navigation
 
-      - name: Playwright version
-        id: playwright
-        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
-
-      # Cache de binários por ABI do runner, arquitetura, Playwright e lockfile.
-      # Dependências apt e verificação dos três motores rodam em todo job.
-      # Salvar antes dos testes preserva o cache mesmo se a suíte for cancelada.
-      - name: Restore Playwright browsers
-        id: browser-cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-ubuntu-24.04-${{ runner.arch }}-${{ steps.playwright.outputs.version }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            playwright-ubuntu-24.04-${{ runner.arch }}-${{ steps.playwright.outputs.version }}-
-
-      - name: Prepare signed Ubuntu archive and bounded apt network retries
-        run: sudo "$(command -v node)" scripts/configure-ci-apt.mjs
-
-      - name: Install browser system dependencies
-        timeout-minutes: 25
+      - name: List every product case and required browser project
         env:
-          DEBIAN_FRONTEND: noninteractive
-        run: npx playwright install-deps chromium firefox webkit
-
-      - name: Verify and install Chromium, Firefox and WebKit
-        timeout-minutes: 10
+          ARANDU_BROWSER_PLAN_ONLY: '1'
+        run: npm run test:e2e:list -- --reporter=./scripts/ci-browser-reporter.mjs
+      - name: Required expected coverage plan
+        id: plan
+        run: node scripts/ci-browser-receipt.mjs reports/ci-performance/browser-plan.json
+      - name: Cheap explicit Demo build and unchanged budgets before browsers
         env:
-          PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT: '60000'
-        run: npx playwright install chromium firefox webkit
+          VERCEL_ENV: preview
+          ARANDU_DEMO_MODE: 'true'
+        run: npm run build && npm run check:build-size
 
-      - name: Verify browser launch and page rendering
-        timeout-minutes: 2
-        run: node scripts/verify-ci-browsers.mjs
+  validate:
+    needs: validate-source
+    uses: ./.github/workflows/ci-browser.yml
+    with:
+      browser_group: gecko_webkit
 
-      # Cache persistence is best-effort; installation and tests remain gates.
-      - name: Save verified Playwright browsers before tests
-        if: steps.browser-cache.outputs.cache-hit != 'true'
-        continue-on-error: true
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+  validate-mobile:
+    needs: validate-source
+    uses: ./.github/workflows/ci-browser.yml
+    with:
+      browser_group: chromium_mobile
+
+  browser-coverage:
+    needs: [validate-source, validate, validate-mobile]
+    if: ${{ always() && !cancelled() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      BROWSER_PLAN: ${{ needs.validate-source.outputs.plan }}
+      BROWSER_GECKO: ${{ needs.validate.outputs.receipt }}
+      BROWSER_MOBILE: ${{ needs.validate-mobile.outputs.receipt }}
+    steps:
+      - name: Checkout coverage verifier
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          path: ~/.cache/ms-playwright
-          key: ${{ steps.browser-cache.outputs.cache-primary-key }}
-
-      # Cobre jornadas públicas, do comprador, autenticação, seleção, contraste
-      # e mobile nos três motores. A suíte de apresentação roda separada porque
-      # exige um build com ARANDU_PRESENTATION_MODE=true.
-      - name: Desktop and mobile journeys across browser engines
-        run: npm run test:e2e:finance
-
-      # The repository's Actions artifact quota may be exhausted. These six
-      # public/unauthenticated PNGs remain recoverable from the job log.
-      - name: Selected visual evidence in logs
-        if: always()
-        run: |
-          for path in reports/financial-visual/{chromium-desktop,mobile-chrome}/{home,dashboard,provider}.png; do
-            if [ -f "$path" ]; then
-              printf 'ARANDU_IMAGE_BEGIN %s\n' "$path"
-              base64 -w0 "$path"
-              printf '\nARANDU_IMAGE_END\n'
-            fi
-          done
-
-      - name: Financial visual evidence
-        if: always()
-        continue-on-error: true
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: arandu-financial-visual-${{ github.sha }}
-          path: reports/financial-visual
-          if-no-files-found: ignore
-          retention-days: 14
-
-      - name: Upload browser evidence on failure
-        if: failure()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: arandu-playwright-evidence
-          path: |
-            reports/playwright
-            reports/playwright-presentation
-            test-results
-          if-no-files-found: ignore
-          retention-days: 7
+          persist-credentials: false
+          sparse-checkout: scripts
+      - name: Check exact SHA and complete union of both browser groups
+        run: node scripts/ci-browser-coverage.mjs --job-outputs
 
   presentation:
-    needs: deploy-boundaries
-    if: ${{ !cancelled() }}
+    needs: validate-source
     runs-on: ubuntu-24.04
     timeout-minutes: 70
     env:

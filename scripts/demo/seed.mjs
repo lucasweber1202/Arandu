@@ -20,6 +20,9 @@
 // SUPABASE_SERVICE_ROLE_KEY, ARANDU_DEMO_APP_URL, ARANDU_DEMO_PASSWORD e,
 // opcional, CRON_SECRET (marcos de renovação pelo cron real).
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import { seedProfiler } from './profile.mjs';
 import { retryDelayMs } from './backpressure.mjs';
 import {
   assertDemoTarget, assertDemoDatabase, assertDemoApplication, DemoGuardError,
@@ -57,15 +60,19 @@ try {
 const { supabaseUrl: SB, serviceKey: SERVICE, anonKey: ANON, appUrl: APP, password: PASSWORD } = config;
 const CRON = String(process.env.CRON_SECRET || '').trim();
 const DAY = 86_400_000;
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const profile = seedProfiler();
+const sleep = (ms, reason='narrative') => profile.pause(reason,ms,()=>new Promise((resolve) => setTimeout(resolve, ms)));
+const actorRole = person => `${person.side}.${person.role}`;
 const must = (condition, message) => { if (!condition) throw new Error(message); };
 
 // ----------------------------------------------------------- service role
 async function service(path, { method = 'GET', body, prefer, base = 'rest/v1' } = {}) {
   const headers = { apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, 'Content-Type': 'application/json' };
   if (prefer) headers.Prefer = prefer;
-  const response = await fetch(`${SB}/${base}/${path}`, { method, headers, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
-  const text = await response.text();
+  const {response,text} = await profile.request({channel:base.split('/')[0],method,path},async()=>{
+    const response=await fetch(`${SB}/${base}/${path}`,{method,headers,...(body===undefined?{}:{body:JSON.stringify(body)})});
+    return {response,text:await response.text()};
+  });
   let payload = null;
   try { payload = text ? JSON.parse(text) : null; } catch { payload = text; }
   if (!response.ok) throw new Error(`${method} ${path.split('?')[0]}: ${response.status} ${payload?.message || payload?.msg || payload?.error || ''}`.trim());
@@ -101,11 +108,13 @@ async function listDemoUsers() {
 }
 
 async function signIn(person) {
+  const {response,session} = await profile.request({channel:'auth',method:'POST',path:'token',actor:actorRole(person)},async()=>{
   const response = await fetch(`${SB}/auth/v1/token?grant_type=password`, {
     method: 'POST', headers: { apikey: ANON, 'Content-Type': 'application/json' },
     body: JSON.stringify({ email: person.email, password: person.password })
   });
-  const session = await response.json();
+  return {response,session:await response.json()};
+  });
   must(response.ok && session.access_token, `login de ${person.name}: ${response.status}`);
   // Mesmo formato do cookie HttpOnly que /api/auth/login emite: assinado com a
   // chave derivada da service role, a mesma do app que recebe a chamada.
@@ -116,11 +125,13 @@ async function signIn(person) {
 /** Chamada à API real do Arandu com a sessão da pessoa. Respeita o rate limit (espera e repete). */
 async function api(person, method, path, body) {
   for (let attempt = 0; attempt < 30; attempt += 1) {
+    const {response,text} = await profile.request({channel:'app',method,path,actor:actorRole(person)},async()=>{
     const response = await fetch(`${APP}/api/finance/${path}`, {
       method, headers: { Origin: APP, 'Content-Type': 'application/json', Cookie: person.cookie },
       ...(body === undefined ? {} : { body: JSON.stringify(body) })
     });
-    const text = await response.text();
+    return {response,text:await response.text()};
+    });
     let payload = {};
     try { payload = JSON.parse(text); } catch { payload = { raw: text.slice(0, 200) }; }
     const refreshed = (response.headers.getSetCookie?.() || []).find((value) => value.startsWith('arandu_session='));
@@ -128,7 +139,7 @@ async function api(person, method, path, body) {
     if (response.status === 429) {
       const delay = retryDelayMs(response.headers.get('retry-after'));
       log(`  · API backpressure: status=429 attempt=${attempt + 1} wait_ms=${delay}`);
-      await sleep(delay);
+      await sleep(delay,'backpressure');
       continue;
     }
     if (response.status >= 300 || payload.ok === false) {
@@ -818,17 +829,17 @@ async function seedExistingContract() {
 
 async function seedLifecycle() {
   log('Registrando o pós-contrato (implantação, obrigações, performance, spend, qualificação, documento)…');
-  await seedExistingContract();
-  await seedImplementation();
-  await seedCovenants();
-  await seedPerformance();
-  await seedSpend();
-  await seedPortfolioAndFees();
+  await profile.phase('seedExistingContract',()=>seedExistingContract());
+  await profile.phase('seedImplementation',()=>seedImplementation());
+  await profile.phase('seedCovenants',()=>seedCovenants());
+  await profile.phase('seedPerformance',()=>seedPerformance());
+  await profile.phase('seedSpend',()=>seedSpend());
+  await profile.phase('seedPortfolioAndFees',()=>seedPortfolioAndFees());
   // Depois das tarifas: o contrato de adquirência já tem versão de termos.
-  await seedValue();
-  await seedQualification();
-  await seedExtraction();
-  await seedOpportunityRules();
+  await profile.phase('seedValue',()=>seedValue());
+  await profile.phase('seedQualification',()=>seedQualification());
+  await profile.phase('seedExtraction',()=>seedExtraction());
+  await profile.phase('seedOpportunityRules',()=>seedOpportunityRules());
 }
 
 async function seedFinancialCrm() {
@@ -860,7 +871,7 @@ async function finishStory() {
   marks.push({ real: Date.now() + 500, narrative: Date.now() + 500 });
   await sleep(1_000);
   await seedLifecycle();
-  await seedFinancialCrm();
+  await profile.phase('seedFinancialCrm',()=>seedFinancialCrm());
   // Marcos de renovação, obrigações, performance e oportunidades pelo mesmo
   // cron que roda todo dia em produção.
   if (CRON) {
@@ -1083,16 +1094,16 @@ async function main() {
     if (WORKSPACE) await saveWorkspace({ status: 'provisioning', baseline_version: BASELINE_VERSION, last_error: null });
     const started = Date.now();
     log('Criando contas das personas e liberando os domínios fictícios…');
-    await createAccounts();
+    await profile.phase('createAccounts',()=>createAccounts());
     log('Semeando a história da Vitta Foods pela API do Arandu…');
-    await setupOrganizations();
-    await seedStory();
-    await finishStory();
-    const moved = await applyTimeline();
+    await profile.phase('setupOrganizations',()=>setupOrganizations());
+    await profile.phase('seedStory',()=>seedStory());
+    await profile.phase('finishStory',()=>finishStory());
+    const moved = await profile.phase('applyTimeline',()=>applyTimeline());
     log(`História semeada em ${Math.round((Date.now() - started) / 1000)} s; ${moved} registros reposicionados na linha do tempo.`);
   }
 
-  const checks = await sanity();
+  const checks = await profile.phase('sanity',()=>sanity());
   const width = Math.max(...checks.map((row) => row.name.length));
   console.log('\nChecagens de sanidade da demonstração');
   for (const row of checks) console.log(`  ${row.ok ? 'OK  ' : 'FAIL'} ${row.name.padEnd(width)}  ${row.detail}`);
@@ -1115,7 +1126,16 @@ async function main() {
   if (failed) process.exit(1);
 }
 
-main().catch((error) => {
+function writeTiming(success) {
+  const directory=process.env.ARANDU_SEED_PROFILE_DIR;
+  if(!directory)return;
+  const report=profile.finish({success});
+  fs.mkdirSync(directory,{recursive:true});
+  fs.writeFileSync(path.join(directory,`seed-${WORKSPACE||'baseline'}-${MODE}.json`),JSON.stringify(report,null,2)+'\n',{mode:0o600});
+  console.log('ARANDU_SEED_TIMING '+JSON.stringify({result:report.result,wall_ms:report.wall_ms,waits:report.waits,requests:report.requests.reduce((n,r)=>n+r.attempts,0)}));
+}
+main().then(()=>writeTiming(true)).catch((error) => {
+  writeTiming(false);
   if (error instanceof DemoGuardError) {
     console.error('Seed da demonstração recusado. Nada foi escrito.');
     for (const reason of error.reasons) console.error(`  - ${reason}`);
