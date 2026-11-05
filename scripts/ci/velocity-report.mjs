@@ -22,7 +22,8 @@ export function reportAttempt(run,jobs) {
  // timestamps but a NEW created_at/run_attempt. They consumed no runner here.
  const inherited=jobs.filter(j=>j.conclusion!=='skipped'&&Date.parse(j.completed_at)<Date.parse(j.created_at));
  jobs=jobs.filter(j=>!inherited.includes(j));
- const result=profileRun(run,jobs), active=jobs.filter(j=>j.conclusion!=='skipped');
+ const attemptStart=run.run_started_at||run.created_at;
+ const result=profileRun({...run,created_at:attemptStart},jobs), active=jobs.filter(j=>j.conclusion!=='skipped');
  const byName=new Map(active.map(j=>[j.name,j]));
  const dependencies=j=>{
   const k=kind(j.name);
@@ -46,7 +47,7 @@ export function reportAttempt(run,jobs) {
  const paths=active.map(j=>critical(j.name));
  const complete=paths.length>0&&paths.every(Boolean);
  const end=active.map(j=>j.completed_at).filter(Boolean).sort().at(-1);
- return {...result,inherited_jobs:inherited.map(j=>({name:j.name,conclusion:j.conclusion,previous_execution_seconds:elapsed(j.started_at,j.completed_at)})),attempt_wall_seconds:elapsed(run.run_started_at||run.created_at,end),
+ return {...result,run_lifetime_wall_seconds:elapsed(run.created_at,run.updated_at),wall_seconds:elapsed(attemptStart,end),inherited_jobs:inherited.map(j=>({name:j.name,conclusion:j.conclusion,previous_execution_seconds:elapsed(j.started_at,j.completed_at)})),attempt_wall_seconds:elapsed(run.run_started_at||run.created_at,end),
  critical_path:complete?paths.sort((a,b)=>b.seconds-a.seconds)[0]:null,
  dag_model:'Arandu v7-v9; duration + measured queue weights; dispatch slack reported separately',
  jobs:result.jobs.map(row=>{const raw=byName.get(row.name);return {...row,needs:raw?dependencies(raw):[],steps:(raw?.steps||[]).map(s=>({number:s.number,name:s.name,conclusion:s.conclusion,seconds:elapsed(s.started_at,s.completed_at)}))};}),

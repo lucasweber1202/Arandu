@@ -162,7 +162,9 @@ Logs ausentes/expirados deixam os campos não medidos, nunca zero inventado.
 
 Reexecução parcial pode copiar jobs antigos com completed_at anterior ao novo
 created_at. Esses jobs são listados como herdados e não cobrados novamente.
-updated_at do run pode incluir muito tempo até uma reexecução: duração por
+O tempo de vida global do run fica separado; espera de dependências/dispatch
+por job é relativa ao início da tentativa, excluindo tentativas anteriores e
+o intervalo do operador. updated_at do run pode incluir muito tempo até uma reexecução: duração por
 tentativa usa run_started_at → último job executado. DAG parcial/desconhecido ou
 timestamps ausentes produzem caminho crítico nulo. Fila não é confundida com
 espera até criar o job. Runner-minutes são estimativa, não fatura.

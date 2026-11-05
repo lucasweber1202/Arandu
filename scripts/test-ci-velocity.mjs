@@ -90,3 +90,9 @@ assert.throws(()=>historicalEstimate({...history,repository:''},'D'));
 assert.throws(()=>historicalEstimate({...history,run_id:0},'D'));
 assert.throws(()=>historicalEstimate(history,'Z'));
 assert.throws(()=>historicalEstimate({...history,attempts:[{...history.attempts[0],attempt:null}]},'D'));
+
+const retryClock=reportAttempt({...run,created_at:'2025-12-31T00:00:00Z'},jobs);
+assert.equal(retryClock.jobs[0].pre_queue_dependency_and_dispatch_seconds,0,'earlier attempts and operator delay are not dependency wait in this attempt');
+assert.equal(retryClock.jobs[0].dispatch_and_dependency_wait_seconds,2);
+assert.equal(retryClock.wall_seconds,34);
+assert(retryClock.run_lifetime_wall_seconds>86400,'lifetime remains separately visible');
