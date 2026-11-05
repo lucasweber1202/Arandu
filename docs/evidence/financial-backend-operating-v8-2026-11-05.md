@@ -46,6 +46,17 @@ a autorização. Informação faltante não vira conformidade ou valor zero.
   de disco do Docker vfs não comporta o piso de recursos, portanto a prova fica
   a cargo da integração efêmera obrigatória do candidato.
 
+Primeiro CI `42045660105`/HEAD `ee3eb2ae`: suíte de banco e recovery passaram;
+seed/pool, releitura, quatro workspaces e E2E da Demo passaram. A jornada nova
+confirmou Auth/membership/contrato/upload/download e falhou no agregado de
+Portfolio porque parcelas não possuem id. Corrigido para paginação pela chave
+facility/versão/data; fixture de 221 parcelas, projeções compiladas no PostgreSQL
+real e a jornada HTTP agora cobrem duas versões e dois lotes. Registro de autoria
+`recorded_by` também está classificado como dado pessoal no registro canônico
+de parcelas e na projeção. O outro bloqueio foi a fixture de coordenação herdar
+SITE_URL público no CI: URL local explícita e preflight com ambiente equivalente,
+sem mudar a guarda. Revalidação completa do candidato corrigido ainda pendente.
+
 Checks completos, builds regular/Demo, budgets/assets e catálogo E2E PASS_LOCAL:
 2.125 casos listados em 33 arquivos, sem alegação de execução local dos browsers.
 Suíte SQL integral PASS_LOCAL; o preflight barato do SHA final será repetido
@@ -64,8 +75,11 @@ executa após os cinco contextos preparados. Preserva cinco chamadas de cron,
 205 checks (41 por seed), quotas, Retry-After e todos os gates posteriores.
 
 Testes locais de coordenação/cleanup/recusa de alvo remoto e recibo incompleto
-usam filhos sintéticos. Ganho real, estabilidade, runner-minutes e metas de
-seed/pool <5 min ainda NOT_PROVEN. [DAG e contrato](../CI_SEED_POOL_V8.md).
+usam filhos sintéticos. A primeira execução real mediu seed+pool 1.232→629 s,
+603 s a menos (-48,94%), 205 checks e requests app/Auth/REST equivalentes.
+O run falhou depois; repetição corrigida, duração integral aprovada,
+runner-minutes e metas de seed/pool <5 min ainda NOT_PROVEN.
+[DAG e contrato](../CI_SEED_POOL_V8.md).
 
 Benchmark de índices em `ops/performance/task-index-alternatives-2026-11-04.json`:
 1k/10k/100k registros, tenants/entidades/RLS e quatro leitores; índice completo
@@ -80,6 +94,8 @@ em duas etapas sob o mesmo JWT: página canônica + enriquecimento limitado,
 ~69+83 ms admin e ~170+141 ms com escopo de entidade, no mesmo laboratório.
 Esses somatórios de medianas SQL não são latência HTTP nem distribuição p95.
 O script versionado agora reproduz ambas as leituras para 1k/10k/100k.
+Em 1k, a view custou ~49,98 ms e a soma das duas leituras ~178,51 ms;
+há um roundtrip adicional e não há ganho universal para pequenos volumes.
 
 O índice de facilities da candidata tem ~5,93 MB em 100k. Primeiro ensaio de
 50 criações via RPC, com rollback: 66,38→70,75 ms em 1k; 107,70→127,66 ms em

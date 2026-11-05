@@ -1,6 +1,6 @@
 ## 05/11/2026 — Backend operacional v8 em validação local
 
-M1, candidata ainda não publicada: Contract 360 com seções paginadas e qualidade
+M1, candidata na PR #330 em draft: Contract 360 com seções paginadas e qualidade
 factual, Portfolio filtrado com drilldowns e valores desconhecidos null,
 obrigações em DTO canônico, histórico documental e seções de relacionamento
 reutilizam os mesmos IDs/RPCs. Cinco views derivadas com RLS do chamador,
@@ -11,21 +11,29 @@ instalação, recuperação e upgrade PASS. `npm run test:database` integral exi
 em PG17.11, incluindo índice/probes, rollback/reapply, concorrência e revogação;
 canários finais de 8.442/12.950/13.386 verificações, zero vazamentos. Testes
 históricos de baseline/recovery agora permitem migrations aditivas posteriores.
-Jornada real API/Auth/Storage adicionada à integração obrigatória, ainda NOT_RUN.
+Primeiro CI confirmou banco, Auth e documento privado real, mas falhou em
+Portfolio: o leitor presumia id em parcelas cuja chave é facility/versão/data.
+Correção usa chave canônica, teste de 221 parcelas e compilação das projeções
+no PostgreSQL; nova jornada real exercita duas versões e dois lotes de leitura.
+Outra falha foi fixture local herdando SITE_URL remoto; guarda foi preservada
+e preflight agora reproduz esse ambiente. Novo CI integral ainda pendente.
 Não elevar M2/M3. [Contrato versionado](FINANCIAL_BACKEND_V8_INTEROPERABILITY.md).
 
 Benchmark 1k/10k/100k: página nativa sob RLS antes de enriquecer até 50 IDs,
 com índice org/vencimento/id. Em 100k, soma de medianas SQL ~85 ms admin/~276 ms
 restrito versus view ampla ~3,7/~4,8 s no mesmo ensaio; sem claim HTTP/p95.
 Índice ~5,93 MB/100k; WAL de escrita cresceu no último ensaio, timing de escrita
-variável. Produto/garantias mantêm caminho anterior. Planos e limitações em
+variável. Em 1k, view ~50 ms versus duas leituras ~179 ms: não há ganho universal.
+Produto/garantias mantêm caminho anterior. Planos e limitações em
 `ops/performance/financial-operating-context-2026-11-05.json`.
 
 P0 de seed: diagnóstico real identifica 429 em spend/reconcile e duas janelas
 sequenciais de ~10 minutos. Coordenação sobrepõe apenas os cinco seeds já
 independentes, com barreira de inicialização/allowlist e cron global serializado;
-41 checks por seed exigidos. Ganho real da candidata NOT_PROVEN, quota e espera
-preservadas. [DAG, evidência e limites](CI_SEED_POOL_V8.md).
+41 checks por seed exigidos. Primeiro trecho real seed+pool 1.232→629 s
+(-48,94%); cinco perfis/205 checks e requests app/Auth/REST equivalentes, com
+429 preservado. Run completo falhou depois; repetição corrigida/gates finais
+pendentes. [DAG, evidência e limites](CI_SEED_POOL_V8.md).
 
 Inventário hospedado somente leitura reconfirmado em 05/11: Pilot 71 tabelas
 públicas/33 financeiras/14 linhas; legado 16/0/42; ambos Auth 0 e Storage 0.

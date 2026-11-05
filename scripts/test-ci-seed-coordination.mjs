@@ -14,7 +14,7 @@ const moduleUrl=pathToFileURL(path.resolve('scripts/ci-demo/seed-coordination.mj
 const runner=path.resolve('scripts/ci-demo/seed-pool.mjs');
 const contract=JSON.parse(fs.readFileSync('ops/ci/acceleration-v7/seed-sanity-contract.json','utf8'));
 const proof=()=>({classification:'synthetic_seed_timing_no_payload',result:'PASS',sanity:{checks:contract.checks,passed:contract.checks,check_names_sha256:contract.check_names_sha256},phases:[{name:'sanity',result:'PASS'}]});
-const local={ARANDU_ENV:'demo',ARANDU_DEMO_CONFIRM:'local',SUPABASE_URL:'http://127.0.0.1:8443',ARANDU_DEMO_APP_URL:'http://127.0.0.1:4443',CRON_SECRET:'synthetic-test-only',CI_DEMO_SEED_COORDINATION_DIR:root};
+const local={ARANDU_ENV:'demo',ARANDU_DEMO_CONFIRM:'local',SUPABASE_URL:'http://127.0.0.1:8443',ARANDU_DEMO_APP_URL:'http://127.0.0.1:4443',ARANDU_SITE_URL:'http://127.0.0.1:4443',CRON_SECRET:'synthetic-test-only',CI_DEMO_SEED_COORDINATION_DIR:root};
 try {
  fs.chmodSync(root,0o700);fs.writeFileSync(path.join(root,'manifest.json'),JSON.stringify({version:1,workspaces:4}));
  const plain=seedCoordination({});assert.equal(await plain.beforeCron(),true);assert.equal(plain.cronPasses,1);

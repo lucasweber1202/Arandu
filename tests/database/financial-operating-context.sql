@@ -1,6 +1,16 @@
 \set ON_ERROR_STOP on
 -- Real PostgreSQL/RLS and domain RPCs. Storage bytes/Auth HTTP are separate CI.
 begin;
+-- Compile the API projections against the actual schema, including empty
+-- collections. Repayments have a composite key, never an invented UUID id.
+do $$ begin
+ perform id,organization_id,legal_entity_id,provider_id,contract_id,kind,name,currency,approved_limit,principal_amount,indexer,spread_pct_year,rate_pct_year,amortization,starts_on,maturity_on,status,owner_id,source,source_reference,verified_at,review_after_days,schedule_version,created_at,updated_at,contract_product,contract_status,provider_name from public.fin_portfolio_facility_context where false;
+ perform id,organization_id,legal_entity_id,facility_id,contract_id,provider_id,kind,description,currency,committed_amount,starts_on,ends_on,status,source,created_by,created_at,contract_product,contract_provider_id,facility_contract_id,facility_provider_id,facility_contract_product,provider_name,facility_kind from public.fin_portfolio_guarantee_context where false;
+ perform id,facility_id,as_of,recorded_at,outstanding_amount,used_limit_amount,source,source_reference,recorded_by from public.fin_facility_latest_balance where false;
+ perform facility_id,schedule_version,due_on,principal_amount from public.fin_facility_current_repayment where false;
+ perform id,organization_id,obligation_id,contract_id,legal_entity_id,provider_id,title,kind,owner_id,frequency,source_clause,source_reference,source_contract_version,obligation_version,cancellation_reason,period_start,period_end,due_on,task_id,created_at,facts from public.fin_obligation_monitor where false;
+ perform id,organization_id,buyer_organization_id,contract_organization_id,contract_id,entity_type,entity_id,title,visibility,current_version,created_by,created_at,source_relation,available_version,mime_type,size_bytes,sha256,uploaded_by,completed_at,provider_id,legal_entity_id from public.fin_contract_document_evidence where false;
+end $$;
 create temporary table operating_ids(key text primary key,id uuid) on commit drop;
 insert into operating_ids values
  ('admin','8a000000-0000-4000-8000-000000000001'),('analyst','8a000000-0000-4000-8000-000000000002'),

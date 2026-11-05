@@ -21,6 +21,7 @@ function predicate(row,term) {
 }
 globalThis.fetch=async (url,options={})=>{
  const u=new URL(url),table=u.pathname.split('/').at(-1),q=u.searchParams;sent.push({table,q,options});
+ if(table==='fin_facility_current_repayment')assert(!q.get('select')?.split(',').includes('id'),'Canonical repayments use facility/version/date, not an id column');
  assert.equal(options.headers.Authorization,'Bearer operating-user-jwt');assert.equal(options.headers.apikey,'operating-fixture-public');
  if(revoked)return new Response(JSON.stringify({message:'session_revoked'}),{status:401});
  if(table===failure)return new Response(JSON.stringify({message:'source_unavailable'}),{status:503});
@@ -127,6 +128,16 @@ try {
  await assert.rejects(()=>call(`portfolio/context?organization_id=${ORG}&contract_id=${id(9999)}`),e=>e.status===404);
  for(const q of ['section=unknown','currency=???','product=forged','status=closed','maturity_from=2026-02-30','horizon_months=05','provider_id='+PROVIDER+'&provider_id='+PROVIDER])await assert.rejects(()=>call(`portfolio/context?organization_id=${ORG}&${q}`),e=>e.status===400);
  await assert.rejects(()=>readBoundedOperationalRows('operating-user-jwt','fin_portfolio_facility_context',new URLSearchParams({select:'id',organization_id:'eq.'+ORG}),2),e=>e.status===422&&e.code==='portfolio_context_coverage_limit');
+ // More than one transport batch, tied facility/version keys and no id field.
+ tables.fin_portfolio_facility_context=tables.fin_portfolio_facility_context.map(row=>({...row,schedule_version:1}));
+ tables.fin_facilities=tables.fin_facilities.map(row=>({...row,schedule_version:1}));
+ tables.fin_facility_current_repayment=Array.from({length:221},(_,i)=>({organization_id:ORG,facility_id:id(501),schedule_version:1,due_on:new Date(Date.UTC(new Date().getUTCFullYear()+1,0,i+1)).toISOString().slice(0,10),principal_amount:10}));
+ const schedules=await call(`portfolio/context?organization_id=${ORG}`);
+ assert.equal(schedules.coverage.current_repayments,221);assert.equal(schedules.views.currencies.find(row=>row.currency==='BRL').maturity_wall.reduce((sum,row)=>sum+row.scheduled,0),2210);
+ assert.equal(sent.filter(row=>row.table==='fin_facility_current_repayment').length,2);assert(sent.filter(row=>row.table==='fin_facility_current_repayment').every(row=>row.q.get('order')==='facility_id.asc,schedule_version.asc,due_on.asc'));
+ tables.fin_portfolio_facility_context=tables.fin_portfolio_facility_context.map(row=>({...row,schedule_version:2}));
+ await assert.rejects(()=>call(`portfolio/context?organization_id=${ORG}`),error=>error.status===409&&error.code==='portfolio_context_changed','A schedule-version race must not produce a partial financial total');
+ tables.fin_portfolio_facility_context=tables.fin_portfolio_facility_context.map(row=>({...row,schedule_version:1}));
 
  tables.fin_obligation_monitor=Array.from({length:29},(_,i)=>({id:id(600+i),organization_id:ORG,contract_id:CONTRACT,obligation_id:id(202),provider_id:PROVIDER,legal_entity_id:ENTITY,owner_id:ACTOR,title:'Período sintético',kind:'financial_covenant',period_start:'2026-01-01',period_end:'2026-01-31',due_on:'2026-02-01',facts:{status:i%2?'under_review':'awaiting_data',has_data:Boolean(i%2)}}));
  let periods=await call(`covenants?format=records&organization_id=${ORG}&contract_id=${CONTRACT}&limit=8`),allPeriods=[...periods.rows];const pcursor=periods.page.next_cursor;

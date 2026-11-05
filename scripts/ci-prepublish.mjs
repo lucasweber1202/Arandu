@@ -26,7 +26,9 @@ try {
  for(let i=0;i<fields.length&&fields[i];){const status=fields[i++],filename=fields[i++];changes.push(status.startsWith('R')?{status:'renamed',previous_filename:filename,filename:fields[i++]}:{status:status==='D'?'removed':status==='A'?'added':'modified',filename});}
  const plan=classifyChanges(changes,{readSource:file=>fs.existsSync(file)?fs.readFileSync(file,'utf8'):null});risk=plan.risk;
  console.log(JSON.stringify({tool:'arandu-ci-prepublish',sha,base,risk,changed_files:changes.map(c=>c.filename),scope:'CHEAP_LOCAL_CHECKS_ONLY',ci_required:true,deep_ci_required:risk==='D'}));
- stage('source_contracts',process.execPath,['scripts/run-hermetic.mjs','npm','run','check:all']);
+ // Match the public site fixture inherited by source/deploy CI jobs. Local
+ // integration fixtures must override it themselves, never relax host guards.
+ stage('source_contracts',process.execPath,['scripts/run-hermetic.mjs','npm','run','check:all'],{...process.env,ARANDU_SITE_URL:'https://arandu.example.com'});
  stage('regular_build','npm',['run','build']);stage('regular_budget','npm',['run','check:build-size']);
  stage('regular_assets','npm',['run','check:dist-assets']);
  stage('demo_build','npm',['run','build'],{...process.env,ARANDU_ENV:'',VERCEL_ENV:'preview',ARANDU_DEMO_MODE:'true'});

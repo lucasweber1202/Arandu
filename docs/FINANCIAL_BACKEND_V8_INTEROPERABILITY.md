@@ -140,7 +140,8 @@ os cálculos canônicos. APIs antigas mantêm seus contratos.
 `source_relation`, IDs e versões preservam proveniência. Documento disponível
 não é validação jurídica; SHA é declarado na API existente, sem promessa de
 verificação server-side dos bytes. A jornada efêmera nova compara os bytes do
-seu próprio upload com download real; execução ainda pendente. Nova versão
+seu próprio upload com download real; essa etapa passou no primeiro CI, mas a
+jornada completa falhou depois em Portfolio e aguarda repetição corrigida. Nova versão
 pending não oculta uma versão available anterior. Falha de fonte não vira vazio.
 
 Persistência aditiva: cinco views security_invoker/security_barrier em
@@ -158,6 +159,15 @@ registros do resultado e marca `coverage.changed_during_read=true`, mantendo
 a continuação da fonte e `complete=false`. Com filtro `product`, o filtro
 relacional continua na view antes da página; esse caminho não herda a melhoria
 medida para filtros nativos. Garantias também preservam seu caminho.
+
+Parcelas mantêm a chave canônica `(facility_id,schedule_version,due_on)`, sem
+id sintético; leitura de cronograma vigente usa essa ordem em todos os lotes.
+Se a versão observada nas parcelas divergir da versão lida na facility durante
+o agregado, a resposta é 409 `portfolio_context_changed`; atualizar o contexto.
+Esse conflito não devolve um total financeiro parcial nem promete snapshot.
+O teste real de integração cria duas versões e 221 parcelas atuais, para exigir
+continuação além do lote de 200 e excluir a versão anterior. Nenhum novo endpoint
+de escrita ou tabela foi necessário.
 
 A composição visual e o retorno ao contexto são `FRONTEND_ONLY`. Cutover e
 comprovação hospedada são `BLOCKED_EXTERNAL` enquanto faltarem preservação,

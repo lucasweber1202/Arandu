@@ -79,8 +79,11 @@ try {
   ctx.facility=(await post(people.admin,'facilities',{organization_id:ctx.org,legal_entity_id:ctx.a,provider_id:ctx.bank,contract_id:ctx.contract,kind:'revolving_credit',name:'Operating BRL facility DEMO',currency:'BRL',approved_limit:10000,source:'declared'})).id;
   await post(people.admin,'facilities',{organization_id:ctx.org,legal_entity_id:ctx.b,provider_id:ctx.bank,contract_id:ctx.contractB,kind:'term_loan',name:'Operating USD facility DEMO',currency:'USD',approved_limit:50000,source:'declared'});
   await post(people.admin,'facility-balances',{facility_id:ctx.facility,as_of:day(0),outstanding_amount:2000,used_limit_amount:1000,source:'declared',source_reference:'Operating source DEMO'});
+  await post(people.admin,'facility-schedule',{facility_id:ctx.facility,expected_version:0,items:[{due_on:day(60),principal_amount:777}]});
+  await post(people.admin,'facility-schedule',{facility_id:ctx.facility,expected_version:1,items:Array.from({length:221},(_,i)=>({due_on:day(i+1),principal_amount:10}))});
   const aggregate=await get(people.manager,`portfolio/context?organization_id=${ctx.org}&provider_id=${ctx.bank}`);
   must(aggregate.coverage.complete&&aggregate.views.currencies.length===2,'portfolio_scope_incomplete');
+  must(aggregate.coverage.current_repayments===221&&aggregate.views.currencies.find(row=>row.currency==='BRL')?.maturity_wall.reduce((sum,row)=>sum+row.scheduled,0)===2210,'current_schedule_composite_pagination_failed');
   must(aggregate.views.currencies.find(r=>r.currency==='BRL')?.outstanding===2000&&aggregate.views.currencies.find(r=>r.currency==='USD')?.outstanding_unknown===1&&aggregate.views.currencies.find(r=>r.currency==='USD')?.outstanding===null,'currency_or_unknown_balance_changed');
   const drill=await get(people.manager,aggregate.drilldowns.facilities.find(r=>r.currency==='BRL').endpoint);must(drill.rows.length===1&&drill.rows[0].id===ctx.facility&&Number(drill.rows[0].latest_balance.outstanding_amount)===2000,'portfolio_drilldown_diverged');
   const first=await get(people.manager,`portfolio/context?organization_id=${ctx.org}&section=facilities&limit=1`);must(first.page.has_more,'portfolio_pagination_not_exercised');
