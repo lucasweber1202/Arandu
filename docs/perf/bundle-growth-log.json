@@ -7,6 +7,13 @@
       "previous": 798706,
       "reason": "Onboarding da instituição pelo contrato existente (convite na renegociação), histórico documental paginado e roteiro guiado da Demo. Peso por jornada medido em Chromium (cache frio e quente): todas as sete jornadas dentro da baseline; maior tela 237.964 B < 250.000.",
       "journeyBaseline": "2026-11-05"
+    },
+    {
+      "date": "2026-11-05",
+      "accepted": 804726,
+      "previous": 804677,
+      "reason": "Nome acessível próprio dos passos do roteiro guiado (+49 B), para não colidir com o cartão da persona; jornadas medidas sem mudança.",
+      "journeyBaseline": "2026-11-05"
     }
   ]
 }
