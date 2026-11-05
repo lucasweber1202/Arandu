@@ -137,6 +137,14 @@ usa nearest-rank e anexa amostras, min/max, desvio e p50/p95/p99. É p95 empíri
 local com 20 observações, não estimativa populacional/SLA. O custo adicional
 de medição deve aparecer no run; nenhuma assertion de negócio foi retirada.
 
+O benchmark também expôs um retry de WebKit/Safari no teste de recuperação do
+módulo de busca. O teste aguardava networkidle depois do clique em Recarregar,
+mas esse estado podia pertencer ao documento anterior. Agora registra a espera
+por DOMContentLoaded antes do clique e confirma a prontidão da nova view antes
+do atalho. Mantém as assertions de erro legível e recuperação, sem alterar view,
+limite de latência, retries ou timeouts. A correção exige CI integral no novo SHA;
+os benchmarks da arquitetura anterior à correção não autorizam esse HEAD.
+
 `npm run ci:report -- owner/repo RUN_ID output.json` coleta metadados oficiais,
 paginando jobs de **todas as tentativas**. Registra head SHA e SHA analisado,
 PRs disponíveis, risco/arquivos do recibo classify, etapas/fases, fila,
