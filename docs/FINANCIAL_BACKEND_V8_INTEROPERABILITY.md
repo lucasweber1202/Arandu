@@ -145,10 +145,19 @@ pending não oculta uma versão available anterior. Falha de fonte não vira vaz
 
 Persistência aditiva: cinco views security_invoker/security_barrier em
 `supabase-financial-operating-context.sql`, marker `financial-operating-context-1`,
-rollback registrado; nenhuma tabela ou máquina de estados paralela. Escritas
+rollback registrado e índice de paginação `(organization_id,maturity_on,id)`;
+nenhuma tabela ou máquina de estados paralela. Escritas
 continuam nas RPCs existentes, incluindo segregação de funções e replay de
 renovação. #328 foi preservada; sinais de janela reutilizam `renewalPosition`
 e `CONTRACT_EXCEPTIONS`, sem editar views/CSS/E2E de Claude.
+
+Na página de facilities com filtros nativos, a fonte canônica seleciona os IDs
+e o cursor antes de enriquecer até 50 registros pela view com o mesmo JWT e
+filtros. São duas leituras autorizadas, sem N+1. Revogação entre elas remove os
+registros do resultado e marca `coverage.changed_during_read=true`, mantendo
+a continuação da fonte e `complete=false`. Com filtro `product`, o filtro
+relacional continua na view antes da página; esse caminho não herda a melhoria
+medida para filtros nativos. Garantias também preservam seu caminho.
 
 A composição visual e o retorno ao contexto são `FRONTEND_ONLY`. Cutover e
 comprovação hospedada são `BLOCKED_EXTERNAL` enquanto faltarem preservação,

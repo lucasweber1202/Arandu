@@ -5,6 +5,7 @@ do $$ begin
   raise exception 'operating context rollback marker mismatch';
  end if;
 end $$;
+drop index if exists public.fin_facilities_operating_page;
 drop view if exists public.fin_contract_document_evidence;
 drop view if exists public.fin_facility_current_repayment;
 drop view if exists public.fin_facility_latest_balance;

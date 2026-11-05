@@ -69,6 +69,25 @@ e parcial comparados com CPU/leitura/WAL/escrita/manutenção. Ambos aumentaram
 custo de escrita; parcial não beneficia done. Nenhum índice foi adotado. São
 medianas locais de cinco amostras, não p95 nem promessa de latência hospedada.
 
+O benchmark específico de portfólio revelou uma página ampla de ~11 s em
+100k facilities/20 tenants. O plano ordenava 5.000 linhas autorizadas antes do
+LIMIT; um índice isolado não elimina a barreira da view. Experimento de leitura
+em duas etapas sob o mesmo JWT: página canônica + enriquecimento limitado,
+~69+83 ms admin e ~170+141 ms com escopo de entidade, no mesmo laboratório.
+Esses somatórios de medianas SQL não são latência HTTP nem distribuição p95.
+O script versionado agora reproduz ambas as leituras para 1k/10k/100k.
+
+O índice de facilities da candidata tem ~5,93 MB em 100k. Primeiro ensaio de
+50 criações via RPC, com rollback: 66,38→70,75 ms em 1k; 107,70→127,66 ms em
+10k; 154,10→102,52 ms em 100k (ruído/carga/ordem impedem interpretar a última
+diferença como aceleração de escrita). WAL em 100k: 67.575→72.388 bytes;
+vacuum/analyze ~335 ms. O custo existe e foi considerado para a candidata;
+nenhum índice foi aplicado hospedado. Novo ensaio reproduzível em andamento.
+Filtro por produto e páginas de garantias mantêm a projeção antes da página e
+não herdam o ganho. A API sinaliza mudança de autorização entre as duas leituras,
+sem reutilizar permissões ou fabricar registros. Os índices de tarefas acima
+continuam rejeitados; este índice atende outra consulta e tem evidência própria.
+
 ## Preservação e hospedagem
 
 Releitura agregada de 05/11/2026, sem linhas de clientes:

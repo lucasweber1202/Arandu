@@ -2,6 +2,12 @@
 
 do $$ declare v text; begin
  if (select value from public.fin_settings where key='schema_version')='financial-operating-context-1' then
+  if not exists(select 1 from pg_index i where i.indexrelid=to_regclass('public.fin_facilities_operating_page')
+    and i.indrelid='public.fin_facilities'::regclass and i.indisvalid and i.indisready
+    and i.indpred is null and i.indexprs is null and i.indnkeyatts=3
+    and pg_get_indexdef(i.indexrelid,1,true)='organization_id'
+    and pg_get_indexdef(i.indexrelid,2,true)='maturity_on'
+    and pg_get_indexdef(i.indexrelid,3,true)='id') then raise exception 'operating pagination index probe failed'; end if;
   foreach v in array array['fin_portfolio_facility_context','fin_portfolio_guarantee_context','fin_contract_document_evidence','fin_facility_latest_balance','fin_facility_current_repayment'] loop
    if not exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname=v and c.relkind='v' and 'security_invoker=true'=any(c.reloptions) and 'security_barrier=true'=any(c.reloptions))
     or not has_table_privilege('authenticated','public.'||v,'SELECT') or has_table_privilege('anon','public.'||v,'SELECT')

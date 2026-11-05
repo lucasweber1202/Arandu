@@ -2,6 +2,11 @@
 -- Historical migrations and the financial baseline prefix remain unchanged.
 begin;
 
+-- Paired with source-first facility pagination. Ordering the joined barrier
+-- view alone still sorts the tenant and does not realize this index's benefit.
+create index if not exists fin_facilities_operating_page
+on public.fin_facilities(organization_id,maturity_on asc nulls last,id);
+
 create or replace view public.fin_portfolio_facility_context
 with (security_invoker=true,security_barrier=true) as
 select f.*,c.product as contract_product,c.status as contract_status,

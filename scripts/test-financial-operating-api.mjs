@@ -101,6 +101,7 @@ try {
 
  tables.fin_organizations=[{id:ORG,kind:'BUYER'}];tables.fin_legal_entities=[{id:ENTITY,organization_id:ORG}];
  tables.fin_portfolio_facility_context=[{id:id(501),organization_id:ORG,legal_entity_id:ENTITY,provider_id:PROVIDER,provider_name:'Instituição sintética',contract_id:CONTRACT,contract_product:'credit',kind:'revolving_credit',name:'Linha BRL',status:'active',currency:'BRL',approved_limit:10000,maturity_on:'2027-01-01',schedule_version:0},{id:id(502),organization_id:ORG,legal_entity_id:ENTITY,provider_id:PROVIDER,contract_id:CONTRACT,contract_product:'credit',kind:'term_loan',name:'Linha USD',status:'active',currency:'USD',approved_limit:50000,maturity_on:null,schedule_version:0},{id:id(503),organization_id:ORG,legal_entity_id:ENTITY,provider_id:PROVIDER,contract_id:CONTRACT,contract_product:'credit',kind:'term_loan',name:'Linha vencida',status:'matured',currency:'BRL',approved_limit:2000,maturity_on:'2020-01-01',schedule_version:0}];
+ tables.fin_facilities=tables.fin_portfolio_facility_context.map(({contract_product,provider_name,...row})=>row);
  tables.fin_portfolio_guarantee_context=[{id:id(504),organization_id:ORG,legal_entity_id:ENTITY,provider_id:null,contract_id:null,facility_id:id(501),facility_contract_id:CONTRACT,facility_provider_id:PROVIDER,facility_contract_product:'credit',facility_kind:'revolving_credit',kind:'receivables',currency:'BRL',status:'active',committed_amount:500,ends_on:null}];
  tables.fin_facility_latest_balance=[{id:id(505),organization_id:ORG,facility_id:id(501),as_of:'2026-01-01',recorded_at:stamp,outstanding_amount:2000,used_limit_amount:1000,source:'declared',source_reference:'Fonte sintética'}];
  tables.fin_facility_current_repayment=[];
@@ -112,7 +113,14 @@ try {
  const drill=await call(portfolio.drilldowns.facilities.find(r=>r.currency==='BRL').endpoint);assert.equal(drill.rows.length,1);assert.equal(drill.rows[0].latest_balance.outstanding_amount,2000);
  const usd=await call(`portfolio/context?organization_id=${ORG}&section=facilities&currency=USD`);assert.equal(usd.rows[0].latest_balance,null);assert.equal(usd.rows[0].balance_state,'unknown');
  let facilities=await call(`portfolio/context?organization_id=${ORG}&section=facilities&limit=1`);const fcursor=facilities.page.next_cursor;assert(fcursor);
+ assert.equal(sent.find(s=>s.table==='fin_facilities').q.get('limit'),'2','Source page is bounded before joined enrichment');
+ assert.equal(sent.find(s=>s.table==='fin_portfolio_facility_context').q.get('id'),`in.(${facilities.rows[0].id})`,'Enrichment only queries IDs from the authorized source page');
+ assert.equal(sent.filter(s=>s.table==='fin_portfolio_facility_context').length,1,'No query per facility');
  const more=await call(`portfolio/context?organization_id=${ORG}&section=facilities&limit=1&cursor=${fcursor}`);assert.notEqual(more.rows[0].id,facilities.rows[0].id);
+ const projection=tables.fin_portfolio_facility_context;tables.fin_portfolio_facility_context=[];
+ const changed=await call(`portfolio/context?organization_id=${ORG}&section=facilities&limit=1`);assert.deepEqual(changed.rows,[]);assert.equal(changed.coverage.changed_during_read,true);assert.equal(changed.coverage.complete,false);assert.equal(changed.page.next_cursor,fcursor,'Revoked enrichment does not lose the authorized source continuation');
+ tables.fin_portfolio_facility_context=projection;failure='fin_portfolio_facility_context';
+ await assert.rejects(()=>call(`portfolio/context?organization_id=${ORG}&section=facilities`),e=>e.status===503);failure=null;
  await assert.rejects(()=>call(`portfolio/context?organization_id=${ORG}&section=facilities&currency=USD&cursor=${fcursor}`),e=>e.status===400);
  const scopedGuarantee=await call(`portfolio/context?organization_id=${ORG}&section=guarantees&provider_id=${PROVIDER}&contract_id=${CONTRACT}&product=credit`);assert.equal(scopedGuarantee.rows.length,1);assert.equal(scopedGuarantee.rows[0].id,id(504));
  await assert.rejects(()=>call(`portfolio/context?organization_id=${OTHER}`),e=>e.status===403);

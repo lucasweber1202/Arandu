@@ -28,6 +28,9 @@ try {
   sql(`create database ${database}`,connection.PGDATABASE);created=true;
   sql(fs.readFileSync('tests/database/bootstrap.sql','utf8'));
   sql(execFileSync(process.execPath,['scripts/build-supabase-migration-bundle.mjs','--flow=financialBaseline','--stdout'],{encoding:'utf8',maxBuffer:8*1024*1024}));
+  // Control versus candidate on this disposable database only. The installed
+  // migration may already contain the accepted index; exclude it from control.
+  sql('drop index if exists public.fin_facilities_operating_page;');
   sql(`create function pg_temp.fixture_id(kind int,n int) returns uuid language sql immutable as $$select (kind::text||'0000000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid$$;
     insert into auth.users(id) values('${owner}'),('${viewer}'),('${outsider}');
     insert into public.fin_organizations(id,legal_name,kind,created_by) select pg_temp.fixture_id(2,i),'Operating benchmark '||i,'BUYER','${owner}' from generate_series(1,20)i;
@@ -76,8 +79,16 @@ try {
       latest_balance_batch_50:measure(`select id,facility_id,as_of,outstanding_amount,used_limit_amount from public.fin_facility_latest_balance where organization_id='${org}' and facility_id in (${ids}) order by id limit 201`),
       balance_rpc_50:measure(`select public.fin_record_facility_balance(id,current_date,1500,500,'declared','Synthetic benchmark') from public.fin_facilities where organization_id='${org}' and id in (${ids})`,owner,{write:true})
     };
+    const nativePage=page.replace('id,contract_id,contract_product,contract_status,provider_name,currency,maturity_on','id,maturity_on').replace('public.fin_portfolio_facility_context','public.fin_facilities');
+    const enrichedPage=actor=>{
+      const visible=JSON.parse(sql(`${session(actor)}select jsonb_agg(t) from (${nativePage})t`)).slice(0,50);
+      const visibleIds=visible.map(row=>`'${row.id}'`).join(',');
+      const enrichment=`select id,contract_id,contract_product,contract_status,provider_name,currency,maturity_on from public.fin_portfolio_facility_context where organization_id='${org}' and id in (${visibleIds})`;
+      return {source:measure(nativePage,actor),enrichment:measure(enrichment,actor),consistency:'live_two_authorized_statements'};
+    };
+    results.source_first_admin=enrichedPage(owner);results.source_first_entity=enrichedPage(viewer);
     scenarios.push({facilities:size,tenants:20,facilities_per_tenant:size/20,balance_history:size*2,facility_create_rpc_50:writesBefore,index,results});
-    console.log(JSON.stringify({size,medians_ms:Object.fromEntries(Object.entries(results).map(([key,value])=>[key,value.median_execution_ms]))}));
+    console.log(JSON.stringify({size,medians_ms:Object.fromEntries(Object.entries(results).map(([key,value])=>[key,value.median_execution_ms??value.source.median_execution_ms+value.enrichment.median_execution_ms]))}));
   }
   const report={classification:'synthetic_local_operating_projection_capacity',index_candidate:indexKind,postgres:sql('show server_version'),schema:sql("select value from public.fin_settings where key='schema_version'"),scenarios,
     limitations:['Warm local SQL medians, not HTTP latency or hosted p95.','No index/schema change proposed or adopted.','Measured writes roll back; not commit latency.','Shared executor load may affect timings; repeat before comparing runs.','Operator-only synthetic fixture loading is not the canonical Demo seed.']};
