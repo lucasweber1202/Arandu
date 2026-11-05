@@ -73,7 +73,11 @@ function contractLifecycleLinks(ctx, contract) {
 
 export async function contracts(ctx) {
   const [entities] = await Promise.all([loadEntities(ctx), need('contractCenter')]);
-  const rows = (ctx.data.contracts || []).filter((row) => inContext(entities, row));
+  // A visão geral traz até OVERVIEW_CONTRACT_CAP contratos. No limite, a carteira
+  // é lida inteira pela consulta paginada (servidor, keyset): nunca uma visão
+  // aparentemente completa que seja só a primeira página.
+  const coverage = await portfolioCoverage(ctx);
+  const rows = coverage.rows.filter((row) => inContext(entities, row));
   const requestedId = location.hash.startsWith('#contract-') ? location.hash.slice('#contract-'.length) : null;
   if (new URLSearchParams(location.search).get('abrir') === 'contrato' && requestedId && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestedId)) {
     const known = rows.find(row => row.id === requestedId);
@@ -149,14 +153,44 @@ export async function contracts(ctx) {
     if (focusId) queueMicrotask(() => { const target = document.getElementById(`contract-${focusId}`); target?.scrollIntoView({ block: 'start' }); target?.focus({ preventScroll: true }); });
     return root;
   }
-  return portfolioControlTower(ctx, ordered, { card, focusId, entities });
+  return portfolioControlTower(ctx, ordered, { card, focusId, entities, coverage });
 }
 
 // ------------------------------------------------- carteira (control tower)
 // Filtros na URL (?provider_id, product, status, owner, excecao, q): o link de
 // uma instituição abre a carteira já recortada, e voltar/recarregar preserva o
 // recorte. Exceções são fatos do registro (lib/finance/contract-portfolio.mjs).
-function portfolioControlTower(ctx, ordered, { card, focusId }) {
+export const OVERVIEW_CONTRACT_CAP = 200;
+export const CARD_PAGE = 50;
+export const PORTFOLIO_MAX_PAGES = 50;
+/** Carteira completa: a da visão geral, ou todas as páginas quando a visão geral bateu no limite. */
+export async function portfolioCoverage(ctx) {
+  const base = ctx.data.contracts || [];
+  if (ctx.mode === 'demo' || base.length < OVERVIEW_CONTRACT_CAP) return { rows: base, state: 'complete', total: base.length };
+  const rows = [];
+  let after = null;
+  let pages = 0;
+  try {
+    do {
+      const page = await ctx.api(`contracts?${new URLSearchParams({ organization_id: ctx.organization.id, paged: '1', limit: '100', ...(after ? { after } : {}) })}`);
+      rows.push(...(page.rows || []));
+      after = page.next || null;
+      pages += 1;
+    } while (after && pages < PORTFOLIO_MAX_PAGES);
+  } catch (error) {
+    // Falha da leitura completa: mostra o que a visão geral trouxe e diz que é parcial.
+    return { rows: base, state: 'failed', total: base.length, error };
+  }
+  return { rows, state: after ? 'capped' : 'complete', total: rows.length };
+}
+
+function coverageNote(coverage) {
+  if (coverage.state === 'failed') return el('p', { class: 'callout callout-warning compact', role: 'alert', 'data-coverage': 'failed' }, [icon('alert', { size: 14 }), textSpan(`Não conseguimos ler a carteira completa; a lista mostra os primeiros ${coverage.total} contratos e as contagens valem só para eles.`)]);
+  if (coverage.state === 'capped') return el('p', { class: 'callout callout-info compact', 'data-coverage': 'capped' }, [icon('info', { size: 14 }), textSpan(`Carteira grande: mostrando os primeiros ${coverage.total} contratos. Use os filtros de instituição, produto ou situação para recortar.`)]);
+  return null;
+}
+
+function portfolioControlTower(ctx, ordered, { card, focusId, coverage = { state: 'complete' } }) {
   const today = todayIso();
   const exceptions = new Map(ordered.map((c) => [c.id, contractExceptions(c, today)]));
   const providers = [...new Map(ordered.filter((c) => c.provider_id).map((c) => [c.provider_id, { id: c.provider_id, name: c.provider_name || 'Instituição' }])).values()].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
@@ -184,6 +218,8 @@ function portfolioControlTower(ctx, ordered, { card, focusId }) {
   const list = el('div', { class: 'stack contract-list' });
   const clear = button('Limpar filtros', { size: 'sm', variant: 'ghost', onClick: () => { for (const k of Object.keys(filters)) filters[k] = ''; search.value = ''; for (const [k, c] of Object.entries(controls)) c.value = filters[k]; draw(); } });
   const cards = new Map();
+  // Deep link (#contract-…) para um contrato além dos primeiros: renderiza até ele.
+  let shown = Math.max(CARD_PAGE, focusId ? ordered.findIndex((c) => c.id === focusId) + 1 : 0);
   const cardFor = (c) => { if (!cards.has(c.id)) cards.set(c.id, card(c)); return cards.get(c.id); };
 
   function draw() {
@@ -206,7 +242,11 @@ function portfolioControlTower(ctx, ordered, { card, focusId }) {
       ]))) : mutedText('Nenhuma instituição no recorte.'));
     const visible = filterContracts(ordered, filters, exceptions);
     count.textContent = `${visible.length} de ${ordered.length} contratos`;
-    list.replaceChildren(...visible.map(cardFor));
+    // Renderização progressiva: cada cartão consulta documentos e monta a linha do
+    // tempo; com carteiras grandes, só os primeiros CARD_PAGE do recorte entram de
+    // imediato. Contagens e pendências continuam valendo para o recorte inteiro.
+    list.replaceChildren(...visible.slice(0, shown).map(cardFor));
+    if (visible.length > shown) list.append(button(`Mostrar mais ${Math.min(CARD_PAGE, visible.length - shown)} de ${visible.length - shown} restantes`, { variant: 'secondary', attrs: { 'data-more': 'contracts' }, onClick: () => { shown += CARD_PAGE; draw(); } }));
     if (!visible.length) list.append(emptyState({ title: 'Nenhum contrato neste recorte', text: 'Ajuste ou limpe os filtros. Os filtros ficam no endereço da página.', iconName: 'search', compact: true, action: clear }));
     // Só as chaves de filtro mudam; o resto do endereço (?abrir=…, #contract-…) fica.
     const params = new URLSearchParams(location.search);
@@ -216,9 +256,9 @@ function portfolioControlTower(ctx, ordered, { card, focusId }) {
     const next = `${location.pathname}${query ? `?${query}` : ''}${location.hash}`;
     if (next !== `${location.pathname}${location.search}${location.hash}`) history.replaceState(history.state, '', next);
   }
-  const root = el('div', { class: 'stack contracts-tower' }, [
+  const root = el('div', { class: 'stack contracts-tower' }, [coverageNote(coverage),
     el('div', { class: 'toolbar' }, [el('div', { class: 'toolbar-search' }, [icon('search'), search]), ...Object.values(controls), count]),
-    el('div', { class: 'toolbar-chips' }, chips), summary, list]);
+    el('div', { class: 'toolbar-chips' }, chips), summary, list].filter(Boolean));
   draw();
   if (focusId) queueMicrotask(() => { const target = document.getElementById(`contract-${focusId}`); target?.scrollIntoView({ block: 'start' }); target?.focus({ preventScroll: true }); });
   return root;
