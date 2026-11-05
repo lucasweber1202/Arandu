@@ -192,7 +192,7 @@ Medido sobre `main@8837d8f` (795.004 bytes):
 - **Minificação**: terser (`passes=2`) sobre o output atual reduz 422 bytes (0,05%) — sem ganho de configuração.
 Conclusão: o JS é código de funcionalidade alcançável, majoritariamente texto de interface. **650 KB não é atingível sem remover capacidades**, o que a missão proíbe. Este lote adicionou ~1,7 KB (paginação da carteira e obrigações abertas): 796.721 / 800.000.
 
-## 2026-11-05 — Proposta de reavaliação do orçamento (não aplicada)
+## 2026-11-05 — Proposta de reavaliação do orçamento (histórico; aplicada com condições na seção seguinte)
 Situação após integrar sinais v8 no Contract 360 e obrigações no Relationship 360: **798.706 / 800.000** (1,3 KB livres).
 
 - **Motivo**: a auditoria Arandu 8.0 mostrou 0 byte morto, 0 duplicação e ganho desprezível de minificação; o total é a soma de todos os chunks, inclusive os carregados só sob demanda (Copilot, policy, SSO, governança), enquanto a experiência depende do que cada rota carrega (maior rota 155 KB de 250 KB).
@@ -200,3 +200,67 @@ Situação após integrar sinais v8 no Contract 360 e obrigações no Relationsh
 - **Alternativas**: (1) manter e exigir remoção compensatória por capability; (2) orçamento por rota/carregamento inicial (já medido: `largestRouteJavascript`) como hard limit e o total como alerta; (3) elevar o total para 900 KB mantendo a maior rota em 250 KB e o sandbox congelado.
 - **Proposta**: (2) — o que afeta o usuário é o JS da rota visitada; o total vira sinal de crescimento a revisar a cada PR. Métricas atuais: maior rota 155.301; total 798.706.
 - **Decisão**: do proprietário. Este documento não altera `scripts/build-size.mjs`.
+
+## 2026-11-05 — Política vigente: agregado como indicador de capacidade + peso real por jornada
+
+Aprovada pelo proprietário com condições (não é desabilitar a verificação). Três
+coisas diferentes, medidas separadamente:
+
+| O que | Natureza | Onde | Regra |
+| --- | --- | --- | --- |
+| Agregado de JS do produto (800.000 B) | **Indicador de capacidade** do catálogo | `CAPACITY` em `scripts/build-size.mjs` | Acima de 800.000 só passa com entrada em `docs/perf/bundle-growth-log.json` (valor aceito ≥ medido, justificativa ≥ 40 caracteres, data de uma baseline de jornadas registrada). Crescer além do último aceito exige nova entrada. Segue como AVISO visível em todo build. |
+| Rota, arquivo, CSS, imagem, total | **Hard limits** de performance | `LIMITS` | Inalterados: rota 250.000, arquivo JS 100.000, CSS 650.000, maior CSS 170.000, maior imagem 750.000, total 3.000.000. |
+| Sandbox legado | **Hard limit** congelado | `LIMITS.sandboxJavascript` | 382.400, inalterado. |
+| Peso real por jornada | **Baseline com tolerância proporcional** | `scripts/perf/measure-journeys.mjs`, `docs/perf/journey-js-baseline.json` | Ver abaixo. |
+
+### Por que medir jornadas
+
+`largestRouteJavascript` é o fecho **estático** de imports; não vê `import()`
+disparado pela tela. A medição real mostrou a diferença: o fecho estático maior
+é 155.301 B (rfq), mas Relationship 360° carrega **237.964 B** numa única tela
+(painéis carregados sob demanda). Code splitting pode, portanto, esconder peso
+do check estático; o check por jornada fecha essa porta.
+
+### Medição (`npm run perf:journeys`, `npm run check:perf-journeys`)
+
+Chromium sobre `dist/`, servidor local com o cache de produção de `vercel.json`
+(`/assets` imutável por 1 ano, HTML revalidado por ETag, gzip). API simulada no
+próprio servidor (sem `page.route`, que desligaria o cache HTTP). Cada jornada
+roda com contexto limpo (**cache frio**) e repete no mesmo contexto (**cache
+quente**). Registramos, sem misturar:
+
+- **decodedBytes** — JS descomprimido único que a jornada carrega (tamanho em `dist/`);
+- **transferBytes** — bytes na rede (gzip + cabeçalhos); 0 quando veio do cache;
+- **executedBytes** — JS coberto por execução (cobertura V8 por bloco);
+- requisições, tempo de script (CDP `ScriptDuration`: parse + compilação + execução), `TaskDuration`, LCP, CLS e DCL.
+
+Bytes publicados (build-size) ≠ bytes transferidos ≠ bytes executados.
+
+Proteções (falham o check e o E2E `tests/e2e/perf-journey-weight.spec.js`, só Chromium desktop):
+
+1. JS inicial e acumulado de cada jornada ≤ baseline + 5% (ruído de build).
+2. Requisições de JS ≤ baseline + 10% (mínimo +1).
+3. Cada tela da jornada carrega ≤ 250.000 B de JS **real** (o limite por rota existente, agora também sobre imports dinâmicos).
+4. Cache quente baixa 0 B de JS (cache imutável preservado).
+5. Jornada nova ou removida exige baseline; baseline só muda com `--update --reason "…"` (≥ 20 caracteres), que acumula histórico.
+
+Tempo de script e métricas de experiência são registrados, não bloqueiam
+(laboratório, ruidosos); não são SLA.
+
+### Medições de 05/11/2026 (Chromium 1243, laboratório local, API simulada)
+
+| Jornada | JS inicial | JS acumulado | Req. | Rede (frio) | Executado | Rede (quente) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Comprador: painel → tarefas | 151.904 | 179.973 | 29 | 73.814 | 46.353 | 0 |
+| Instituição: portal → proposta | 130.466 | 137.261 → 138.474 | 25 | 53.680 → 54.164 | 54.764 | 0 |
+| Portfolio | 135.277 | 135.277 | 14 | 54.109 | 51.102 | 0 |
+| Contract 360 | 193.190 | 193.190 | 25 | 81.937 | 77.749 | 0 |
+| Relationship 360° | 237.964 | 237.964 | 26 | 96.027 | 79.248 | 0 |
+| Obrigações: radar → covenants | 110.642 | 117.628 | 21 | 48.482 | 37.629 | 0 |
+| Renovação: contrato → negociações | 193.190 | 243.754 | 36 | 100.870 | 44.725 | 0 |
+
+Antes → depois do lote (onboarding pela renegociação, histórico documental,
+roteiro guiado): agregado 798.706 → 804.677 B (+5.971, registrado no log de
+crescimento); jornadas iguais, exceto Instituição +1.213 B (+0,9%), dentro da baseline.
+Relationship 360° (95% do limite por tela) e Renovação acumulada são os pontos
+de atenção para o próximo lote.

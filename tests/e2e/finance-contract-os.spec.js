@@ -219,3 +219,49 @@ test('Relationship 360: obrigações em aberto da instituição pelo filtro do s
   expect(read.query.status).toBe('open');
   await expect(section.getByRole('link', { name: 'Abrir registro' })).toHaveAttribute('href', new RegExp(`covenants\\.html\\?provider_id=${PA}`));
 });
+
+// Histórico documental: ao abrir, versões paginadas do servidor
+// (private-documents/versions), com envio não concluído declarado e sem baixar
+// o que não está disponível. API SIMULADA: não prova Storage nem trilha real.
+test('contrato: histórico completo de versões do documento, paginado e com estado do envio', async ({ page }) => {
+  await setup(page);
+  const DOC = id(800);
+  const version = (v, over = {}) => ({ document_id: DOC, version: v, status: 'available', mime_type: 'application/pdf', size_bytes: 2048 * v, sha256: 'a'.repeat(64), uploaded_by: 'u1', created_at: '2026-10-0' + v + 'T10:00:00Z', completed_at: '2026-10-0' + v + 'T10:01:00Z', ...over });
+  const reads = [];
+  await page.route('**/api/finance/private-documents?*', (route) => route.fulfill({ json: { ok: true, rows: [{ id: DOC, organization_id: ORG, title: 'CCB assinada', visibility: 'internal', current_version: 3,
+    versions: [version(3), version(2)] }], limits: {} } }));
+  await page.route('**/api/finance/private-documents/versions?*', (route) => {
+    const u = new URL(route.request().url()); reads.push(Object.fromEntries(u.searchParams));
+    return route.fulfill({ json: u.searchParams.get('cursor')
+      ? { ok: true, rows: [version(1)], page: { has_more: false, next_cursor: null } }
+      : { ok: true, rows: [version(4, { status: 'pending', completed_at: null, size_bytes: null }), version(3), version(2)], page: { has_more: true, next_cursor: 'c1' } } });
+  });
+  await page.goto(`/finance/contracts.html?abrir=contrato#contract-${OK.id}`);
+  const dialog = page.getByRole('dialog');
+  await dialog.locator('.lazy-documents summary').click();
+  const history = dialog.locator('.document-history');
+  await history.locator('summary').click();
+  await expect(history.locator('[data-version="4"]')).toContainText('envio não concluído');
+  await expect(history.locator('[data-version="4"]').getByRole('button', { name: /Baixar/ })).toHaveCount(0);
+  await expect(history.locator('[data-version="3"]')).toContainText('integridade registrada');
+  await expect(history).not.toContainText('aaaaaaaa');
+  await history.getByRole('button', { name: 'Carregar versões anteriores' }).click();
+  await expect(history.locator('[data-version="1"]')).toBeVisible();
+  await expect(history).toContainText('Histórico completo: todas as versões registradas');
+  expect(reads.map((r) => [r.document_id, r.cursor || null])).toEqual([[DOC, null], [DOC, 'c1']]);
+});
+
+test('contrato: histórico detalhado que falha é declarado e mantém a lista resumida', async ({ page }) => {
+  await setup(page);
+  const DOC = id(801);
+  await page.route('**/api/finance/private-documents?*', (route) => route.fulfill({ json: { ok: true, rows: [{ id: DOC, organization_id: ORG, title: 'Aditivo', visibility: 'internal', current_version: 2,
+    versions: [{ version: 2, mime_type: 'application/pdf', size_bytes: 10, uploaded_by: 'u1', completed_at: '2026-10-02T10:00:00Z' }, { version: 1, mime_type: 'application/pdf', size_bytes: 10, uploaded_by: 'u1', completed_at: '2026-10-01T10:00:00Z' }] }], limits: {} } }));
+  await page.route('**/api/finance/private-documents/versions?*', (route) => route.fulfill({ status: 500, json: { ok: false, error: 'falha' } }));
+  await page.goto(`/finance/contracts.html?abrir=contrato#contract-${OK.id}`);
+  const dialog = page.getByRole('dialog');
+  await dialog.locator('.lazy-documents summary').click();
+  const history = dialog.locator('.document-history');
+  await history.locator('summary').click();
+  await expect(history).toContainText('pode estar incompleta');
+  await expect(history.locator('[data-version="1"]')).toBeVisible();
+});

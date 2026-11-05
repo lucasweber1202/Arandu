@@ -1365,6 +1365,8 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 .opportunity-pending{margin:var(--s1) 0 0}
 /* Negotiation Studio: origem e jornada da renegociação */
 .negotiation-journey{list-style:none;margin:0;padding:0;display:grid;gap:var(--s2);grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))}
+.incumbent-onboarding{display:grid;gap:var(--s2);justify-items:start;padding:var(--s3);border:1px solid var(--border);border-radius:var(--r-md)}
+.incumbent-onboarding p{margin:0;display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center}
 .nj-step{display:flex;gap:var(--s2);align-items:flex-start;padding:var(--s2) var(--s3);border-radius:var(--r-md);background:var(--surface-sunken);min-width:0}
 .nj-step p{margin:0;overflow-wrap:anywhere}
 .nj-mark{flex:none;width:16px;height:16px;margin-top:2px;border-radius:50%;border:2px solid var(--border-strong);display:inline-flex;align-items:center;justify-content:center}

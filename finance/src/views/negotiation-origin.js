@@ -4,7 +4,37 @@
 // registro aparece ausente, nunca concluída.
 import { el, icon, formatDate, plural, productLabel, CONTRACT_STATUS, RFQ_STATUS, textStrong } from '../core.js';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
-import { mutedText } from '../ui.js';
+import { mutedText, button, toastError } from '../ui.js';
+import { incumbentInvite, INCUMBENT_TEXT } from '../../../lib/finance/incumbent-onboarding.mjs';
+
+const INCUMBENT_TAG = { none: 'Não convidada', invited: 'Convite enviado', accepted: 'No portal', closed: 'Convite encerrado' };
+
+/**
+ * Onboarding da instituição pelo contrato existente: convidar quem já presta o
+ * serviço para responder à renegociação no portal. Convidar outras instituições
+ * continua no formulário de convites; o Arandu não sugere quem convidar.
+ */
+export function incumbentOnboarding(ctx, rfq, origin) {
+  const state = incumbentInvite(rfq, origin?.provider_id, { canManage: ctx.can('create_rfq') });
+  if (state.kind === 'unavailable') return null;
+  const name = origin.provider_name || 'a instituição';
+  const box = el('div', { class: 'incumbent-onboarding', dataset: { state: state.kind } }, [
+    el('p', {}, [textStrong(`Instituição do contrato: ${origin.provider_name || 'não informada'}`), el('span', { class: `tag tag-${state.kind === 'accepted' ? 'success' : state.kind === 'none' ? 'warning' : 'neutral'}`, text: INCUMBENT_TAG[state.kind] })]),
+    mutedText(INCUMBENT_TEXT[state.kind] + (state.kind === 'invited' && state.expiresAt ? ` O convite vale até ${formatDate(state.expiresAt)}.` : '') + (state.proposal ? ' Já há proposta enviada por ela.' : ''))
+  ]);
+  if (state.canInvite) {
+    box.append(button(state.kind === 'closed' ? `Convidar ${name} de novo` : `Convidar ${name} para o portal`, { size: 'sm', variant: 'secondary', iconName: 'send', onClick: async (event) => {
+      const target = event.currentTarget; target.disabled = true;
+      try {
+        const result = await ctx.send('invites/send', { rfq_id: rfq.id, provider_id: origin.provider_id });
+        const { deliverInvite } = await import('./rfq/invite-delivery.js');
+        await deliverInvite(ctx, result, name);
+        ctx.reload();
+      } catch (error) { toastError(error); target.disabled = false; }
+    } }), mutedText('Convidar a instituição atual não exclui outras: a empresa decide quem participa no formulário de convites.'));
+  } else if (state.reason && state.kind !== 'accepted') box.append(mutedText(state.reason));
+  return box;
+}
 
 /** Contrato de origem a partir dos eventos da solicitação (mais recente vence). */
 export function originContractId(events = []) {
@@ -74,6 +104,7 @@ export function negotiationOrigin(ctx, rfq, { decision = null, contract = null, 
       el('div', { class: 'card-body stack' }, [
         origin ? el('dl', { class: 'deflist deflist-3' }, facts.map(([label, value]) => el('div', { class: 'deflist-row' }, [el('dt', { text: label }), el('dd', { class: value === 'Não informado' ? 'missing' : '', text: value })])))
           : el('p', { class: 'callout callout-info compact', role: 'note', text: 'O contrato de origem está registrado, mas fora dos contratos carregados nesta tela. Abra o contrato para ver condições e versões.' }),
+        origin ? incumbentOnboarding(ctx, rfq, origin) : null,
         el('ol', { class: 'negotiation-journey', 'aria-label': 'Jornada da renegociação' }, journey.map((step) => el('li', { class: `nj-step nj-${step.state}`, dataset: { step: step.key, state: step.state } }, [
           el('span', { class: 'nj-mark', 'aria-hidden': 'true' }, step.state === 'done' ? icon('check', { size: 12 }) : null),
           el('div', {}, [el('p', { class: 'nj-label' }, [textStrong(step.label), mutedText(` · ${STATE_TEXT[step.state]}`, 'span')]), mutedText(step.text)])

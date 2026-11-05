@@ -39,7 +39,7 @@ test('persona list rate-limited (429): the entry explains the wait instead of va
 // Entrada canônica da Demo: escolha de persona com jornada, que entra no
 // produto real pelo login do servidor e cai no portal certo.
 import { BUYERS, PROVIDERS } from '../../lib/finance/demo-personas.mjs';
-import { PERSONA_GUIDE } from '../../financial-demo-entry.js';
+import { PERSONA_GUIDE, GUIDED_TOUR } from '../../financial-demo-entry.js';
 import { readFileSync } from 'node:fs';
 
 const SERVER_PERSONAS = [
@@ -242,4 +242,34 @@ test('identidade hospedada: liveness certo não mascara readiness de outro deplo
   }
   // Sem SHA completo, nada é atestado.
   expect(run(ready(), 'aaaaaaa').verdict).toBe('INCONCLUSIVE');
+});
+
+test('roteiro guiado: passos em ordem, cada um entra como a persona e abre a tela do passo', async ({ page }) => {
+  const posts = await personaServer(page);
+  await page.route('**/finance/contracts.html*', (r) => r.fulfill({ contentType: 'text/html', body: '<h1>Carteira</h1>' }));
+  await page.goto('/login.html');
+  const tour = page.locator('.demo-tour');
+  await expect(tour.getByRole('heading', { name: 'Roteiro guiado' })).toBeVisible();
+  await expect(tour.locator('[data-tour-step]')).toHaveCount(GUIDED_TOUR.length);
+  await expect(tour.locator('[data-tour-step="1"]')).toContainText('como Juliana Ramos');
+  await expect(tour.locator('[data-tour-step="3"]')).toContainText('Portal da instituição');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  await tour.locator('[data-tour-step="1"]').click();
+  await page.waitForURL('**/finance/contracts.html?excecao=window');
+  expect(posts).toEqual([{ persona: 'juliana' }]);
+});
+
+test('roteiro guiado: passo cuja persona o servidor não oferece não aparece', async ({ page }) => {
+  await page.route('**/api/auth/demo-personas', (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: true, personas: [{ key: 'meridian', name: 'Patrícia Alves', title: 'Gerente' }] }) }));
+  await page.goto('/login.html');
+  await expect(page.locator('.demo-tour [data-tour-step]')).toHaveCount(1);
+  await expect(page.locator('.demo-tour [data-tour-step="1"]')).toContainText('Portal da instituição');
+});
+
+test('roteiro guiado só usa personas e destinos do produto', () => {
+  for (const step of GUIDED_TOUR) {
+    expect(PERSONA_GUIDE[step.persona], step.persona).toBeTruthy();
+    expect(step.destination.startsWith(PERSONA_GUIDE[step.persona].side === 'provider' ? '/provider/' : '/finance/'), step.title).toBe(true);
+    expect(step.text).not.toMatch(/melhor|recomend|ranking|score/i);
+  }
 });

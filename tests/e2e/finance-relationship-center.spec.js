@@ -703,3 +703,44 @@ test('histórico vazio diz que não há registro, sem filtros', async ({ page })
   await expect(history).toContainText('Nenhum evento registrado com esta instituição no Arandu.');
   await expect(history.getByRole('group')).toHaveCount(0);
 });
+
+// Onboarding da instituição pelo contrato existente: na renegociação, a empresa
+// convida a instituição que já presta o serviço para responder pelo portal.
+// Convite simulado (invites/send): não prova envio de e-mail nem aceite real.
+async function incumbentSetup(page, { invites = [], role = 'admin', status = 'draft' } = {}) {
+  const RENEWAL = '00000000-0000-4000-8000-0000000000d9';
+  const C1 = '00000000-0000-4000-8000-0000000000c1';
+  const overview = { ...OVERVIEW, rfqs: [...OVERVIEW.rfqs, { id: RENEWAL, organization_id: ORG, title: 'Renovação: Capital de giro 2025', product: 'credit', status, revision: 1, owner_id: 'u1', invites, proposals: [] }] };
+  await setup(page, { overview, role });
+  const sent = [];
+  await page.route('**/api/finance/events?*', (route) => route.fulfill({ json: { ok: true, rows: new URL(route.request().url()).searchParams.get('entity_id') === RENEWAL
+    ? [{ id: 'e1', entity_type: 'rfq', entity_id: RENEWAL, event_type: 'rfq_created_from_contract', happened_at: '2026-10-30T10:00:00Z', metadata: { contract_id: C1 } }] : [] } }));
+  await page.route('**/api/finance/invites/send', (route) => { sent.push(route.request().postDataJSON()); return route.fulfill({ status: 201, json: { ok: true, invitationToken: 'tok_abcdefghijklmnopqrstuvwxyz012345', recipient_mode: 'exact_email' } }); });
+  await page.goto(`/finance/rfq.html?id=${RENEWAL}`);
+  return { sent, RENEWAL, block: page.locator('#negotiation-origin .incumbent-onboarding') };
+}
+
+test('renegociação: convida a instituição do contrato para o portal e entrega o link de uso único', async ({ page }) => {
+  const { sent, RENEWAL, block } = await incumbentSetup(page);
+  await expect(block).toHaveAttribute('data-state', 'none');
+  await expect(block).toContainText('Instituição do contrato: Atlas Bank');
+  await expect(block).toContainText('Não convidada');
+  await expect(block).toContainText('não exclui outras');
+  await block.getByRole('button', { name: 'Convidar Atlas Bank para o portal' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Convite criado' });
+  await expect(dialog.getByLabel('Link de convite')).toHaveValue(/\/provider\/invite\.html#token=tok_/);
+  await expect(dialog).toContainText('Só a conta com o e-mail de contato cadastrado');
+  expect(sent).toEqual([{ rfq_id: RENEWAL, provider_id: P_ATLAS }]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test('renegociação: instituição já no portal não recebe convite repetido; leitura não convida', async ({ page }) => {
+  const { block } = await incumbentSetup(page, { status: 'collecting', invites: [{ id: 'i1', provider_id: P_ATLAS, status: 'accepted', accepted_at: '2026-11-01T10:00:00Z', provider_name: 'Atlas Bank' }] });
+  await expect(block).toHaveAttribute('data-state', 'accepted');
+  await expect(block).toContainText('No portal');
+  await expect(block.getByRole('button')).toHaveCount(0);
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
+  const viewer = await incumbentSetup(page, { role: 'viewer' });
+  await expect(viewer.block).toHaveAttribute('data-state', 'none');
+  await expect(viewer.block.getByRole('button')).toHaveCount(0);
+});
