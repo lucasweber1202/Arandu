@@ -54,6 +54,7 @@ for (const [flow, files] of Object.entries(manifest)) {
   if (files.indexOf('docs/supabase-financial-fee-ingestion.sql') !== files.indexOf('docs/supabase-financial-platform-intelligence.sql')+1) issues.push(`${flow}: ingestão deve seguir Platform Intelligence.`);
   if (files.indexOf('docs/supabase-financial-crm.sql') !== files.indexOf('docs/supabase-financial-institutional-decline.sql')+1) issues.push(`${flow}: CRM deve seguir recusa institucional.`);
   if (files.indexOf('docs/supabase-financial-crm-view-roundtrip.sql') !== files.indexOf('docs/supabase-financial-fee-ingestion.sql')+1) issues.push(`${flow}: aliases estáveis da view devem seguir ingestão.`);
+  if (files.indexOf('docs/supabase-financial-operating-context.sql') !== files.indexOf('docs/supabase-financial-crm-view-roundtrip.sql')+1) issues.push(`${flow}: projeções operacionais devem seguir os aliases estáveis de CRM.`);
   const sprint2 = files.indexOf('docs/supabase-sprint2-catalog-readiness.sql');
   const collections = files.indexOf('docs/arandu-mvp-collections.sql');
   const sprint5 = files.indexOf('docs/supabase-sprint5-pilot.sql');

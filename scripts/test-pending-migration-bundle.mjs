@@ -139,7 +139,7 @@ const afterDecline = command(['--flow=existingDatabase', '--after-schema=financi
 assert.equal(afterDecline.status, 0, afterDecline.stderr);
 assert(afterDecline.stdout.includes('4 migration(s) pendente(s)'));
 assert(afterDecline.stdout.includes(readFileSync('docs/supabase-financial-crm.sql','utf8').trim()));
-const current = command(['--flow=existingDatabase', '--after-schema=financial-crm-view-roundtrip-1']);
+const current = command(['--flow=existingDatabase', '--after-schema=financial-operating-context-1']);
 assert.equal(current.status, 0, current.stderr);
 assert(current.stdout.includes('0 migration(s) pendente(s)'));
 assert(!/create or replace|alter table|insert into/i.test(current.stdout));
