@@ -9,7 +9,7 @@ const manifest=JSON.parse(fs.readFileSync('docs/supabase-migrations.json','utf8'
 const descriptor=JSON.parse(fs.readFileSync('docs/baselines/financial-v1.json','utf8'));
 assert.equal(financialBaselineFiles(process.cwd(),manifest)[0],descriptor.sql);
 const future={...manifest,cleanInstall:[...manifest.cleanInstall,'docs/future.sql']};
-assert.deepEqual(financialBaselineFiles(process.cwd(),future),[descriptor.sql,'docs/future.sql']);
+assert.deepEqual(financialBaselineFiles(process.cwd(),future),[...financialBaselineFiles(process.cwd(),manifest),'docs/future.sql']);
 assert.throws(()=>financialBaselineFiles(process.cwd(),{...manifest,cleanInstall:[...manifest.cleanInstall].reverse()}),/prefix changed/);
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'arandu-baseline-integrity-'));
 try {

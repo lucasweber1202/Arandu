@@ -1,11 +1,59 @@
-## 04/11/2026 — CI Acceleration 7.0 em validação
+## 05/11/2026 — Backend operacional v8 em validação local
 
-M1: dois grupos balanceados preservam cinco projetos de browser; recibos por
+M1, candidata na PR #330 em draft: Contract 360 com seções paginadas e qualidade
+factual, Portfolio filtrado com drilldowns e valores desconhecidos null,
+obrigações em DTO canônico, histórico documental e seções de relacionamento
+reutilizam os mesmos IDs/RPCs. Cinco views derivadas com RLS do chamador,
+classificadas na governança, migration/rollback aditivos; nenhum novo sistema
+de registro. #328 reconciliada sem substituir o frontend de Claude.
+Fixtures HTTP PASS; quatro jornadas SQL locais PASS nos três caminhos de
+instalação, recuperação e upgrade PASS. `npm run test:database` integral exit 0
+em PG17.11, incluindo índice/probes, rollback/reapply, concorrência e revogação;
+canários finais de 8.442/12.950/13.386 verificações, zero vazamentos. Testes
+históricos de baseline/recovery agora permitem migrations aditivas posteriores.
+Primeiro CI confirmou banco, Auth e documento privado real, mas falhou em
+Portfolio: o leitor presumia id em parcelas cuja chave é facility/versão/data.
+Correção usa chave canônica, teste de 221 parcelas e compilação das projeções
+no PostgreSQL; nova jornada real exercita duas versões e dois lotes de leitura.
+Outra falha foi fixture local herdando SITE_URL remoto; guarda foi preservada
+e preflight agora reproduz esse ambiente. Novo CI integral ainda pendente.
+Não elevar M2/M3. [Contrato versionado](FINANCIAL_BACKEND_V8_INTEROPERABILITY.md).
+
+Benchmark 1k/10k/100k: página nativa sob RLS antes de enriquecer até 50 IDs,
+com índice org/vencimento/id. Em 100k, soma de medianas SQL ~85 ms admin/~276 ms
+restrito versus view ampla ~3,7/~4,8 s no mesmo ensaio; sem claim HTTP/p95.
+Índice ~5,93 MB/100k; WAL de escrita cresceu no último ensaio, timing de escrita
+variável. Em 1k, view ~50 ms versus duas leituras ~179 ms: não há ganho universal.
+Produto/garantias mantêm caminho anterior. Planos e limitações em
+`ops/performance/financial-operating-context-2026-11-05.json`.
+
+P0 de seed: diagnóstico real identifica 429 em spend/reconcile e duas janelas
+sequenciais de ~10 minutos. Coordenação sobrepõe apenas os cinco seeds já
+independentes, com barreira de inicialização/allowlist e cron global serializado;
+41 checks por seed exigidos. Primeiro trecho real seed+pool 1.232→629 s
+(-48,94%); cinco perfis/205 checks e requests app/Auth/REST equivalentes, com
+429 preservado. Run completo falhou depois; repetição corrigida/gates finais
+pendentes. [DAG, evidência e limites](CI_SEED_POOL_V8.md).
+
+Inventário hospedado somente leitura reconfirmado em 05/11: Pilot 71 tabelas
+públicas/33 financeiras/14 linhas; legado 16/0/42; ambos Auth 0 e Storage 0.
+Demo e Pilot na Vercel READY em main8837; Production ERROR observado. Isso não
+comprova M3 canônica. Credenciais de preservação, destino/custódia e aprovação
+específica de cutover continuam ausentes; nenhum dado hospedado foi alterado.
+
+## 04/11/2026 — CI Acceleration 7.0 validada na #327
+
+M2 no candidato `32a1a9443701fcc759be50d4975b9e18833b91c5` da #327,
+HEAD `34d5baf5e9a1b078cd6b2e03ad6a819164ca59ea`, run `41936120694`:
+quatro gates e integração profunda PASS; 26,65 min de wall-clock contra
+32,27–34,65 min anteriores. 2.075 casos: 2.047 pass, 28 skips explícitos,
+um flaky aprovado no retry e mantido na evidência. Dois grupos balanceados
+preservam cinco projetos de browser; recibos por
 caso/SHA com união exata, preflight dos dois builds e quatro contexts intactos.
 Profiler de seed mede HTTP, fases e espera 429 sem payload. Perfil histórico de
 três runs separa wall-clock, fila e runner-minutes. Conectividade/radar entram
 no catálogo completo, com detector de omissão. Ganho em runner e redução do seed
-ainda NOT_PROVEN; não elevar M2 por planejamento local.
+ainda NOT_PROVEN; não estender esse M2 às alterações da candidata v8.
 [Contrato e métricas](CI_ACCELERATION_V7.md). Hosted continua bloqueado pelas
 pré-condições específicas de preservação e autorização.
 

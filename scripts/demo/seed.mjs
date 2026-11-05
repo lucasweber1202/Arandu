@@ -23,6 +23,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { seedProfiler } from './profile.mjs';
+import { seedCoordination } from '../ci-demo/seed-coordination.mjs';
 import { retryDelayMs } from './backpressure.mjs';
 import {
   assertDemoTarget, assertDemoDatabase, assertDemoApplication, DemoGuardError,
@@ -61,6 +62,8 @@ const { supabaseUrl: SB, serviceKey: SERVICE, anonKey: ANON, appUrl: APP, passwo
 const CRON = String(process.env.CRON_SECRET || '').trim();
 const DAY = 86_400_000;
 const profile = seedProfiler();
+const coordination = seedCoordination();
+let sanityEvidence = null;
 const sleep = (ms, reason='narrative') => profile.pause(reason,ms,()=>new Promise((resolve) => setTimeout(resolve, ms)));
 const actorRole = person => `${person.side}.${person.role}`;
 const must = (condition, message) => { if (!condition) throw new Error(message); };
@@ -486,7 +489,11 @@ async function upload(personKey, entity, visibility, title, body = null) {
     organization_id: organization, entity_type: target.type, entity_id: target.id, title, visibility,
     mime_type: 'application/pdf', size: bytes.length, sha256: crypto.createHash('sha256').update(bytes).digest('hex')
   });
-  const put = await fetch(begin.upload_url, { method: 'PUT', headers: { 'Content-Type': 'application/pdf' }, body: bytes });
+  const {response:put}=await profile.request({channel:'storage',method:'PUT',path:'objects/upload',actor:actorRole(person)},async()=>{
+    const response=await fetch(begin.upload_url, { method: 'PUT', headers: { 'Content-Type': 'application/pdf' }, body: bytes });
+    await response.arrayBuffer();
+    return {response};
+  });
   must(put.ok, `envio de "${title}" ao Storage: ${put.status}`);
   await post(person, 'private-documents/complete', { document_id: begin.document_id, version: begin.version });
   ctx.documents ||= {};
@@ -874,9 +881,20 @@ async function finishStory() {
   await profile.phase('seedFinancialCrm',()=>seedFinancialCrm());
   // Marcos de renovação, obrigações, performance e oportunidades pelo mesmo
   // cron que roda todo dia em produção.
-  if (CRON) {
-    const response = await fetch(`${APP}/api/jobs/renewals`, { headers: { Authorization: `Bearer ${CRON}` } });
-    must(response.ok, `cron de renovação: ${response.status}`);
+  const runsCron = await profile.phase('waitForIndependentStories',()=>coordination.beforeCron());
+  if (CRON && runsCron) {
+    for(let pass=0;pass<coordination.cronPasses;pass++) {
+      const {response,payload}=await profile.request({channel:'cron',method:'GET',path:'renewals',actor:'operator'},async()=>{
+        const response = await fetch(`${APP}/api/jobs/renewals`, { headers: { Authorization: `Bearer ${CRON}` } });
+        return {response,payload:await response.json()};
+      });
+      must(response.status===200&&payload?.ok===true&&Object.values(payload.jobs||{}).length===4
+        &&Object.values(payload.jobs).every(job=>job.status==='succeeded'),`cron de renovação incompleto: ${response.status}`);
+    }
+    coordination.afterCron();
+  } else if (!runsCron) {
+    // The coordinator releases visitor seeds only after all five real cron
+    // calls succeeded. Notifications, timeline and full sanity still run here.
   } else {
     log('  · CRON_SECRET ausente: marcos de renovação ficam para a próxima execução diária do cron (/api/jobs/renewals).');
   }
@@ -1095,6 +1113,10 @@ async function main() {
     const started = Date.now();
     log('Criando contas das personas e liberando os domínios fictícios…');
     await profile.phase('createAccounts',()=>createAccounts());
+    // Visitors also depend on the baseline's global fictitious-domain
+    // allowlist, installed by createAccounts. Never release them at marker
+    // creation alone, while that operator setup may still be in flight.
+    await coordination.initialized();
     log('Semeando a história da Vitta Foods pela API do Arandu…');
     await profile.phase('setupOrganizations',()=>setupOrganizations());
     await profile.phase('seedStory',()=>seedStory());
@@ -1104,6 +1126,8 @@ async function main() {
   }
 
   const checks = await profile.phase('sanity',()=>sanity());
+  sanityEvidence = {checks:checks.length,passed:checks.filter(row=>row.ok).length,
+    check_names_sha256:crypto.createHash('sha256').update(JSON.stringify(checks.map(row=>row.name.trim()).sort())).digest('hex')};
   const width = Math.max(...checks.map((row) => row.name.length));
   console.log('\nChecagens de sanidade da demonstração');
   for (const row of checks) console.log(`  ${row.ok ? 'OK  ' : 'FAIL'} ${row.name.padEnd(width)}  ${row.detail}`);
@@ -1123,13 +1147,14 @@ async function main() {
     for (const person of Object.values(people)) console.log(`  ${person.email.padEnd(44)} ${person.name} — ${person.title}${person.side === 'provider' ? ` (${data.PROVIDERS[person.key].name})` : ''}`);
     console.log(`\nEntre em ${APP}/login.html e siga o roteiro de docs/demo/RUNBOOK.md.`);
   }
-  if (failed) process.exit(1);
+  if (failed) throw Error('DEMO_SANITY_FAILED');
 }
 
 function writeTiming(success) {
   const directory=process.env.ARANDU_SEED_PROFILE_DIR;
   if(!directory)return;
   const report=profile.finish({success});
+  report.sanity=sanityEvidence;
   fs.mkdirSync(directory,{recursive:true});
   fs.writeFileSync(path.join(directory,`seed-${WORKSPACE||'baseline'}-${MODE}.json`),JSON.stringify(report,null,2)+'\n',{mode:0o600});
   console.log('ARANDU_SEED_TIMING '+JSON.stringify({result:report.result,wall_ms:report.wall_ms,waits:report.waits,requests:report.requests.reduce((n,r)=>n+r.attempts,0)}));

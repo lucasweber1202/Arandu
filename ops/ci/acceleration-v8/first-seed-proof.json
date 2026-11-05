@@ -1,0 +1,368 @@
+{
+  "classification": "synthetic_seed_real_stack_timing_no_payload",
+  "run_id": 42045660105,
+  "pr": 330,
+  "tested_head": "ee3eb2ae9d8cdf8ece7dcafea0fcdf3fb9e31676",
+  "full_workflow_merge_candidate": "1fc194f26fb95b72ee63e9f25c1e9e523dc43d34",
+  "artifact_id": 13424653532,
+  "artifact_sha256": "5067c6b1e9aa84c77c80fb1a1eaea7a1671086dc128123fd1a78cb00de7185fe",
+  "overall_ci": "FAIL_NOT_RELEASE_PROOF",
+  "failures": [
+    "source/deploy unit fixture inherited public ARANDU_SITE_URL instead of loopback",
+    "operating journey portfolio aggregate selected nonexistent repayment id; canonical key is facility/version/date"
+  ],
+  "completed_proof": [
+    "five real API/JWT seeds,205checks,same nameshash",
+    "baseline41checkreread",
+    "four ready workspaces",
+    "same-backup database and private Storage binary recovery",
+    "Demo desktop/mobile E2E",
+    "real operating Auth,organization membership,contract and private binary upload/download stages"
+  ],
+  "seed_pool_before_seconds": 1232,
+  "seed_pool_after_seconds": 629,
+  "seed_pool_saved_seconds": 603,
+  "seed_pool_saved_percent": 48.9448051948052,
+  "comparison": "Old official seed613s + pool provision/verify619s versus coordinated seed628s + pool verify1s; read-only sanity4\u21925s measured separately.",
+  "profiles": [
+    {
+      "kind": "visitor_workspace",
+      "source_file_sha256": "942af1a7a43a06162a6b6d45df24feb997b1d00cdae30cdd394ac9e8905a9e2d",
+      "result": "PASS",
+      "wall_ms": 624262.80546,
+      "sanity": {
+        "checks": 41,
+        "passed": 41,
+        "check_names_sha256": "b2b826450d8662bd73b5568652bea3e3e9d521063622c2ebaea7c5e2a8cfecdc"
+      },
+      "channels": {
+        "rest": {
+          "attempts": 357,
+          "duration_ms": 2066.0043059997915,
+          "statuses": {
+            "200": 56,
+            "201": 1,
+            "204": 300
+          }
+        },
+        "auth": {
+          "attempts": 20,
+          "duration_ms": 3660.47149699997,
+          "statuses": {
+            "200": 20
+          }
+        },
+        "app": {
+          "attempts": 293,
+          "duration_ms": 30652.24881600056,
+          "statuses": {
+            "201": 151,
+            "200": 135,
+            "202": 6,
+            "429": 1
+          }
+        },
+        "storage": {
+          "attempts": 6,
+          "duration_ms": 136.37906899999507,
+          "statuses": {
+            "200": 6
+          }
+        }
+      },
+      "waits": {
+        "narrative": {
+          "count": 145,
+          "requested_ms": 58600,
+          "elapsed_ms": 58640.007942999975
+        },
+        "backpressure": {
+          "count": 1,
+          "requested_ms": 528000,
+          "elapsed_ms": 528000.7907789999
+        }
+      }
+    },
+    {
+      "kind": "visitor_workspace",
+      "source_file_sha256": "7bfcba4b67c1db4cdf2b498ce3fab139165f59f9c448002c2c6816571f23eee8",
+      "result": "PASS",
+      "wall_ms": 624392.4293600001,
+      "sanity": {
+        "checks": 41,
+        "passed": 41,
+        "check_names_sha256": "b2b826450d8662bd73b5568652bea3e3e9d521063622c2ebaea7c5e2a8cfecdc"
+      },
+      "channels": {
+        "rest": {
+          "attempts": 357,
+          "duration_ms": 1941.9625539998115,
+          "statuses": {
+            "200": 56,
+            "201": 1,
+            "204": 300
+          }
+        },
+        "auth": {
+          "attempts": 20,
+          "duration_ms": 3702.549711999978,
+          "statuses": {
+            "200": 20
+          }
+        },
+        "app": {
+          "attempts": 293,
+          "duration_ms": 30695.288585000155,
+          "statuses": {
+            "201": 151,
+            "200": 135,
+            "202": 6,
+            "429": 1
+          }
+        },
+        "storage": {
+          "attempts": 6,
+          "duration_ms": 112.59646200000134,
+          "statuses": {
+            "200": 6
+          }
+        }
+      },
+      "waits": {
+        "narrative": {
+          "count": 145,
+          "requested_ms": 58600,
+          "elapsed_ms": 58634.279185
+        },
+        "backpressure": {
+          "count": 1,
+          "requested_ms": 528000,
+          "elapsed_ms": 528000.662417
+        }
+      }
+    },
+    {
+      "kind": "visitor_workspace",
+      "source_file_sha256": "6132ea2ddc8b19f02fe8cc7b03cff3721f787733f42d4862ea2f8d99908bdb32",
+      "result": "PASS",
+      "wall_ms": 624431.544644,
+      "sanity": {
+        "checks": 41,
+        "passed": 41,
+        "check_names_sha256": "b2b826450d8662bd73b5568652bea3e3e9d521063622c2ebaea7c5e2a8cfecdc"
+      },
+      "channels": {
+        "rest": {
+          "attempts": 357,
+          "duration_ms": 1963.2298570005057,
+          "statuses": {
+            "200": 56,
+            "201": 1,
+            "204": 300
+          }
+        },
+        "auth": {
+          "attempts": 20,
+          "duration_ms": 3681.2403279999867,
+          "statuses": {
+            "200": 20
+          }
+        },
+        "app": {
+          "attempts": 293,
+          "duration_ms": 30635.412020999876,
+          "statuses": {
+            "201": 151,
+            "200": 135,
+            "202": 6,
+            "429": 1
+          }
+        },
+        "storage": {
+          "attempts": 6,
+          "duration_ms": 101.03377100000216,
+          "statuses": {
+            "200": 6
+          }
+        }
+      },
+      "waits": {
+        "narrative": {
+          "count": 145,
+          "requested_ms": 58600,
+          "elapsed_ms": 58641.59654299997
+        },
+        "backpressure": {
+          "count": 1,
+          "requested_ms": 528000,
+          "elapsed_ms": 528001.209516
+        }
+      }
+    },
+    {
+      "kind": "baseline_recheck",
+      "source_file_sha256": "dc2e68b5655010186e5014b32051397e7a1403e7f2acd8473434f9f759d5e2c6",
+      "result": "PASS",
+      "wall_ms": 3823.3179429999996,
+      "sanity": {
+        "checks": 41,
+        "passed": 41,
+        "check_names_sha256": "b2b826450d8662bd73b5568652bea3e3e9d521063622c2ebaea7c5e2a8cfecdc"
+      },
+      "channels": {
+        "rest": {
+          "attempts": 10,
+          "duration_ms": 110.64400299999969,
+          "statuses": {
+            "200": 10
+          }
+        },
+        "auth": {
+          "attempts": 10,
+          "duration_ms": 1073.8587979999998,
+          "statuses": {
+            "200": 10
+          }
+        },
+        "app": {
+          "attempts": 36,
+          "duration_ms": 2622.9668059999985,
+          "statuses": {
+            "200": 36
+          }
+        }
+      },
+      "waits": {}
+    },
+    {
+      "kind": "baseline_reset",
+      "source_file_sha256": "610ca903bfa5ed485fb479cf95a2c41212aa7c07f7b28545cbc78471c5608e95",
+      "result": "PASS",
+      "wall_ms": 626756.7158819999,
+      "sanity": {
+        "checks": 41,
+        "passed": 41,
+        "check_names_sha256": "b2b826450d8662bd73b5568652bea3e3e9d521063622c2ebaea7c5e2a8cfecdc"
+      },
+      "channels": {
+        "rest": {
+          "attempts": 356,
+          "duration_ms": 2038.2292690000584,
+          "statuses": {
+            "200": 54,
+            "201": 2,
+            "204": 300
+          }
+        },
+        "auth": {
+          "attempts": 20,
+          "duration_ms": 2065.2930710000237,
+          "statuses": {
+            "200": 20
+          }
+        },
+        "app": {
+          "attempts": 293,
+          "duration_ms": 27567.62949600036,
+          "statuses": {
+            "201": 151,
+            "200": 135,
+            "202": 6,
+            "429": 1
+          }
+        },
+        "storage": {
+          "attempts": 6,
+          "duration_ms": 109.14247499999328,
+          "statuses": {
+            "200": 6
+          }
+        },
+        "cron": {
+          "attempts": 5,
+          "duration_ms": 804.8838120000437,
+          "statuses": {
+            "200": 5
+          }
+        }
+      },
+      "waits": {
+        "narrative": {
+          "count": 145,
+          "requested_ms": 58600,
+          "elapsed_ms": 58645.31856300002
+        },
+        "backpressure": {
+          "count": 1,
+          "requested_ms": 529000,
+          "elapsed_ms": 529006.706225
+        }
+      }
+    },
+    {
+      "kind": "visitor_workspace",
+      "source_file_sha256": "ce797b28dc949bed4638640f4ccfda0768ed881880c842a455296adab43f128f",
+      "result": "PASS",
+      "wall_ms": 624320.491367,
+      "sanity": {
+        "checks": 41,
+        "passed": 41,
+        "check_names_sha256": "b2b826450d8662bd73b5568652bea3e3e9d521063622c2ebaea7c5e2a8cfecdc"
+      },
+      "channels": {
+        "rest": {
+          "attempts": 357,
+          "duration_ms": 2005.1567930004728,
+          "statuses": {
+            "200": 56,
+            "201": 1,
+            "204": 300
+          }
+        },
+        "auth": {
+          "attempts": 20,
+          "duration_ms": 3673.7154120000064,
+          "statuses": {
+            "200": 20
+          }
+        },
+        "app": {
+          "attempts": 293,
+          "duration_ms": 30576.50334500094,
+          "statuses": {
+            "201": 151,
+            "200": 135,
+            "202": 6,
+            "429": 1
+          }
+        },
+        "storage": {
+          "attempts": 6,
+          "duration_ms": 115.79131699999562,
+          "statuses": {
+            "200": 6
+          }
+        }
+      },
+      "waits": {
+        "narrative": {
+          "count": 145,
+          "requested_ms": 58600,
+          "elapsed_ms": 58635.26223500002
+        },
+        "backpressure": {
+          "count": 1,
+          "requested_ms": 528000,
+          "elapsed_ms": 528000.0135710001
+        }
+      }
+    }
+  ],
+  "limitations": [
+    "First run failed later; not four-gate success, complete journey or M3.",
+    "Per-seed quota waits remain, no seed/pool<5min claim.",
+    "Old request profiler excluded30StoragePUTs+5cron calls across5seeds; app/auth/REST counts comparable.",
+    "All five seeds kept293app attempts,20Auth attempts; baseline356REST and each workspace357REST, same as reference.",
+    "Runner-minutes and queue require whole workflow comparison; final corrected run pending."
+  ]
+}

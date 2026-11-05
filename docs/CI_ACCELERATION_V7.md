@@ -1,5 +1,15 @@
 # CI Acceleration 7.0 — execução e evidência
 
+Resultado posterior: #327 integrada. Run `41936120694`, HEAD
+`34d5baf5e9a1b078cd6b2e03ad6a819164ca59ea`, merge candidate
+`32a1a9443701fcc759be50d4975b9e18833b91c5`: quatro contextos obrigatórios
+e integração profunda PASS, wall-clock 26,65 min. Catálogo final: 2.075 casos,
+2.047 pass, 28 skips explícitos e um flaky que passou no retry. Browser jobs
+14,6/12,8 min; execução das suítes 13,2/11,2 min. Integração 26,3 min passou
+a dominar o caminho crítico. Repetibilidade e economia de runner-minutes não
+comprovadas por um run. O trabalho posterior de seed está em
+[CI_SEED_POOL_V8.md](CI_SEED_POOL_V8.md), sem ganho real alegado antes do CI.
+
 Base inicial: `e93fa35d` (#321/#323/#324/#325 integradas). Classificação A/B/C/D
 continua a v6.2; esta mudança de CI é D. Não altera os quatro contextos finais,
 ancestralidade, merge candidate, SHA, pins, testes SQL, Auth/Storage reais,

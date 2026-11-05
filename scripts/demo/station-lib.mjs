@@ -13,6 +13,7 @@
 //              árvore limpa, todos os requisitos passam e a prontidão recente
 //              disse Modo leitura PRONTO.
 import { demoPoolStatus } from '../../lib/finance/demo-entry-readiness.mjs';
+import seedSanityContract from '../../ops/ci/acceleration-v7/seed-sanity-contract.json' with {type:'json'};
 
 // Other Docker workloads must neither block nor stand in for the local Demo.
 export function demoContainerFacts(result) {
@@ -42,7 +43,7 @@ export const REQUIREMENTS = Object.freeze({
   minMemoryGiB: 6,      // Postgres + GoTrue + PostgREST + Storage + app + Chromium
   minDiskGiB: 10,       // imagens (~3 GB), banco e relatórios
   readinessMaxAgeMinutes: 120,
-  seedChecks: 39,
+  seedChecks: seedSanityContract.checks,
   ports: [54322, 9999, 3000, 5000, 8443, 4443]
 });
 

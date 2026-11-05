@@ -126,20 +126,20 @@ jobs:
         timeout-minutes: 6
         run: bash scripts/ci-demo/run.sh smoke 2>&1 | tee "$CI_DEMO_REPORTS/smoke.txt"
 
-      - name: Phase 2 — Official demo seed (Vitta Foods)
+      - name: Phase 2 — Official baseline and four visitor seeds with coordinated global cron
         id: seed
         timeout-minutes: 26
-        run: bash scripts/ci-demo/run.sh seed 2>&1 | grep -v '@' | tee "$CI_DEMO_REPORTS/seed.txt"
+        run: bash scripts/ci-demo/run.sh seed-pool 2>&1 | grep -v '@' | tee "$CI_DEMO_REPORTS/seed.txt"
 
       - name: Phase 2 — Seed sanity checks (read-only re-check)
         id: check
         timeout-minutes: 6
         run: bash scripts/ci-demo/run.sh check 2>&1 | grep -v '@' | tee "$CI_DEMO_REPORTS/seed-check.txt"
 
-      - name: Phase 2 — Provision and verify four real visitor workspaces
+      - name: Phase 2 — Verify four fully seeded real visitor workspaces
         id: pool
         timeout-minutes: 36
-        run: bash scripts/ci-demo/run.sh pool 2>&1 | grep -v '@' | tee "$CI_DEMO_REPORTS/pool.txt"
+        run: bash scripts/ci-demo/run.sh verify-pool 2>&1 | grep -v '@' | tee "$CI_DEMO_REPORTS/pool.txt"
 
       # Snapshot canônico após o seed e pool verificados, antes das fases mutantes.
       # journey cadastra três fatores MFA; este drill não preserva MFA e seu

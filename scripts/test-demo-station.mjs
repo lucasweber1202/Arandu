@@ -3,7 +3,7 @@
 // READY só na máquina declarada, no SHA congelado, com prontidão recente; nunca
 // num executor efêmero; alvo fora de localhost é UNSAFE mesmo com tudo verde.
 import assert from 'node:assert/strict';
-import { classifyStation, readinessFacts, stationPoolFacts, demoContainerFacts } from './demo/station-lib.mjs';
+import { classifyStation, readinessFacts, stationPoolFacts, demoContainerFacts, REQUIREMENTS } from './demo/station-lib.mjs';
 import { demoWorkspaceFixture } from './fixtures/demo-workspace.mjs';
 
 const SHA = 'a'.repeat(40);
@@ -18,7 +18,7 @@ const ready = () => ({
   services: { db: ok, auth: ok, rest: ok, storage: ok, gateway: ok, app: ok },
   ports: [{ port: 4443, state: 'demo' }, { port: 54322, state: 'demo' }],
   db: { reachable: true, marker: 'demo', schema: 'current', expectedSchema: 'current', container: 'original' }, app: { reachable: true, environment: 'demo', datasource: 'supabase', misconfigured: false, commit: SHA },
-  pool: { ready: 4, claimed: 0, status: 'ok' }, seed: { ok: true, passed: 39, total: 39, detail: '39/39' },
+  pool: { ready: 4, claimed: 0, status: 'ok' }, seed: { ok: true, passed: REQUIREMENTS.seedChecks, total: REQUIREMENTS.seedChecks, detail: `${REQUIREMENTS.seedChecks}/${REQUIREMENTS.seedChecks}` },
   readiness: { readMode: 'PRONTO', interactiveMode: 'PRONTO', ageMinutes: 15, commit: SHA, host: 'estacao-29-10', lockSha256: LOCK, clean: true, smoke: true },
   freeze: { sha: SHA, lockSha256: LOCK, station: true, host: 'estacao-29-10' },
   repo: { path: '/home/op/Arandu', onWindowsDrive: false, crlfFiles: [] }, toolchain: { windows: null },
@@ -102,6 +102,7 @@ for (const status of ['incompatible', 'inconclusive', 'capacity_unavailable']) {
   expect(`pool ${status}`, f => { f.pool.status = status; }, 'BLOCKED');
 }
 expect('seed reduzido mas autoconsistente', f => { f.seed = { ok: true, passed: 37, total: 37 }; }, 'BLOCKED');
+expect('denominador antigo de 39 não prova os 41 checks canônicos', f => { f.seed={ok:true,passed:39,total:39,detail:'39/39'}; }, 'BLOCKED');
 expect('seed booleano sem denominador', f => { f.seed = { ok: true }; }, 'BLOCKED');
 expect('lockfile ausente nos dois lados', f => { f.git.lockSha256 = null; f.freeze.lockSha256 = null; f.readiness.lockSha256 = null; }, 'PREPARED');
 for (const status of ['FAIL', 'SKIP', 'UNKNOWN']) {

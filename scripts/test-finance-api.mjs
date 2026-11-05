@@ -498,7 +498,7 @@ await assert.rejects(call('PATCH', 'tasks', { body: { organization_id: BUYER, ta
   assert.equal(firstPage.payload.page.has_more, true);
   assert.ok(firstPage.payload.page.next_cursor);
   const cursorValue = JSON.parse(Buffer.from(firstPage.payload.page.next_cursor, 'base64url').toString('utf8'));
-  assert.deepEqual(cursorValue, { due_on: '2026-10-20', created_at: pageRows[1].created_at, id: pageRows[1].id });
+  assert.deepEqual(cursorValue, { due_on: '2026-10-20', created_at: pageRows[1].created_at, id: pageRows[1].id, scope: `${BUYER}:task-list:all:all` });
   reset((entry) => entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : [pageRows[2]]);
   const lastPage = await call('GET', 'tasks', { url: `/api/finance/tasks?organization_id=${BUYER}&limit=2&cursor=${encodeURIComponent(firstPage.payload.page.next_cursor)}` });
   assert.deepEqual(lastPage.payload.rows.map((row) => row.id), [pageRows[2].id]);
@@ -506,7 +506,7 @@ await assert.rejects(call('PATCH', 'tasks', { body: { organization_id: BUYER, ta
   const continuation = new URL(sent.find((entry) => entry.url.includes('fin_tasks?')).url).searchParams.get('or');
   assert.match(continuation, /due_on\.gt\.2026-10-20/);
   assert.match(continuation, new RegExp(`id\\.gt\\.${pageRows[1].id}`));
-  const nullDueCursor = Buffer.from(JSON.stringify({ due_on: null, created_at: pageRows[2].created_at, id: pageRows[2].id })).toString('base64url');
+  const nullDueCursor = Buffer.from(JSON.stringify({ ...cursorValue, due_on: null, created_at: pageRows[2].created_at, id: pageRows[2].id })).toString('base64url');
   reset((entry) => entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : []);
   await call('GET', 'tasks', { url: `/api/finance/tasks?organization_id=${BUYER}&cursor=${nullDueCursor}` });
   const nullContinuation = new URL(sent.find((entry) => entry.url.includes('fin_tasks?')).url).searchParams.get('or');

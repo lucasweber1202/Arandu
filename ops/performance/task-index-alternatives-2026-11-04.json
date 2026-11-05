@@ -1,0 +1,336 @@
+{
+  "date_local": "2026-11-04",
+  "classification": "synthetic_local_postgres_17_11",
+  "hosted": "NOT_RUN",
+  "adoption": "NOT_APPLIED",
+  "runs": [
+    {
+      "index": "partial-open",
+      "definition": "(organization_id,due_on asc nulls last,created_at,id) where status='open'",
+      "scenarios": [
+        {
+          "tasks": 1000,
+          "tenants": 20,
+          "candidate_bytes": 204800,
+          "before_ms": {
+            "open_page": 13.212,
+            "done_page": 9.689,
+            "due_filter": 8.402,
+            "cursor_page": 9.707,
+            "entity_scoped": 15.798,
+            "entity_filter": 8.939,
+            "no_membership": 11.531
+          },
+          "after_ms": {
+            "open_page": 12.859,
+            "done_page": 8.901,
+            "due_filter": 9.631,
+            "cursor_page": 7.997,
+            "entity_scoped": 13.159,
+            "entity_filter": 6.722,
+            "no_membership": 10.045
+          },
+          "writes_1000_rows_ms": {
+            "before": 47.475,
+            "after": 54.305
+          },
+          "concurrent_readers": {
+            "before": {
+              "readers": 4,
+              "wall_ms": 87.76579399999991,
+              "same_results": true
+            },
+            "after": {
+              "readers": 4,
+              "wall_ms": 72.3890250000004,
+              "same_results": true
+            }
+          },
+          "vacuum": {
+            "workload": "6000 rolled-back inserts in each phase",
+            "before": {
+              "wall_ms": 22.7821670000003
+            },
+            "after": {
+              "wall_ms": 19.71862599999986
+            }
+          },
+          "same_results": true,
+          "outsider": "DENIED",
+          "entity_scope": "ENFORCED"
+        },
+        {
+          "tasks": 10000,
+          "tenants": 20,
+          "candidate_bytes": 909312,
+          "before_ms": {
+            "open_page": 130.578,
+            "done_page": 65.435,
+            "due_filter": 72.819,
+            "cursor_page": 118.988,
+            "entity_scoped": 131.965,
+            "entity_filter": 75.362,
+            "no_membership": 131.737
+          },
+          "after_ms": {
+            "open_page": 140.196,
+            "done_page": 69.412,
+            "due_filter": 67.94,
+            "cursor_page": 126,
+            "entity_scoped": 150.951,
+            "entity_filter": 59.174,
+            "no_membership": 123.087
+          },
+          "writes_1000_rows_ms": {
+            "before": 52.049,
+            "after": 52.677
+          },
+          "concurrent_readers": {
+            "before": {
+              "readers": 4,
+              "wall_ms": 412.66348199999993,
+              "same_results": true
+            },
+            "after": {
+              "readers": 4,
+              "wall_ms": 373.53767999999945,
+              "same_results": true
+            }
+          },
+          "vacuum": {
+            "workload": "6000 rolled-back inserts in each phase",
+            "before": {
+              "wall_ms": 43.3344700000016
+            },
+            "after": {
+              "wall_ms": 54.15631900000153
+            }
+          },
+          "same_results": true,
+          "outsider": "DENIED",
+          "entity_scope": "ENFORCED"
+        },
+        {
+          "tasks": 100000,
+          "tenants": 20,
+          "candidate_bytes": 4538368,
+          "before_ms": {
+            "open_page": 1228.145,
+            "done_page": 506.965,
+            "due_filter": 638.139,
+            "cursor_page": 980.199,
+            "entity_scoped": 1272.435,
+            "entity_filter": 585.317,
+            "no_membership": 1111.515
+          },
+          "after_ms": {
+            "open_page": 60.972,
+            "done_page": 536.619,
+            "due_filter": 62.607,
+            "cursor_page": 68.686,
+            "entity_scoped": 142.432,
+            "entity_filter": 570.567,
+            "no_membership": 1076.462
+          },
+          "writes_1000_rows_ms": {
+            "before": 48.719,
+            "after": 63.291
+          },
+          "concurrent_readers": {
+            "before": {
+              "readers": 4,
+              "wall_ms": 4816.234205000001,
+              "same_results": true
+            },
+            "after": {
+              "readers": 4,
+              "wall_ms": 187.03636600000027,
+              "same_results": true
+            }
+          },
+          "vacuum": {
+            "workload": "6000 rolled-back inserts in each phase",
+            "before": {
+              "wall_ms": 197.02876899999683
+            },
+            "after": {
+              "wall_ms": 206.11302799999248
+            }
+          },
+          "same_results": true,
+          "outsider": "DENIED",
+          "entity_scope": "ENFORCED"
+        }
+      ],
+      "limitations": [
+        "Warm local PostgreSQL SQL plans; no PostgREST/network or hosted p95",
+        "Rolled-back writes include triggers/RLS and WAL but not commit latency",
+        "Four concurrent SQL readers include psql startup; VACUUM is warm synthetic maintenance, not long-term bloat prediction"
+      ]
+    },
+    {
+      "index": "full",
+      "definition": "(organization_id,status,due_on asc nulls last,created_at,id)",
+      "scenarios": [
+        {
+          "tasks": 1000,
+          "tenants": 20,
+          "candidate_bytes": 319488,
+          "before_ms": {
+            "open_page": 12.715,
+            "done_page": 6.932,
+            "due_filter": 7.742,
+            "cursor_page": 9.591,
+            "entity_scoped": 10.646,
+            "entity_filter": 8.672,
+            "no_membership": 10.535
+          },
+          "after_ms": {
+            "open_page": 13.357,
+            "done_page": 7.472,
+            "due_filter": 8.261,
+            "cursor_page": 7.562,
+            "entity_scoped": 17.303,
+            "entity_filter": 6.87,
+            "no_membership": 11.362
+          },
+          "writes_1000_rows_ms": {
+            "before": 45.483,
+            "after": 49.615
+          },
+          "concurrent_readers": {
+            "before": {
+              "readers": 4,
+              "wall_ms": 61.006746999999905,
+              "same_results": true
+            },
+            "after": {
+              "readers": 4,
+              "wall_ms": 56.95715199999995,
+              "same_results": true
+            }
+          },
+          "vacuum": {
+            "workload": "6000 rolled-back inserts in each phase",
+            "before": {
+              "wall_ms": 23.976916000000074
+            },
+            "after": {
+              "wall_ms": 18.045834999999897
+            }
+          },
+          "same_results": true,
+          "outsider": "DENIED",
+          "entity_scope": "ENFORCED"
+        },
+        {
+          "tasks": 10000,
+          "tenants": 20,
+          "candidate_bytes": 1261568,
+          "before_ms": {
+            "open_page": 121.228,
+            "done_page": 47.365,
+            "due_filter": 56.243,
+            "cursor_page": 93.114,
+            "entity_scoped": 118.798,
+            "entity_filter": 57.422,
+            "no_membership": 109.395
+          },
+          "after_ms": {
+            "open_page": 121.476,
+            "done_page": 50.511,
+            "due_filter": 68.623,
+            "cursor_page": 126.041,
+            "entity_scoped": 127.555,
+            "entity_filter": 58.049,
+            "no_membership": 122.748
+          },
+          "writes_1000_rows_ms": {
+            "before": 44.727,
+            "after": 76.402
+          },
+          "concurrent_readers": {
+            "before": {
+              "readers": 4,
+              "wall_ms": 499.17704500000036,
+              "same_results": true
+            },
+            "after": {
+              "readers": 4,
+              "wall_ms": 371.09621700000025,
+              "same_results": true
+            }
+          },
+          "vacuum": {
+            "workload": "6000 rolled-back inserts in each phase",
+            "before": {
+              "wall_ms": 38.87488400000075
+            },
+            "after": {
+              "wall_ms": 68.70426700000098
+            }
+          },
+          "same_results": true,
+          "outsider": "DENIED",
+          "entity_scope": "ENFORCED"
+        },
+        {
+          "tasks": 100000,
+          "tenants": 20,
+          "candidate_bytes": 7749632,
+          "before_ms": {
+            "open_page": 1230.083,
+            "done_page": 523.137,
+            "due_filter": 657.564,
+            "cursor_page": 963.046,
+            "entity_scoped": 1385.476,
+            "entity_filter": 628.897,
+            "no_membership": 1724.61
+          },
+          "after_ms": {
+            "open_page": 95.273,
+            "done_page": 94.754,
+            "due_filter": 76.243,
+            "cursor_page": 70.082,
+            "entity_scoped": 151.657,
+            "entity_filter": 779.883,
+            "no_membership": 1321.839
+          },
+          "writes_1000_rows_ms": {
+            "before": 60.606,
+            "after": 77.909
+          },
+          "concurrent_readers": {
+            "before": {
+              "readers": 4,
+              "wall_ms": 3279.9979260000036,
+              "same_results": true
+            },
+            "after": {
+              "readers": 4,
+              "wall_ms": 240.32019699999364,
+              "same_results": true
+            }
+          },
+          "vacuum": {
+            "workload": "6000 rolled-back inserts in each phase",
+            "before": {
+              "wall_ms": 176.10044100000232
+            },
+            "after": {
+              "wall_ms": 222.09898799999792
+            }
+          },
+          "same_results": true,
+          "outsider": "DENIED",
+          "entity_scope": "ENFORCED"
+        }
+      ],
+      "limitations": [
+        "Warm local PostgreSQL SQL plans; no PostgREST/network or hosted p95",
+        "Rolled-back writes include triggers/RLS and WAL but not commit latency",
+        "Four concurrent SQL readers include psql startup; VACUUM is warm synthetic maintenance, not long-term bloat prediction"
+      ]
+    }
+  ]
+}

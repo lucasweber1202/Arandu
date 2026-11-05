@@ -8,6 +8,15 @@ import { performance } from 'node:perf_hooks';
 import { execFile, execFileSync } from 'node:child_process';
 import { loopbackTarget } from '../lib/recovery-reconciliation.mjs';
 
+const indexDefinitions = Object.freeze({
+  full: '(organization_id,status,due_on asc nulls last,created_at,id)',
+  'partial-open': "(organization_id,due_on asc nulls last,created_at,id) where status='open'"
+});
+const indexKind = process.argv[2]?.replace(/^--index=/, '') || 'full';
+if (process.argv.length > 3 || (process.argv[2] && !process.argv[2].startsWith('--index=')) || !Object.hasOwn(indexDefinitions, indexKind)) {
+  throw Error('Use --index=full or --index=partial-open');
+}
+
 const connection=loopbackTarget(process.env.ARANDU_DATABASE_TEST_URL||'postgresql://postgres:postgres@localhost:5432/postgres');
 const env={PATH:process.env.PATH,HOME:process.env.HOME,...connection};
 const db=`arandu_matrix_bench_${randomBytes(6).toString('hex')}`;
@@ -103,7 +112,7 @@ try {
       timestamptz '2026-01-01 00:00:00+00'+i*interval '1 second' from generate_series(1,1000)i`;
   const writesBefore=measure(insert,true);
   const vacuumBefore=vacuum();
-  sql('create index arandu_benchmark_task_page_idx on public.fin_tasks(organization_id,status,due_on asc nulls last,created_at,id); analyze public.fin_tasks;');
+  sql(`create index arandu_benchmark_task_page_idx on public.fin_tasks${indexDefinitions[indexKind]}; analyze public.fin_tasks;`);
   const concurrentAfter=await concurrent();
   const after=measureAll();
   assert.deepEqual(results(),expectedVariants,'Candidate changed filtered/cursor/entity results');
@@ -114,9 +123,9 @@ try {
   scenarios.push({tasks:size,tenants:20,rows_per_tenant:size/20,candidate_bytes:Number(sql("select pg_relation_size('public.arandu_benchmark_task_page_idx')")),before,after,writes:{rows:1000,before:writesBefore,after:writesAfter},same_results:true,outsider:'DENIED',entity_scope:'ENFORCED',concurrent:{before:concurrentBefore,after:concurrentAfter},vacuum:{workload:'6000 rolled-back inserts in each phase',before:vacuumBefore,after:vacuumAfter}});
   sql('drop index public.arandu_benchmark_task_page_idx');
   }
-  const report={classification:'synthetic_task_workload_matrix',status:'PASS_LOCAL',hosted:'NOT_RUN',postgres:sql('show server_version'),scenarios,
+  const report={classification:'synthetic_task_workload_matrix',index_kind:indexKind,index_definition:indexDefinitions[indexKind],status:'PASS_LOCAL',hosted:'NOT_RUN',postgres:sql('show server_version'),scenarios,
     adoption:'NOT_APPLIED: planner experiments do not establish hosted workload frequency or Free storage headroom',
     limitations:['Warm local PostgreSQL SQL plans; no PostgREST/network or hosted p95','Rolled-back writes include triggers/RLS and WAL but not commit latency','Four concurrent SQL readers include psql startup; VACUUM is warm synthetic maintenance, not long-term bloat prediction']};
-  fs.mkdirSync('reports',{recursive:true});fs.writeFileSync('reports/financial-query-matrix.json',JSON.stringify(report,null,2)+'\n');
+  fs.mkdirSync('reports',{recursive:true});fs.writeFileSync(indexKind==='full'?'reports/financial-query-matrix.json':`reports/financial-query-matrix-${indexKind}.json`,JSON.stringify(report,null,2)+'\n');
   console.log(JSON.stringify({...report,scenarios:scenarios.map(s=>({tasks:s.tasks,candidate_bytes:s.candidate_bytes,before:Object.fromEntries(Object.entries(s.before).map(([k,v])=>[k,v.median_execution_ms])),after:Object.fromEntries(Object.entries(s.after).map(([k,v])=>[k,v.median_execution_ms])),writes:{before_ms:s.writes.before.median_execution_ms,after_ms:s.writes.after.median_execution_ms}}))}));
 } finally {if(created)sql(`drop database ${db} with(force)`,connection.PGDATABASE);}
