@@ -184,3 +184,10 @@ check:build-size`. O orçamento do build demonstrativo só é medido no caminho 
 `lib/finance/**`, `demo/**` ou `vite.config.js`, rodar também
 `ARANDU_DEMO_MODE=true npm run build && npm run check:build-size`. Isso custa um build
 Vite (~2 s local) e não exige Playwright extra.
+
+## 2026-11-05 — Auditoria Arandu 8.0 (meta 650 KB)
+Medido sobre `main@8837d8f` (795.004 bytes):
+- **Alcançabilidade**: a partir de todos os `<script>` dos HTML de `dist` e seguindo imports estáticos e dinâmicos, os 84 chunks são alcançáveis — **0 byte morto**.
+- **Duplicação**: nenhum módulo em mais de um chunk (perfil); nenhum literal ≥ 50 caracteres repetido entre chunks; nenhuma janela de 4 linhas idênticas entre arquivos de `finance/src`.
+- **Minificação**: terser (`passes=2`) sobre o output atual reduz 422 bytes (0,05%) — sem ganho de configuração.
+Conclusão: o JS é código de funcionalidade alcançável, majoritariamente texto de interface. **650 KB não é atingível sem remover capacidades**, o que a missão proíbe. Este lote adicionou ~1,7 KB (paginação da carteira e obrigações abertas): 796.721 / 800.000.

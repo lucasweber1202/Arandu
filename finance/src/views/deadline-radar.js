@@ -104,6 +104,28 @@ export function deadlineItems({ contracts = [], rfqs = [], tasks = [] } = {}, { 
   return items.sort((a, b) => (a.days ?? Infinity) - (b.days ?? Infinity) || String(a.title).localeCompare(String(b.title), 'pt-BR'));
 }
 
+// Obrigações em aberto: o servidor filtra estado (status=open) e janela de prazo;
+// a Caixa segue as páginas até OBLIGATION_PAGES e lê à parte os períodos abertos
+// sem prazo. Se ainda houver páginas, a cobertura parcial é dita na tela.
+export const OBLIGATION_PAGES = 8;
+export async function readOpenObligations(ctx, { horizon = HORIZON_DAYS, maxPages = OBLIGATION_PAGES } = {}) {
+  const today = new Date();
+  const until = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() + horizon)).toISOString().slice(0, 10);
+  const base = { organization_id: ctx.organization.id, status: 'open' };
+  const rows = [];
+  let after = null;
+  let pages = 0;
+  do {
+    const page = await ctx.api(`covenants?${new URLSearchParams({ ...base, due_before: until, ...(after ? { after } : {}) })}`);
+    rows.push(...(page.rows || []));
+    after = page.next || null;
+    pages += 1;
+  } while (after && pages < maxPages);
+  const undated = await ctx.api(`covenants?${new URLSearchParams({ ...base, no_due: 'true' })}`);
+  rows.push(...(undated.rows || []));
+  return { rows, truncated: Boolean(after || undated.next) };
+}
+
 /** Recortes do servidor atingidos: a caixa pode estar incompleta. */
 export function truncatedSources({ contracts = [], rfqs = [], tasks = [] } = {}, approvals = []) {
   return [contracts.length >= OVERVIEW_CAPS.contracts && 'contratos', rfqs.length >= OVERVIEW_CAPS.rfqs && 'solicitações', tasks.length >= OVERVIEW_CAPS.tasks && 'tarefas',
@@ -190,15 +212,15 @@ export function deadlineRadar(ctx, { onlyMine: initialMine = false } = {}) {
         button('Tentar de novo', { size: 'sm', onClick: () => loadSources() })])]
         : obligationsState === 'forbidden' ? [mutedText('Seu acesso não inclui o registro de covenants; prazos de obrigações não aparecem aqui.')]
           : obligationsState === 'unavailable' ? [mutedText('Registro de covenants indisponível neste ambiente; prazos de obrigações não aparecem aqui.')]
-            : obligationsMore ? [mutedText('Obrigações: mostrando os primeiros períodos por prazo. Veja todos no registro de covenants.')] : []));
+            : obligationsMore ? [el('p', { class: 'callout callout-info compact', 'data-source': 'obligations-partial' }, [icon('info', { size: 14 }), textSpan(`Obrigações em aberto: cobertura parcial (primeiros ${OBLIGATION_PAGES * 25} períodos por prazo). Veja todos no registro de covenants.`)])] : []));
   };
   const loadSources = () => {
     approvalsState = ctx.audience === 'company' ? 'loading' : 'none';
     draw();
     const wantObligations = ctx.audience === 'company' && !__ARANDU_DEMO__;
     if (wantObligations) obligationsState = 'loading';
-    const obligationRead = wantObligations ? ctx.api(`covenants?organization_id=${encodeURIComponent(ctx.organization.id)}`)
-      .then((page) => { obligations = page.rows || []; obligationsMore = Boolean(page.next); obligationsState = 'ready'; })
+    const obligationRead = wantObligations ? readOpenObligations(ctx)
+      .then((result) => { obligations = result.rows; obligationsMore = result.truncated; obligationsState = 'ready'; })
       .catch((error) => { obligations = []; obligationsState = error.status === 503 || error.status === 404 ? 'unavailable' : error.status === 403 ? 'forbidden' : 'error'; }) : Promise.resolve();
     Promise.all([ctx.audience === 'company' ? ctx.loadApprovals() : Promise.resolve([]), loadEntities(ctx), obligationRead]).then(([rows, loaded]) => {
       approvals = ctx.approvalsError ? [] : rows || [];

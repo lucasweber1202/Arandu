@@ -18,16 +18,22 @@ const CONTRACTS = [OK, PAST, NOOWNER];
 const covenant = (n, over = {}) => ({ id: id(900 + n), title: `Covenant ${n}`, kind_label: 'Covenant financeiro', status: 'awaiting_data', status_label: 'Aguardando dados', has_data: false,
   due_on: day(10), contract_id: OK.id, provider_id: PA, legal_entity_id: null, owner_id: 'u1', cells: ['x', 'y', 'z', 'w', 'v'], ...over });
 
-async function setup(page, { covenants = 'ok', covenantRows = [covenant(1), covenant(2, { status: 'compliant', status_label: 'Conforme após revisão', has_data: true, title: 'Covenant já conforme' })] } = {}) {
+async function setup(page, { contracts = CONTRACTS, pagedContracts = null, endlessCovenants = false, covenants = 'ok', covenantRows = [covenant(1), covenant(2, { status: 'compliant', status_label: 'Conforme após revisão', has_data: true, title: 'Covenant já conforme' })] } = {}) {
   const calls = [];
   await page.route('**/api/finance/**', async (route) => {
     const req = route.request(); const u = new URL(req.url()); const path = u.pathname.replace('/api/finance/', '');
     calls.push({ path, query: Object.fromEntries(u.searchParams) });
     const json = (v, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(v) });
     if (path === 'organizations') return json({ ok: true, rows: [{ id: ORG, kind: 'BUYER', legal_name: 'Grupo Vitta' }] });
-    if (path === 'overview') return json({ ok: true, organization: { id: ORG, kind: 'BUYER', legal_name: 'Grupo Vitta', sector: 'industry' }, providers: [{ id: PA, name: 'Atlas Bank', status: 'active' }, { id: PB, name: 'Boreal Banco', status: 'active' }], contracts: CONTRACTS, rfqs: [], tasks: [] });
+    if (path === 'overview') return json({ ok: true, organization: { id: ORG, kind: 'BUYER', legal_name: 'Grupo Vitta', sector: 'industry' }, providers: [{ id: PA, name: 'Atlas Bank', status: 'active' }, { id: PB, name: 'Boreal Banco', status: 'active' }], contracts, rfqs: [], tasks: [] });
     if (path === 'members') return json({ ok: true, rows: [{ user_id: 'u1', role: 'admin', display_name: 'Paula Nogueira' }], viewer_id: 'u1' });
     if (path === 'entities') return json({ ok: true, rows: [], scope: 'group', can_admin: true });
+    if (path === 'contracts' && u.searchParams.get('paged') === '1') {
+      if (pagedContracts === 'error') return json({ ok: false, error: 'falha' }, 500);
+      const all = pagedContracts || contracts; const after = u.searchParams.get('after');
+      const start = after ? all.findIndex((r) => r.id === after) + 1 : 0; const page = all.slice(start, start + 100);
+      return json({ ok: true, rows: page, next: start + 100 < all.length ? page.at(-1).id : null, limit: 100 });
+    }
     if (path === 'contract-detail') {
       const c = CONTRACTS.find((row) => row.id === u.searchParams.get('id'));
       return c ? json({ ok: true, contract: c, effective: null, versions: [], amendments: [], milestones: [], children: [], documents: [], events: [], renewal_milestones: [] }) : json({ ok: false }, 404);
@@ -35,8 +41,12 @@ async function setup(page, { covenants = 'ok', covenantRows = [covenant(1), cove
     if (path === 'covenants') {
       if (covenants === 'error') return json({ ok: false, error: 'falha' }, 500);
       if (covenants === 'forbidden') return json({ ok: false, error: 'negado' }, 403);
-      const cid = u.searchParams.get('contract_id');
-      return json({ ok: true, rows: covenantRows.filter((r) => !cid || r.contract_id === cid), next: null, columns: [], cards: [] });
+      // Emula os filtros do servidor (status=open, janela de prazo, sem prazo).
+      const sp = u.searchParams; const cid = sp.get('contract_id');
+      const closed = ['compliant', 'waived', 'not_applicable'];
+      const rows = covenantRows.filter((r) => (!cid || r.contract_id === cid) && (sp.get('status') !== 'open' || !closed.includes(r.status))
+        && (sp.get('no_due') !== 'true' || !r.due_on) && (!sp.get('due_before') || (r.due_on && r.due_on <= sp.get('due_before'))));
+      return json({ ok: true, rows, next: endlessCovenants && sp.get('no_due') !== 'true' ? String(Number(sp.get('after') || 0) + 25) : null, columns: [], cards: [] });
     }
     if (path === 'provider-relationship') return json({ ok: true, provider: { id: PA, name: 'Atlas Bank' }, neutrality: 'Fatos.', contracts: [OK, PAST], tasks: [], facilities: [], rfqs: [], invites: [], proposals: [], balances: [], contacts: [], issues: [], relationships: [], map: [], timeline: [], reviews: [], templates: [],
       metrics: { invited: 0, responded: 0, response_rate: null, median_response_days: null, active_contracts: 2, open_issues: 0, median_resolution_days: null, definitions: {} } });
@@ -142,4 +152,40 @@ test('carteira cabe na largura do celular', async ({ page }) => {
   await page.goto('/finance/contracts.html');
   await expect(card(page, OK)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+});
+
+test('Caixa de Trabalho pede só obrigações abertas na janela, lê as sem prazo e diz quando a cobertura é parcial', async ({ page }) => {
+  const calls = await setup(page, { endlessCovenants: true, covenantRows: [covenant(1), covenant(3, { due_on: null, title: 'Covenant sem prazo' })] });
+  await page.goto('/finance/tasks.html#deadline-radar');
+  const radar = page.locator('#deadline-radar');
+  await expect(radar.locator('[data-source="obligations-partial"]')).toContainText('cobertura parcial (primeiros 200 períodos');
+  const reads = calls.filter((c) => c.path === 'covenants');
+  expect(reads.every((c) => c.query.status === 'open')).toBe(true);
+  expect(reads.filter((c) => c.query.due_before).length).toBe(8);
+  expect(reads.some((c) => c.query.no_due === 'true')).toBe(true);
+  await radar.locator('[data-bucket="undated"] summary').click();
+  await expect(radar.locator('[data-bucket="undated"]')).toContainText('Covenant sem prazo');
+});
+
+const many = (n) => Array.from({ length: n }, (_, i) => contract(1000 + i, { title: `Carteira ${String(i).padStart(3, '0')}`, ends_on: day(700) }));
+test('carteira grande: no limite da visão geral lê todas as páginas e conta a carteira inteira', async ({ page }) => {
+  const all = [...many(249), PAST];
+  const calls = await setup(page, { contracts: all.slice(0, 200), pagedContracts: all });
+  await page.goto('/finance/contracts.html');
+  await expect(page.getByRole('status').filter({ hasText: 'contratos' }).first()).toContainText('250 de 250 contratos');
+  expect(calls.filter((c) => c.path === 'contracts' && c.query.paged === '1').length).toBe(3);
+  await expect(page.locator('[data-coverage]')).toHaveCount(0);
+  // Renderização progressiva: 50 cartões, o resto sob demanda; contagens cobrem os 250.
+  await expect(page.locator('.contract-list > .contract-card')).toHaveCount(50);
+  await page.locator('[data-more="contracts"]').click();
+  await expect(page.locator('.contract-list > .contract-card')).toHaveCount(100);
+  // O contrato da 3ª página entra nas pendências e aparece pelo filtro.
+  await page.getByRole('group', { name: 'Pendências da carteira' }).getByRole('button', { name: /Aviso prévio vencido\s*1/ }).click();
+  await expect(card(page, PAST)).toBeVisible();
+});
+
+test('carteira grande: falha na leitura completa é dita e as contagens valem só para o recorte lido', async ({ page }) => {
+  await setup(page, { contracts: many(200), pagedContracts: 'error' });
+  await page.goto('/finance/contracts.html');
+  await expect(page.locator('[data-coverage="failed"]')).toContainText('primeiros 200 contratos');
 });
