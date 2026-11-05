@@ -19,6 +19,7 @@ export const OVERVIEW_CAPS = Object.freeze({ contracts: 200, rfqs: 200, tasks: 1
 export const HORIZON_DAYS = 90;
 const OPEN_RFQ = new Set(['open', 'collecting']);
 const LIVE_CONTRACT = new Set(['active', 'renewing']);
+const CLOSED_OBLIGATION = new Set(['compliant', 'waived', 'not_applicable']);
 
 export const BUCKETS = Object.freeze([
   { key: 'overdue', label: 'Vencidos', tone: 'danger', test: (days) => days < 0 },
@@ -27,7 +28,7 @@ export const BUCKETS = Object.freeze([
   { key: 'quarter', label: '31 a 90 dias', tone: 'neutral', test: (days) => days > 30 && days <= HORIZON_DAYS }
 ]);
 
-const KIND_LABEL = { notice: 'Aviso prévio', contract_end: 'Término do contrato', rfq_deadline: 'Prazo de resposta', task: 'Tarefa', approval: 'Aprovação', approval_wait: 'Aprovação' };
+const KIND_LABEL = { obligation: 'Obrigação', notice: 'Aviso prévio', contract_end: 'Término do contrato', rfq_deadline: 'Prazo de resposta', task: 'Tarefa', approval: 'Aprovação', approval_wait: 'Aprovação' };
 
 /** Data mais próxima de uma aprovação: prazo da etapa ativa ou expiração do pedido. */
 function approvalDue(row) {
@@ -41,7 +42,7 @@ function approvalDue(row) {
  * registrado (exibido à parte, nunca como atraso). Itens com data além do
  * horizonte ficam fora.
  */
-export function deadlineItems({ contracts = [], rfqs = [], tasks = [] } = {}, { horizon = HORIZON_DAYS, approvals = [], viewerId = null } = {}) {
+export function deadlineItems({ contracts = [], rfqs = [], tasks = [] } = {}, { horizon = HORIZON_DAYS, approvals = [], viewerId = null, obligations = [] } = {}) {
   const items = [];
   const contractsById = new Map(contracts.map((row) => [row.id, row]));
   const rfqsById = new Map(rfqs.map((row) => [row.id, row]));
@@ -88,6 +89,18 @@ export function deadlineItems({ contracts = [], rfqs = [], tasks = [] } = {}, { 
       owner: mine ? viewerId : null, ownerLabel: mine ? null : 'Aprovadores da etapa atual', provider: null, providerIds: invites, entityId: rfq?.legal_entity_id || null,
       href: `/finance/rfq.html?id=${row.rfq_id}#aprovacao`, sourceId: row.id });
   }
+  // Covenants e obrigações (registro de covenants): período em aberto com prazo.
+  // Conforme, waiver vigente ou não aplicável não é trabalho pendente; sem prazo
+  // vai para "Sem prazo registrado", nunca para atraso.
+  for (const row of obligations) {
+    if (!row?.id || CLOSED_OBLIGATION.has(row.status)) continue;
+    const contract = row.contract_id ? contractsById.get(row.contract_id) : null;
+    const providerId = row.provider_id || contract?.provider_id || null;
+    push({ kind: 'obligation', date: row.due_on || null, title: `${row.kind_label || 'Obrigação'}: ${row.title || 'sem título'}`,
+      detail: [row.status_label, row.has_data ? 'dados registrados' : 'dados ausentes', contract ? `contrato ${contract.title || contract.provider_name || ''}`.trim() : null].filter(Boolean).join(' · '),
+      owner: row.owner_id || null, provider: contract?.provider_name || null, providerIds: providerId ? [providerId] : [], entityId: row.legal_entity_id || contract?.legal_entity_id || null,
+      href: `/finance/covenants.html?${new URLSearchParams(row.contract_id ? { contract_id: row.contract_id, contrato: row.contract_id } : {})}`, sourceId: row.id });
+  }
   return items.sort((a, b) => (a.days ?? Infinity) - (b.days ?? Infinity) || String(a.title).localeCompare(String(b.title), 'pt-BR'));
 }
 
@@ -109,6 +122,10 @@ export function deadlineRadar(ctx, { onlyMine: initialMine = false } = {}) {
   let approvals = [];
   let approvalsState = ctx.audience === 'company' ? 'loading' : 'none';
   let entities = null;
+  // Obrigações: só no produto com API (o build de demonstração não as empacota).
+  let obligations = [];
+  let obligationsState = ctx.audience === 'company' && !__ARANDU_DEMO__ ? 'loading' : 'none';
+  let obligationsMore = false;
   let all = deadlineItems(data, { viewerId: viewer });
 
   const root = el('section', { class: 'cc-section deadline-radar', id: 'deadline-radar', 'aria-labelledby': 'deadline-radar-title' });
@@ -167,16 +184,27 @@ export function deadlineRadar(ctx, { onlyMine: initialMine = false } = {}) {
     notice.replaceChildren(...(approvalsState === 'loading' ? [mutedText('Carregando aprovações pendentes…')]
       : approvalsState === 'error' ? [el('p', { class: 'callout callout-warning compact', role: 'alert' }, [icon('alert', { size: 14 }),
         textSpan('As aprovações não carregaram: esta lista não mostra aprovações pendentes. Isso não significa que não haja nenhuma.'),
-        button('Tentar de novo', { size: 'sm', onClick: () => { ctx.approvalsPromise = null; loadSources(); } })])] : []));
+        button('Tentar de novo', { size: 'sm', onClick: () => { ctx.approvalsPromise = null; loadSources(); } })])] : []),
+      ...(obligationsState === 'error' ? [el('p', { class: 'callout callout-warning compact', role: 'alert', 'data-source': 'obligations' }, [icon('alert', { size: 14 }),
+        textSpan('As obrigações e covenants não carregaram: esta lista não mostra seus prazos. Isso não significa que não haja nenhum.'),
+        button('Tentar de novo', { size: 'sm', onClick: () => loadSources() })])]
+        : obligationsState === 'forbidden' ? [mutedText('Seu acesso não inclui o registro de covenants; prazos de obrigações não aparecem aqui.')]
+          : obligationsState === 'unavailable' ? [mutedText('Registro de covenants indisponível neste ambiente; prazos de obrigações não aparecem aqui.')]
+            : obligationsMore ? [mutedText('Obrigações: mostrando os primeiros períodos por prazo. Veja todos no registro de covenants.')] : []));
   };
   const loadSources = () => {
     approvalsState = ctx.audience === 'company' ? 'loading' : 'none';
     draw();
-    Promise.all([ctx.audience === 'company' ? ctx.loadApprovals() : Promise.resolve([]), loadEntities(ctx)]).then(([rows, loaded]) => {
+    const wantObligations = ctx.audience === 'company' && !__ARANDU_DEMO__;
+    if (wantObligations) obligationsState = 'loading';
+    const obligationRead = wantObligations ? ctx.api(`covenants?organization_id=${encodeURIComponent(ctx.organization.id)}`)
+      .then((page) => { obligations = page.rows || []; obligationsMore = Boolean(page.next); obligationsState = 'ready'; })
+      .catch((error) => { obligations = []; obligationsState = error.status === 503 || error.status === 404 ? 'unavailable' : error.status === 403 ? 'forbidden' : 'error'; }) : Promise.resolve();
+    Promise.all([ctx.audience === 'company' ? ctx.loadApprovals() : Promise.resolve([]), loadEntities(ctx), obligationRead]).then(([rows, loaded]) => {
       approvals = ctx.approvalsError ? [] : rows || [];
       approvalsState = ctx.audience !== 'company' ? 'none' : ctx.approvalsError ? 'error' : 'ready';
       entities = loaded?.available ? loaded : null;
-      all = deadlineItems(data, { viewerId: viewer, approvals });
+      all = deadlineItems(data, { viewerId: viewer, approvals, obligations });
       buildFilters();
       draw();
     });
@@ -185,7 +213,7 @@ export function deadlineRadar(ctx, { onlyMine: initialMine = false } = {}) {
     toggle.append(el('button', { type: 'button', class: 'chip', dataset: { scope }, 'aria-pressed': 'false', text: label, onclick: () => { mine = scope === 'mine'; draw(); } }));
   }
   root.append(el('div', { class: 'cc-head' }, [el('h3', { id: 'deadline-radar-title' }, [icon('calendar', { size: 16 }), textSpan(' Radar de prazos')]), toggle]),
-    mutedText('Término e aviso prévio de contratos vigentes, prazos de resposta de solicitações em coleta, tarefas abertas e aprovações pendentes. Cada item abre o registro de origem.'),
+    mutedText('Término e aviso prévio de contratos vigentes, prazos de covenants e obrigações em aberto, prazos de resposta de solicitações em coleta, tarefas abertas e aprovações pendentes. Cada item abre o registro de origem.'),
     filters, notice, status, body);
   buildFilters();
   loadSources();
