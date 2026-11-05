@@ -1,5 +1,5 @@
-import { seedQuotaReport } from '../ci/seed-quota-report.mjs';
 #!/usr/bin/env node
+import { seedQuotaReport } from '../ci/seed-quota-report.mjs';
 // Seed e reset da demonstração canônica do Arandu (Vitta Foods S.A.).
 //
 //   npm run demo:seed    → semeia um banco DEMO vazio (ou já marcado e sem a Vitta)

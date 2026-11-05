@@ -12,5 +12,7 @@ export function browserProjects(group) {
 }
 
 export function browserEngines(group) {
+  // Presentation has a separate full five-project config and receipt stream.
+  if(group==='presentation')return ['chromium','firefox','webkit'];
   return [...new Set(browserProjects(group).map(project=>project==='firefox-desktop'?'firefox':project==='webkit-desktop'||project==='mobile-safari'?'webkit':'chromium'))];
 }

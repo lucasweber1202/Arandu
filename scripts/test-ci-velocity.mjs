@@ -1,3 +1,4 @@
+import {execFileSync} from 'node:child_process';
 import {seedQuotaReport} from './ci/seed-quota-report.mjs';
 import {browserBalance} from './ci/browser-balance.mjs';
 import fs from 'node:fs';
@@ -61,3 +62,9 @@ for(const filename of ['docs/evidence/auth.png','docs/evidence/contract.svg','do
  else assert.equal(classifyChanges([{status:'modified',filename}]).risk,'D',filename);
 }
 assert.equal(classifyChanges([{status:'renamed',filename:'docs/evidence/frame.png',previous_filename:'docs/RISK_BASED_CI.md'}]).risk,'D');
+
+// Parse the real entrypoint without executing it or provisioning a stack.
+execFileSync(process.execPath,['--check','scripts/demo/seed.mjs'],{stdio:'pipe'});
+
+assert.deepEqual(browserEngines('presentation'),['chromium','firefox','webkit']);
+assert.throws(()=>browserProjects('presentation'),'presentation must never become a product coverage group');
