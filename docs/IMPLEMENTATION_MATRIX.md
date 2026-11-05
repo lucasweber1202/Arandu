@@ -7,10 +7,19 @@ reutilizam os mesmos IDs/RPCs. Cinco views derivadas com RLS do chamador,
 classificadas na governança, migration/rollback aditivos; nenhum novo sistema
 de registro. #328 reconciliada sem substituir o frontend de Claude.
 Fixtures HTTP PASS; quatro jornadas SQL locais PASS nos três caminhos de
-instalação, recuperação e upgrade direcionados PASS. Suíte integral está sendo
-reexecutada após corrigir testes históricos que pressupunham a última migration.
+instalação, recuperação e upgrade PASS. `npm run test:database` integral exit 0
+em PG17.11, incluindo índice/probes, rollback/reapply, concorrência e revogação;
+canários finais de 8.442/12.950/13.386 verificações, zero vazamentos. Testes
+históricos de baseline/recovery agora permitem migrations aditivas posteriores.
 Jornada real API/Auth/Storage adicionada à integração obrigatória, ainda NOT_RUN.
 Não elevar M2/M3. [Contrato versionado](FINANCIAL_BACKEND_V8_INTEROPERABILITY.md).
+
+Benchmark 1k/10k/100k: página nativa sob RLS antes de enriquecer até 50 IDs,
+com índice org/vencimento/id. Em 100k, soma de medianas SQL ~85 ms admin/~276 ms
+restrito versus view ampla ~3,7/~4,8 s no mesmo ensaio; sem claim HTTP/p95.
+Índice ~5,93 MB/100k; WAL de escrita cresceu no último ensaio, timing de escrita
+variável. Produto/garantias mantêm caminho anterior. Planos e limitações em
+`ops/performance/financial-operating-context-2026-11-05.json`.
 
 P0 de seed: diagnóstico real identifica 429 em spend/reconcile e duas janelas
 sequenciais de ~10 minutos. Coordenação sobrepõe apenas os cinco seeds já

@@ -29,8 +29,10 @@ a autorização. Informação faltante não vira conformidade ou valor zero.
 - `financial-operating-context.sql`: quatro jornadas com RPCs e RLS reais em PG17.11,
   fontes/versões documentais, saldo mais recente/cronograma vigente, revisão com
   segregação de funções, replay de renovação, provedor/outsider e revogação de
-  entidade. PASS_LOCAL nos três caminhos da suíte anterior; repetição integral
-  do lote final em andamento. Inserts de Auth são fixtures SQL, não login HTTP.
+  entidade. PASS_LOCAL nos três caminhos; suíte integral `npm run test:database`
+  exit 0 em PG17.11, incluindo migration/índice/probes, rollback/reapply e
+  concorrência. Canários finais: 8.442/12.950/13.386 checks, zero vazamentos.
+  Inserts de Auth são fixtures SQL, não login HTTP.
 - Recovery direcionado: deriva a reprodução histórica da posição da migration
   de reparo, preserva rollback/tamper e verifica dump/restore também após todas
   as migrations posteriores. PASS_LOCAL. Snapshot/baseline histórica imutável.
@@ -44,8 +46,10 @@ a autorização. Informação faltante não vira conformidade ou valor zero.
   de disco do Docker vfs não comporta o piso de recursos, portanto a prova fica
   a cargo da integração efêmera obrigatória do candidato.
 
-Checks completos, builds/budgets/assets, suíte SQL integral e catálogo E2E devem
-ser registrados no checkpoint final antes do push. CI dos quatro contextos e
+Checks completos, builds regular/Demo, budgets/assets e catálogo E2E PASS_LOCAL:
+2.125 casos listados em 33 arquivos, sem alegação de execução local dos browsers.
+Suíte SQL integral PASS_LOCAL; o preflight barato do SHA final será repetido
+antes do push. CI dos quatro contextos e
 integração profunda ainda são obrigatórios no SHA candidato. Estado atual M1;
 M2 da #327 não se transfere a este lote.
 
@@ -82,7 +86,17 @@ O índice de facilities da candidata tem ~5,93 MB em 100k. Primeiro ensaio de
 10k; 154,10→102,52 ms em 100k (ruído/carga/ordem impedem interpretar a última
 diferença como aceleração de escrita). WAL em 100k: 67.575→72.388 bytes;
 vacuum/analyze ~335 ms. O custo existe e foi considerado para a candidata;
-nenhum índice foi aplicado hospedado. Novo ensaio reproduzível em andamento.
+nenhum índice foi aplicado hospedado. O ensaio reproduzível final no código
+`20e12838` concluiu os três tamanhos: em 100k, contexto na view 3.729,25 ms
+versus soma das medianas de fonte/enriquecimento 85,18 ms admin; escopo restrito
+4.800,57 versus 275,61 ms. São comparações do formato de leitura com o mesmo
+índice presente em ambos, não ganho do índice isolado. As amostras de escrita
+voltaram a variar com ordem/carga; WAL em 100k 59.676→69.351 bytes (~16,2% a mais)
+e vacuum/analyze ~359 ms. Tempos de escrita menores não provam aceleração.
+Planos/custos/buffers/amostras e comando reproduzível estão em
+`ops/performance/financial-operating-context-2026-11-05.json`.
+O índice é criado na transação de migration; execução hospedada continua
+dependente de preservação e janela aprovada, sem alegação de DDL sem locks.
 Filtro por produto e páginas de garantias mantêm a projeção antes da página e
 não herdam o ganho. A API sinaliza mudança de autorização entre as duas leituras,
 sem reutilizar permissões ou fabricar registros. Os índices de tarefas acima

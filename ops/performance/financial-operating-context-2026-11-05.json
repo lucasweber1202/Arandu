@@ -1,0 +1,1488 @@
+{
+  "classification": "synthetic_local_operating_projection_capacity",
+  "source_commit": "20e12838b65e80701f55575e913040190a95ce65",
+  "script": "scripts/benchmark-financial-operating-context.mjs",
+  "script_sha256": "3df975ea824573d8da0d957b9c3ad0fd5d101b004284c9f1e790f71a378b5ba5",
+  "command": "ARANDU_DATABASE_TEST_URL=<loopback-disposable-cluster> node scripts/benchmark-financial-operating-context.mjs --index=facility-page",
+  "postgres": "17.11 (Debian 17.11-0+deb13u1)",
+  "schema": "financial-operating-context-1",
+  "samples_per_query": 5,
+  "warmups_per_query": 1,
+  "comparison": "Joined context versus canonical source page plus authorized bounded enrichment, in the same indexed run; not index alone.",
+  "scenarios": [
+    {
+      "facilities": 1000,
+      "tenants": 20,
+      "facilities_per_tenant": 50,
+      "balance_history": 2000,
+      "results": {
+        "context_page": {
+          "samples_ms": [
+            32.417,
+            29.078,
+            49.979,
+            56.207,
+            54.182
+          ],
+          "median_execution_ms": 49.979,
+          "planning_ms": 6.114,
+          "plan": {
+            "Node Type": "Limit",
+            "Plan Rows": 22,
+            "Plan Width": 86,
+            "Startup Cost": 80.53,
+            "Total Cost": 80.59,
+            "Actual Rows": 50,
+            "Actual Loops": 1,
+            "Actual Total Time": 49.891,
+            "Shared Hit Blocks": 623,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "WAL Records": 0,
+            "WAL Bytes": 0
+          }
+        },
+        "entity_page": {
+          "samples_ms": [
+            73.053,
+            25.901,
+            19.57,
+            75.887,
+            82.551
+          ],
+          "median_execution_ms": 73.053,
+          "planning_ms": 1.413,
+          "plan": {
+            "Node Type": "Limit",
+            "Plan Rows": 22,
+            "Plan Width": 86,
+            "Startup Cost": 80.53,
+            "Total Cost": 80.59,
+            "Actual Rows": 25,
+            "Actual Loops": 1,
+            "Actual Total Time": 72.983,
+            "Shared Hit Blocks": 824,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "WAL Records": 0,
+            "WAL Bytes": 0
+          }
+        },
+        "explicit_entity_filter": {
+          "samples_ms": [
+            37.887,
+            32.563,
+            78.887,
+            72.166,
+            14.763
+          ],
+          "median_execution_ms": 37.887,
+          "planning_ms": 1.481,
+          "plan": {
+            "Node Type": "Limit",
+            "Plan Rows": 1,
+            "Plan Width": 86,
+            "Startup Cost": 28.33,
+            "Total Cost": 28.34,
+            "Actual Rows": 25,
+            "Actual Loops": 1,
+            "Actual Total Time": 37.82,
+            "Shared Hit Blocks": 730,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "WAL Records": 0,
+            "WAL Bytes": 0
+          }
+        },
+        "no_membership": {
+          "samples_ms": [
+            51.058,
+            14.255,
+            32.644,
+            42.03,
+            47.706
+          ],
+          "median_execution_ms": 42.03,
+          "planning_ms": 2.795,
+          "plan": {
+            "Node Type": "Limit",
+            "Plan Rows": 17,
+            "Plan Width": 86,
+            "Startup Cost": 66.74,
+            "Total Cost": 66.79,
+            "Actual Rows": 0,
+            "Actual Loops": 1,
+            "Actual Total Time": 41.189,
+            "Shared Hit Blocks": 547,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "WAL Records": 0,
+            "WAL Bytes": 0
+          }
+        },
+        "latest_balance_batch_50": {
+          "samples_ms": [
+            89.058,
+            105.185,
+            100.2,
+            97.612,
+            118.622
+          ],
+          "median_execution_ms": 100.2,
+          "planning_ms": 2.95,
+          "plan": {
+            "Node Type": "Limit",
+            "Plan Rows": 1,
+            "Plan Width": 46,
+            "Startup Cost": 200.3,
+            "Total Cost": 200.3,
+            "Actual Rows": 50,
+            "Actual Loops": 1,
+            "Actual Total Time": 100.011,
+            "Shared Hit Blocks": 1336,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "WAL Records": 0,
+            "WAL Bytes": 0
+          }
+        },
+        "balance_rpc_50": {
+          "samples_ms": [
+            150.9,
+            182.929,
+            180.401,
+            162.694,
+            200.721
+          ],
+          "median_execution_ms": 180.401,
+          "planning_ms": 0.673,
+          "plan": {
+            "Node Type": "Bitmap Heap Scan",
+            "Relation Name": "fin_facilities",
+            "Plan Rows": 1,
+            "Plan Width": 16,
+            "Startup Cost": 4.9,
+            "Total Cost": 15.11,
+            "Actual Rows": 50,
+            "Actual Loops": 1,
+            "Actual Total Time": 180.344,
+            "Shared Hit Blocks": 3611,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 5,
+            "Shared Written Blocks": 5,
+            "WAL Records": 456,
+            "WAL Bytes": 57944,
+            "Rows Removed by Filter": 0
+          },
+          "transaction": "rolled_back_not_commit_latency"
+        },
+        "source_first_admin": {
+          "source": {
+            "samples_ms": [
+              53.217,
+              62.38,
+              62.732,
+              78.578,
+              72.609
+            ],
+            "median_execution_ms": 62.732,
+            "planning_ms": 2.957,
+            "plan": {
+              "Node Type": "Limit",
+              "Plan Rows": 17,
+              "Plan Width": 20,
+              "Startup Cost": 48.97,
+              "Total Cost": 49.02,
+              "Actual Rows": 50,
+              "Actual Loops": 1,
+              "Actual Total Time": 62.685,
+              "Shared Hit Blocks": 606,
+              "Shared Read Blocks": 0,
+              "Shared Dirtied Blocks": 0,
+              "Shared Written Blocks": 0,
+              "WAL Records": 0,
+              "WAL Bytes": 0
+            }
+          },
+          "enrichment": {
+            "samples_ms": [
+              134.944,
+              81,
+              135.425,
+              115.781,
+              102.666
+            ],
+            "median_execution_ms": 115.781,
+            "planning_ms": 3.586,
+            "plan": {
+              "Node Type": "Subquery Scan",
+              "Plan Rows": 1,
+              "Plan Width": 86,
+              "Startup Cost": 5.18,
+              "Total Cost": 31.71,
+              "Actual Rows": 50,
+              "Actual Loops": 1,
+              "Actual Total Time": 115.626,
+              "Shared Hit Blocks": 991,
+              "Shared Read Blocks": 0,
+              "Shared Dirtied Blocks": 0,
+              "Shared Written Blocks": 0,
+              "WAL Records": 0,
+              "WAL Bytes": 0
+            }
+          },
+          "consistency": "live_two_authorized_statements"
+        },
+        "source_first_entity": {
+          "source": {
+            "samples_ms": [
+              81.68,
+              63.34,
+              67.189,
+              62.858,
+              63.295
+            ],
+            "median_execution_ms": 63.34,
+            "planning_ms": 1.053,
+            "plan": {
+              "Node Type": "Limit",
+              "Plan Rows": 17,
+              "Plan Width": 20,
+              "Startup Cost": 48.97,
+              "Total Cost": 49.02,
+              "Actual Rows": 25,
+              "Actual Loops": 1,
+              "Actual Total Time": 63.301,
+              "Shared Hit Blocks": 806,
+              "Shared Read Blocks": 0,
+              "Shared Dirtied Blocks": 0,
+              "Shared Written Blocks": 0,
+              "WAL Records": 0,
+              "WAL Bytes": 0
+            }
+          },
+          "enrichment": {
+            "samples_ms": [
+              60.778,
+              80.843,
+              39.459,
+              62.154,
+              76.085
+            ],
+            "median_execution_ms": 62.154,
+            "planning_ms": 2.863,
+            "plan": {
+              "Node Type": "Subquery Scan",
+              "Plan Rows": 1,
+              "Plan Width": 86,
+              "Startup Cost": 0.56,
+              "Total Cost": 25.89,
+              "Actual Rows": 25,
+              "Actual Loops": 1,
+              "Actual Total Time": 62.065,
+              "Shared Hit Blocks": 912,
+              "Shared Read Blocks": 0,
+              "Shared Dirtied Blocks": 0,
+              "Shared Written Blocks": 0,
+              "WAL Records": 0,
+              "WAL Bytes": 0
+            }
+          },
+          "consistency": "live_two_authorized_statements"
+        }
+      },
+      "candidate_index": {
+        "bytes": 81920,
+        "vacuum_wall_ms": 58.704429999999775,
+        "writes_before": {
+          "samples_ms": [
+            134.665,
+            169.18,
+            198.6,
+            159.59,
+            99.883
+          ],
+          "median_execution_ms": 159.59,
+          "planning_ms": 0.292,
+          "plan": {
+            "Node Type": "Function Scan",
+            "Plan Rows": 50,
+            "Plan Width": 16,
+            "Startup Cost": 0,
+            "Total Cost": 13,
+            "Actual Rows": 50,
+            "Actual Loops": 1,
+            "Actual Total Time": 159.558,
+            "Shared Hit Blocks": 4749,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 4,
+            "Shared Written Blocks": 4,
+            "WAL Records": 514,
+            "WAL Bytes": 63924
+          },
+          "transaction": "rolled_back_not_commit_latency"
+        },
+        "writes_after": {
+          "samples_ms": [
+            136.051,
+            121.737,
+            107.699,
+            113.692,
+            116.251
+          ],
+          "median_execution_ms": 116.251,
+          "planning_ms": 0.062,
+          "plan": {
+            "Node Type": "Function Scan",
+            "Plan Rows": 50,
+            "Plan Width": 16,
+            "Startup Cost": 0,
+            "Total Cost": 13,
+            "Actual Rows": 50,
+            "Actual Loops": 1,
+            "Actual Total Time": 116.217,
+            "Shared Hit Blocks": 4915,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 5,
+            "Shared Written Blocks": 5,
+            "WAL Records": 562,
+            "WAL Bytes": 72432
+          },
+          "transaction": "rolled_back_not_commit_latency"
+        }
+      }
+    },
+    {
+      "facilities": 10000,
+      "tenants": 20,
+      "facilities_per_tenant": 500,
+      "balance_history": 20000,
+      "results": {
+        "context_page": {
+          "samples_ms": [
+            196.973,
+            236.703,
+            439.057,
+            478.804,
+            444.121
+          ],
+          "median_execution_ms": 439.057,
+          "planning_ms": 32.224,
+          "plan": {
+            "Node Type": "Limit",
+            "Plan Rows": 51,
+            "Plan Width": 86,
+            "Startup Cost": 484,
+            "Total Cost": 484.13,
+            "Actual Rows": 51,
+            "Actual Loops": 1,
+            "Actual Total Time": 438.954,
+            "Shared Hit Blocks": 2235,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "WAL Records": 0,
+            "WAL Bytes": 0
+          }
+        },
+        "entity_page": {
+          "samples_ms": [
+            482.182,
+            578.068,
+            615.293,
+            572.404,
+            533.747
+          ],
+          "median_execution_ms": 572.404,
+          "planning_ms": 4.467,
+          "plan": {
+            "Node Type": "Limit",
+            "Plan Rows": 51,
+            "Plan Width": 86,
+            "Startup Cost": 484,
+            "Total Cost": 484.13,
+            "Actual Rows": 51,
+            "Actual Loops": 1,
+            "Actual Total Time": 572.292,
+            "Shared Hit Blocks": 4236,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "WAL Records": 0,
+            "WAL Bytes": 0
+          }
+        },
+        "explicit_entity_filter": {
+          "samples_ms": [
+            240.767,
+            321.753,
+            390.214,
+            501.296,
+            422.061
+          ],
+          "median_execution_ms": 390.214,
+          "planning_ms": 9.242,
+          "plan": {
+            "Node Type": "Limit",
+            "Plan Rows": 4,
+            "Plan Width": 86,
+            "Startup Cost": 69.09,
+            "Total Cost": 69.1,
+            "Actual Rows": 51,
+            "Actual Loops": 1,
+            "Actual Total Time": 389.798,
+            "Shared Hit Blocks": 1436,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "WAL Records": 0,
+            "WAL Bytes": 0
+          }
+        },
+        "no_membership": {
+          "samples_ms": [
+            866.531,
+            1969.299,
+            351.234,
+            1253.022,
+            427.812
+          ],
+          "median_execution_ms": 866.531,
+          "planning_ms": 13.881,
+          "plan": {
+            "Node Type": "Limit",
+            "Plan Rows": 51,
+            "Plan Width": 86,
+            "Startup Cost": 484,
+            "Total Cost": 484.13,
+            "Actual Rows": 0,
+            "Actual Loops": 1,
+            "Actual Total Time": 866.441,
+            "Shared Hit Blocks": 1724,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "WAL Records": 0,
+            "WAL Bytes": 0
+          }
+        },
+        "latest_balance_batch_50": {
+          "samples_ms": [
+            117.905,
+            122.451,
+            107.876,
+            103.07,
+            215.895
+          ],
+          "median_execution_ms": 117.905,
+          "planning_ms": 0.99,
+          "plan": {
+            "Node Type": "Limit",
+            "Plan Rows": 1,
+            "Plan Width": 46,
+            "Startup Cost": 1564.01,
+            "Total Cost": 1564.02,
+            "Actual Rows": 50,
+            "Actual Loops": 1,
+            "Actual Total Time": 117.841,
+            "Shared Hit Blocks": 1608,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "WAL Records": 0,
+            "WAL Bytes": 0
+          }
+        },
+        "balance_rpc_50": {
+          "samples_ms": [
+            197.792,
+            129.793,
+            104.673,
+            200.397,
+            111.226
+          ],
+          "median_execution_ms": 129.793,
+          "planning_ms": 0.822,
+          "plan": {
+            "Node Type": "Bitmap Heap Scan",
+            "Relation Name": "fin_facilities",
+            "Plan Rows": 1,
+            "Plan Width": 16,
+            "Startup Cost": 21.41,
+            "Total Cost": 33.57,
+            "Actual Rows": 50,
+            "Actual Loops": 1,
+            "Actual Total Time": 129.751,
+            "Shared Hit Blocks": 3823,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 21,
+            "Shared Written Blocks": 4,
+            "WAL Records": 462,
+            "WAL Bytes": 152009,
+            "Rows Removed by Filter": 0
+          },
+          "transaction": "rolled_back_not_commit_latency"
+        },
+        "source_first_admin": {
+          "source": {
+            "samples_ms": [
+              57.878,
+              36.536,
+              28.678,
+              47.125,
+              18.757
+            ],
+            "median_execution_ms": 36.536,
+            "planning_ms": 0.692,
+            "plan": {
+              "Node Type": "Limit",
+              "Plan Rows": 51,
+              "Plan Width": 20,
+              "Startup Cost": 0.29,
+              "Total Cost": 381.44,
+              "Actual Rows": 51,
+              "Actual Loops": 1,
+              "Actual Total Time": 36.508,
+              "Shared Hit Blocks": 627,
+              "Shared Read Blocks": 0,
+              "Shared Dirtied Blocks": 0,
+              "Shared Written Blocks": 0,
+              "WAL Records": 0,
+              "WAL Bytes": 0
+            }
+          },
+          "enrichment": {
+            "samples_ms": [
+              147.039,
+              60.957,
+              70.269,
+              76.963,
+              74.876
+            ],
+            "median_execution_ms": 74.876,
+            "planning_ms": 1.929,
+            "plan": {
+              "Node Type": "Subquery Scan",
+              "Plan Rows": 1,
+              "Plan Width": 86,
+              "Startup Cost": 21.69,
+              "Total Cost": 50.17,
+              "Actual Rows": 50,
+              "Actual Loops": 1,
+              "Actual Total Time": 74.802,
+              "Shared Hit Blocks": 1014,
+              "Shared Read Blocks": 0,
+              "Shared Dirtied Blocks": 0,
+              "Shared Written Blocks": 0,
+              "WAL Records": 0,
+              "WAL Bytes": 0
+            }
+          },
+          "consistency": "live_two_authorized_statements"
+        },
+        "source_first_entity": {
+          "source": {
+            "samples_ms": [
+              106.594,
+              96.504,
+              101.27,
+              167.783,
+              148.188
+            ],
+            "median_execution_ms": 106.594,
+            "planning_ms": 1.246,
+            "plan": {
+              "Node Type": "Limit",
+              "Plan Rows": 51,
+              "Plan Width": 20,
+              "Startup Cost": 0.29,
+              "Total Cost": 381.44,
+              "Actual Rows": 51,
+              "Actual Loops": 1,
+              "Actual Total Time": 106.556,
+              "Shared Hit Blocks": 1215,
+              "Shared Read Blocks": 0,
+              "Shared Dirtied Blocks": 0,
+              "Shared Written Blocks": 0,
+              "WAL Records": 0,
+              "WAL Bytes": 0
+            }
+          },
+          "enrichment": {
+            "samples_ms": [
+              88.884,
+              113.402,
+              117.448,
+              121.716,
+              99.608
+            ],
+            "median_execution_ms": 113.402,
+            "planning_ms": 4.297,
+            "plan": {
+              "Node Type": "Subquery Scan",
+              "Plan Rows": 1,
+              "Plan Width": 86,
+              "Startup Cost": 21.69,
+              "Total Cost": 50.17,
+              "Actual Rows": 50,
+              "Actual Loops": 1,
+              "Actual Total Time": 113.158,
+              "Shared Hit Blocks": 1421,
+              "Shared Read Blocks": 0,
+              "Shared Dirtied Blocks": 0,
+              "Shared Written Blocks": 0,
+              "WAL Records": 0,
+              "WAL Bytes": 0
+            }
+          },
+          "consistency": "live_two_authorized_statements"
+        }
+      },
+      "candidate_index": {
+        "bytes": 606208,
+        "vacuum_wall_ms": 229.71357599999828,
+        "writes_before": {
+          "samples_ms": [
+            148.336,
+            354.19,
+            456.339,
+            195.954,
+            207.994
+          ],
+          "median_execution_ms": 207.994,
+          "planning_ms": 0.086,
+          "plan": {
+            "Node Type": "Function Scan",
+            "Plan Rows": 50,
+            "Plan Width": 16,
+            "Startup Cost": 0,
+            "Total Cost": 13,
+            "Actual Rows": 50,
+            "Actual Loops": 1,
+            "Actual Total Time": 207.568,
+            "Shared Hit Blocks": 4782,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 5,
+            "Shared Written Blocks": 5,
+            "WAL Records": 545,
+            "WAL Bytes": 69004
+          },
+          "transaction": "rolled_back_not_commit_latency"
+        },
+        "writes_after": {
+          "samples_ms": [
+            122.272,
+            163.601,
+            157.234,
+            191.447,
+            96.642
+          ],
+          "median_execution_ms": 157.234,
+          "planning_ms": 0.06,
+          "plan": {
+            "Node Type": "Function Scan",
+            "Plan Rows": 50,
+            "Plan Width": 16,
+            "Startup Cost": 0,
+            "Total Cost": 13,
+            "Actual Rows": 50,
+            "Actual Loops": 1,
+            "Actual Total Time": 157.202,
+            "Shared Hit Blocks": 4901,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 2,
+            "Shared Written Blocks": 2,
+            "WAL Records": 558,
+            "WAL Bytes": 68384
+          },
+          "transaction": "rolled_back_not_commit_latency"
+        }
+      }
+    },
+    {
+      "facilities": 100000,
+      "tenants": 20,
+      "facilities_per_tenant": 5000,
+      "balance_history": 200000,
+      "results": {
+        "context_page": {
+          "samples_ms": [
+            2062.047,
+            1924.961,
+            5114.238,
+            3729.247,
+            5177.113
+          ],
+          "median_execution_ms": 3729.247,
+          "planning_ms": 2.054,
+          "plan": {
+            "Node Type": "Limit",
+            "Plan Rows": 51,
+            "Plan Width": 86,
+            "Startup Cost": 4563.97,
+            "Total Cost": 4564.09,
+            "Actual Rows": 51,
+            "Actual Loops": 1,
+            "Actual Total Time": 3729.092,
+            "Shared Hit Blocks": 18382,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "WAL Records": 0,
+            "WAL Bytes": 0,
+            "children": [
+              {
+                "Node Type": "Sort",
+                "Plan Rows": 1656,
+                "Plan Width": 86,
+                "Startup Cost": 4563.97,
+                "Total Cost": 4568.11,
+                "Actual Rows": 51,
+                "Actual Loops": 1,
+                "Actual Total Time": 3729.088,
+                "Shared Hit Blocks": 18382,
+                "Shared Read Blocks": 0,
+                "Shared Dirtied Blocks": 0,
+                "Shared Written Blocks": 0,
+                "WAL Records": 0,
+                "WAL Bytes": 0,
+                "Sort Method": "top-N heapsort",
+                "Sort Space Used": 36,
+                "Sort Space Type": "Memory",
+                "children": [
+                  {
+                    "Node Type": "Subquery Scan",
+                    "Plan Rows": 1656,
+                    "Plan Width": 86,
+                    "Startup Cost": 58.25,
+                    "Total Cost": 4508.72,
+                    "Actual Rows": 5000,
+                    "Actual Loops": 1,
+                    "Actual Total Time": 3714.973,
+                    "Shared Hit Blocks": 18376,
+                    "Shared Read Blocks": 0,
+                    "Shared Dirtied Blocks": 0,
+                    "Shared Written Blocks": 0,
+                    "WAL Records": 0,
+                    "WAL Bytes": 0,
+                    "children": [
+                      {
+                        "Node Type": "Nested Loop",
+                        "Plan Rows": 1656,
+                        "Plan Width": 526,
+                        "Startup Cost": 58.25,
+                        "Total Cost": 4492.16,
+                        "Actual Rows": 5000,
+                        "Actual Loops": 1,
+                        "Actual Total Time": 3711.873,
+                        "Shared Hit Blocks": 18376,
+                        "Shared Read Blocks": 0,
+                        "Shared Dirtied Blocks": 0,
+                        "Shared Written Blocks": 0,
+                        "WAL Records": 0,
+                        "WAL Bytes": 0,
+                        "children": [
+                          {
+                            "Node Type": "Nested Loop",
+                            "Plan Rows": 1656,
+                            "Plan Width": 86,
+                            "Startup Cost": 58.11,
+                            "Total Cost": 4458.91,
+                            "Actual Rows": 5000,
+                            "Actual Loops": 1,
+                            "Actual Total Time": 3703.48,
+                            "Shared Hit Blocks": 18373,
+                            "Shared Read Blocks": 0,
+                            "Shared Dirtied Blocks": 0,
+                            "Shared Written Blocks": 0,
+                            "WAL Records": 0,
+                            "WAL Bytes": 0,
+                            "children": [
+                              {
+                                "Node Type": "Bitmap Heap Scan",
+                                "Relation Name": "fin_facilities",
+                                "Plan Rows": 1656,
+                                "Plan Width": 72,
+                                "Startup Cost": 57.97,
+                                "Total Cost": 4425.39,
+                                "Actual Rows": 5000,
+                                "Actual Loops": 1,
+                                "Actual Total Time": 3688.343,
+                                "Shared Hit Blocks": 18365,
+                                "Shared Read Blocks": 0,
+                                "Shared Dirtied Blocks": 0,
+                                "Shared Written Blocks": 0,
+                                "WAL Records": 0,
+                                "WAL Bytes": 0,
+                                "Rows Removed by Filter": 0,
+                                "children": [
+                                  {
+                                    "Node Type": "Bitmap Index Scan",
+                                    "Index Name": "fin_facilities_provider",
+                                    "Plan Rows": 4968,
+                                    "Plan Width": 0,
+                                    "Startup Cost": 0,
+                                    "Total Cost": 57.55,
+                                    "Actual Rows": 5600,
+                                    "Actual Loops": 1,
+                                    "Actual Total Time": 0.75,
+                                    "Shared Hit Blocks": 6,
+                                    "Shared Read Blocks": 0,
+                                    "Shared Dirtied Blocks": 0,
+                                    "Shared Written Blocks": 0,
+                                    "WAL Records": 0,
+                                    "WAL Bytes": 0
+                                  }
+                                ]
+                              },
+                              {
+                                "Node Type": "Materialize",
+                                "Plan Rows": 1,
+                                "Plan Width": 46,
+                                "Startup Cost": 0.14,
+                                "Total Cost": 8.68,
+                                "Actual Rows": 2,
+                                "Actual Loops": 5000,
+                                "Actual Total Time": 0.001,
+                                "Shared Hit Blocks": 8,
+                                "Shared Read Blocks": 0,
+                                "Shared Dirtied Blocks": 0,
+                                "Shared Written Blocks": 0,
+                                "WAL Records": 0,
+                                "WAL Bytes": 0,
+                                "children": [
+                                  {
+                                    "Node Type": "Index Scan",
+                                    "Relation Name": "fin_contracts",
+                                    "Index Name": "fin_contracts_organization_id_id_key",
+                                    "Plan Rows": 1,
+                                    "Plan Width": 46,
+                                    "Startup Cost": 0.14,
+                                    "Total Cost": 8.68,
+                                    "Actual Rows": 2,
+                                    "Actual Loops": 1,
+                                    "Actual Total Time": 1.069,
+                                    "Shared Hit Blocks": 8,
+                                    "Shared Read Blocks": 0,
+                                    "Shared Dirtied Blocks": 0,
+                                    "Shared Written Blocks": 0,
+                                    "WAL Records": 0,
+                                    "WAL Bytes": 0,
+                                    "Rows Removed by Filter": 0
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "Node Type": "Materialize",
+                            "Plan Rows": 1,
+                            "Plan Width": 64,
+                            "Startup Cost": 0.14,
+                            "Total Cost": 8.42,
+                            "Actual Rows": 1,
+                            "Actual Loops": 5000,
+                            "Actual Total Time": 0,
+                            "Shared Hit Blocks": 3,
+                            "Shared Read Blocks": 0,
+                            "Shared Dirtied Blocks": 0,
+                            "Shared Written Blocks": 0,
+                            "WAL Records": 0,
+                            "WAL Bytes": 0,
+                            "children": [
+                              {
+                                "Node Type": "Index Scan",
+                                "Relation Name": "fin_providers",
+                                "Index Name": "fin_providers_organization_id_id_key",
+                                "Plan Rows": 1,
+                                "Plan Width": 64,
+                                "Startup Cost": 0.14,
+                                "Total Cost": 8.41,
+                                "Actual Rows": 1,
+                                "Actual Loops": 1,
+                                "Actual Total Time": 0.092,
+                                "Shared Hit Blocks": 3,
+                                "Shared Read Blocks": 0,
+                                "Shared Dirtied Blocks": 0,
+                                "Shared Written Blocks": 0,
+                                "WAL Records": 0,
+                                "WAL Bytes": 0,
+                                "Rows Removed by Filter": 0
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "entity_page": {
+          "samples_ms": [
+            2914.315,
+            5684.323,
+            4800.573,
+            5457.721,
+            2564.484
+          ],
+          "median_execution_ms": 4800.573,
+          "planning_ms": 2.028,
+          "plan": {
+            "Node Type": "Limit",
+            "Plan Rows": 51,
+            "Plan Width": 86,
+            "Startup Cost": 4563.97,
+            "Total Cost": 4564.09,
+            "Actual Rows": 51,
+            "Actual Loops": 1,
+            "Actual Total Time": 4800.298,
+            "Shared Hit Blocks": 38383,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "WAL Records": 0,
+            "WAL Bytes": 0
+          }
+        },
+        "explicit_entity_filter": {
+          "samples_ms": [
+            1581.622,
+            4039.839,
+            1672.446,
+            2075.254,
+            1084.086
+          ],
+          "median_execution_ms": 1672.446,
+          "planning_ms": 1.635,
+          "plan": {
+            "Node Type": "Limit",
+            "Plan Rows": 41,
+            "Plan Width": 86,
+            "Startup Cost": 465.2,
+            "Total Cost": 465.3,
+            "Actual Rows": 51,
+            "Actual Loops": 1,
+            "Actual Total Time": 1671.371,
+            "Shared Hit Blocks": 10435,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "WAL Records": 0,
+            "WAL Bytes": 0
+          }
+        },
+        "no_membership": {
+          "samples_ms": [
+            5910.1,
+            2918.315,
+            1993.664,
+            5640.911,
+            4883.232
+          ],
+          "median_execution_ms": 4883.232,
+          "planning_ms": 1.452,
+          "plan": {
+            "Node Type": "Limit",
+            "Plan Rows": 51,
+            "Plan Width": 86,
+            "Startup Cost": 4563.97,
+            "Total Cost": 4564.09,
+            "Actual Rows": 0,
+            "Actual Loops": 1,
+            "Actual Total Time": 4882.966,
+            "Shared Hit Blocks": 13371,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "WAL Records": 0,
+            "WAL Bytes": 0
+          }
+        },
+        "latest_balance_batch_50": {
+          "samples_ms": [
+            74.01,
+            100.966,
+            103.919,
+            83.494,
+            79.605
+          ],
+          "median_execution_ms": 83.494,
+          "planning_ms": 0.469,
+          "plan": {
+            "Node Type": "Limit",
+            "Plan Rows": 1,
+            "Plan Width": 46,
+            "Startup Cost": 13682.81,
+            "Total Cost": 13682.82,
+            "Actual Rows": 50,
+            "Actual Loops": 1,
+            "Actual Total Time": 83.443,
+            "Shared Hit Blocks": 4378,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "WAL Records": 0,
+            "WAL Bytes": 0
+          }
+        },
+        "balance_rpc_50": {
+          "samples_ms": [
+            95.611,
+            80.095,
+            88.297,
+            95.041,
+            216.041
+          ],
+          "median_execution_ms": 95.041,
+          "planning_ms": 0.878,
+          "plan": {
+            "Node Type": "Index Scan",
+            "Relation Name": "fin_facilities",
+            "Index Name": "operating_bench_facility_page",
+            "Plan Rows": 1,
+            "Plan Width": 16,
+            "Startup Cost": 0.42,
+            "Total Cost": 206.87,
+            "Actual Rows": 50,
+            "Actual Loops": 1,
+            "Actual Total Time": 95.01,
+            "Shared Hit Blocks": 3832,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 6,
+            "Shared Written Blocks": 5,
+            "WAL Records": 457,
+            "WAL Bytes": 60259,
+            "Rows Removed by Filter": 0
+          },
+          "transaction": "rolled_back_not_commit_latency"
+        },
+        "source_first_admin": {
+          "source": {
+            "samples_ms": [
+              199.613,
+              22.261,
+              26.169,
+              171.621,
+              23.134
+            ],
+            "median_execution_ms": 26.169,
+            "planning_ms": 0.413,
+            "plan": {
+              "Node Type": "Limit",
+              "Plan Rows": 51,
+              "Plan Width": 20,
+              "Startup Cost": 0.42,
+              "Total Cost": 378.41,
+              "Actual Rows": 51,
+              "Actual Loops": 1,
+              "Actual Total Time": 26.147,
+              "Shared Hit Blocks": 615,
+              "Shared Read Blocks": 0,
+              "Shared Dirtied Blocks": 0,
+              "Shared Written Blocks": 0,
+              "WAL Records": 0,
+              "WAL Bytes": 0,
+              "children": [
+                {
+                  "Node Type": "Index Scan",
+                  "Relation Name": "fin_facilities",
+                  "Index Name": "operating_bench_facility_page",
+                  "Plan Rows": 1656,
+                  "Plan Width": 20,
+                  "Startup Cost": 0.42,
+                  "Total Cost": 12274.15,
+                  "Actual Rows": 51,
+                  "Actual Loops": 1,
+                  "Actual Total Time": 26.107,
+                  "Shared Hit Blocks": 615,
+                  "Shared Read Blocks": 0,
+                  "Shared Dirtied Blocks": 0,
+                  "Shared Written Blocks": 0,
+                  "WAL Records": 0,
+                  "WAL Bytes": 0,
+                  "Rows Removed by Filter": 0
+                }
+              ]
+            }
+          },
+          "enrichment": {
+            "samples_ms": [
+              33.468,
+              87.557,
+              73.417,
+              59.014,
+              58.626
+            ],
+            "median_execution_ms": 59.014,
+            "planning_ms": 3.052,
+            "plan": {
+              "Node Type": "Subquery Scan",
+              "Plan Rows": 1,
+              "Plan Width": 86,
+              "Startup Cost": 0.7,
+              "Total Cost": 223.47,
+              "Actual Rows": 50,
+              "Actual Loops": 1,
+              "Actual Total Time": 58.861,
+              "Shared Hit Blocks": 1041,
+              "Shared Read Blocks": 0,
+              "Shared Dirtied Blocks": 0,
+              "Shared Written Blocks": 0,
+              "WAL Records": 0,
+              "WAL Bytes": 0,
+              "children": [
+                {
+                  "Node Type": "Nested Loop",
+                  "Plan Rows": 1,
+                  "Plan Width": 526,
+                  "Startup Cost": 0.7,
+                  "Total Cost": 223.46,
+                  "Actual Rows": 50,
+                  "Actual Loops": 1,
+                  "Actual Total Time": 58.838,
+                  "Shared Hit Blocks": 1041,
+                  "Shared Read Blocks": 0,
+                  "Shared Dirtied Blocks": 0,
+                  "Shared Written Blocks": 0,
+                  "WAL Records": 0,
+                  "WAL Bytes": 0,
+                  "children": [
+                    {
+                      "Node Type": "Nested Loop",
+                      "Plan Rows": 1,
+                      "Plan Width": 86,
+                      "Startup Cost": 0.56,
+                      "Total Cost": 215.03,
+                      "Actual Rows": 50,
+                      "Actual Loops": 1,
+                      "Actual Total Time": 57.34,
+                      "Shared Hit Blocks": 891,
+                      "Shared Read Blocks": 0,
+                      "Shared Dirtied Blocks": 0,
+                      "Shared Written Blocks": 0,
+                      "WAL Records": 0,
+                      "WAL Bytes": 0,
+                      "children": [
+                        {
+                          "Node Type": "Index Scan",
+                          "Relation Name": "fin_facilities",
+                          "Index Name": "operating_bench_facility_page",
+                          "Plan Rows": 1,
+                          "Plan Width": 72,
+                          "Startup Cost": 0.42,
+                          "Total Cost": 206.61,
+                          "Actual Rows": 50,
+                          "Actual Loops": 1,
+                          "Actual Total Time": 31.724,
+                          "Shared Hit Blocks": 641,
+                          "Shared Read Blocks": 0,
+                          "Shared Dirtied Blocks": 0,
+                          "Shared Written Blocks": 0,
+                          "WAL Records": 0,
+                          "WAL Bytes": 0,
+                          "Rows Removed by Filter": 0
+                        },
+                        {
+                          "Node Type": "Index Scan",
+                          "Relation Name": "fin_contracts",
+                          "Index Name": "fin_contracts_pkey",
+                          "Plan Rows": 1,
+                          "Plan Width": 46,
+                          "Startup Cost": 0.14,
+                          "Total Cost": 8.41,
+                          "Actual Rows": 1,
+                          "Actual Loops": 50,
+                          "Actual Total Time": 0.51,
+                          "Shared Hit Blocks": 250,
+                          "Shared Read Blocks": 0,
+                          "Shared Dirtied Blocks": 0,
+                          "Shared Written Blocks": 0,
+                          "WAL Records": 0,
+                          "WAL Bytes": 0,
+                          "Rows Removed by Filter": 0
+                        }
+                      ]
+                    },
+                    {
+                      "Node Type": "Index Scan",
+                      "Relation Name": "fin_providers",
+                      "Index Name": "fin_providers_organization_id_id_key",
+                      "Plan Rows": 1,
+                      "Plan Width": 64,
+                      "Startup Cost": 0.14,
+                      "Total Cost": 8.41,
+                      "Actual Rows": 1,
+                      "Actual Loops": 50,
+                      "Actual Total Time": 0.028,
+                      "Shared Hit Blocks": 150,
+                      "Shared Read Blocks": 0,
+                      "Shared Dirtied Blocks": 0,
+                      "Shared Written Blocks": 0,
+                      "WAL Records": 0,
+                      "WAL Bytes": 0,
+                      "Rows Removed by Filter": 0
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "consistency": "live_two_authorized_statements"
+        },
+        "source_first_entity": {
+          "source": {
+            "samples_ms": [
+              53.743,
+              405.8,
+              187.675,
+              216.978,
+              154.101
+            ],
+            "median_execution_ms": 187.675,
+            "planning_ms": 1.99,
+            "plan": {
+              "Node Type": "Limit",
+              "Plan Rows": 51,
+              "Plan Width": 20,
+              "Startup Cost": 0.42,
+              "Total Cost": 378.41,
+              "Actual Rows": 51,
+              "Actual Loops": 1,
+              "Actual Total Time": 187.64,
+              "Shared Hit Blocks": 1227,
+              "Shared Read Blocks": 0,
+              "Shared Dirtied Blocks": 0,
+              "Shared Written Blocks": 0,
+              "WAL Records": 0,
+              "WAL Bytes": 0,
+              "children": [
+                {
+                  "Node Type": "Index Scan",
+                  "Relation Name": "fin_facilities",
+                  "Index Name": "operating_bench_facility_page",
+                  "Plan Rows": 1656,
+                  "Plan Width": 20,
+                  "Startup Cost": 0.42,
+                  "Total Cost": 12274.15,
+                  "Actual Rows": 51,
+                  "Actual Loops": 1,
+                  "Actual Total Time": 187.614,
+                  "Shared Hit Blocks": 1227,
+                  "Shared Read Blocks": 0,
+                  "Shared Dirtied Blocks": 0,
+                  "Shared Written Blocks": 0,
+                  "WAL Records": 0,
+                  "WAL Bytes": 0,
+                  "Rows Removed by Filter": 51
+                }
+              ]
+            }
+          },
+          "enrichment": {
+            "samples_ms": [
+              819.649,
+              95.767,
+              87.934,
+              58.955,
+              57.998
+            ],
+            "median_execution_ms": 87.934,
+            "planning_ms": 7.544,
+            "plan": {
+              "Node Type": "Subquery Scan",
+              "Plan Rows": 1,
+              "Plan Width": 86,
+              "Startup Cost": 0.7,
+              "Total Cost": 223.47,
+              "Actual Rows": 50,
+              "Actual Loops": 1,
+              "Actual Total Time": 87.839,
+              "Shared Hit Blocks": 1441,
+              "Shared Read Blocks": 0,
+              "Shared Dirtied Blocks": 0,
+              "Shared Written Blocks": 0,
+              "WAL Records": 0,
+              "WAL Bytes": 0,
+              "children": [
+                {
+                  "Node Type": "Nested Loop",
+                  "Plan Rows": 1,
+                  "Plan Width": 526,
+                  "Startup Cost": 0.7,
+                  "Total Cost": 223.46,
+                  "Actual Rows": 50,
+                  "Actual Loops": 1,
+                  "Actual Total Time": 87.817,
+                  "Shared Hit Blocks": 1441,
+                  "Shared Read Blocks": 0,
+                  "Shared Dirtied Blocks": 0,
+                  "Shared Written Blocks": 0,
+                  "WAL Records": 0,
+                  "WAL Bytes": 0,
+                  "children": [
+                    {
+                      "Node Type": "Nested Loop",
+                      "Plan Rows": 1,
+                      "Plan Width": 86,
+                      "Startup Cost": 0.56,
+                      "Total Cost": 215.03,
+                      "Actual Rows": 50,
+                      "Actual Loops": 1,
+                      "Actual Total Time": 86.56,
+                      "Shared Hit Blocks": 1291,
+                      "Shared Read Blocks": 0,
+                      "Shared Dirtied Blocks": 0,
+                      "Shared Written Blocks": 0,
+                      "WAL Records": 0,
+                      "WAL Bytes": 0,
+                      "children": [
+                        {
+                          "Node Type": "Index Scan",
+                          "Relation Name": "fin_facilities",
+                          "Index Name": "operating_bench_facility_page",
+                          "Plan Rows": 1,
+                          "Plan Width": 72,
+                          "Startup Cost": 0.42,
+                          "Total Cost": 206.61,
+                          "Actual Rows": 50,
+                          "Actual Loops": 1,
+                          "Actual Total Time": 61.017,
+                          "Shared Hit Blocks": 841,
+                          "Shared Read Blocks": 0,
+                          "Shared Dirtied Blocks": 0,
+                          "Shared Written Blocks": 0,
+                          "WAL Records": 0,
+                          "WAL Bytes": 0,
+                          "Rows Removed by Filter": 0
+                        },
+                        {
+                          "Node Type": "Index Scan",
+                          "Relation Name": "fin_contracts",
+                          "Index Name": "fin_contracts_pkey",
+                          "Plan Rows": 1,
+                          "Plan Width": 46,
+                          "Startup Cost": 0.14,
+                          "Total Cost": 8.41,
+                          "Actual Rows": 1,
+                          "Actual Loops": 50,
+                          "Actual Total Time": 0.508,
+                          "Shared Hit Blocks": 450,
+                          "Shared Read Blocks": 0,
+                          "Shared Dirtied Blocks": 0,
+                          "Shared Written Blocks": 0,
+                          "WAL Records": 0,
+                          "WAL Bytes": 0,
+                          "Rows Removed by Filter": 0
+                        }
+                      ]
+                    },
+                    {
+                      "Node Type": "Index Scan",
+                      "Relation Name": "fin_providers",
+                      "Index Name": "fin_providers_organization_id_id_key",
+                      "Plan Rows": 1,
+                      "Plan Width": 64,
+                      "Startup Cost": 0.14,
+                      "Total Cost": 8.41,
+                      "Actual Rows": 1,
+                      "Actual Loops": 50,
+                      "Actual Total Time": 0.023,
+                      "Shared Hit Blocks": 150,
+                      "Shared Read Blocks": 0,
+                      "Shared Dirtied Blocks": 0,
+                      "Shared Written Blocks": 0,
+                      "WAL Records": 0,
+                      "WAL Bytes": 0,
+                      "Rows Removed by Filter": 0
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "consistency": "live_two_authorized_statements"
+        }
+      },
+      "candidate_index": {
+        "bytes": 5931008,
+        "vacuum_wall_ms": 359.257712000006,
+        "writes_before": {
+          "samples_ms": [
+            73.229,
+            149.17,
+            92.825,
+            109.518,
+            68.529
+          ],
+          "median_execution_ms": 92.825,
+          "planning_ms": 0.051,
+          "plan": {
+            "Node Type": "Function Scan",
+            "Plan Rows": 50,
+            "Plan Width": 16,
+            "Startup Cost": 0,
+            "Total Cost": 13,
+            "Actual Rows": 50,
+            "Actual Loops": 1,
+            "Actual Total Time": 92.799,
+            "Shared Hit Blocks": 4873,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 3,
+            "Shared Written Blocks": 3,
+            "WAL Records": 507,
+            "WAL Bytes": 59676
+          },
+          "transaction": "rolled_back_not_commit_latency"
+        },
+        "writes_after": {
+          "samples_ms": [
+            114.471,
+            77.853,
+            59.614,
+            59.55,
+            60.827
+          ],
+          "median_execution_ms": 60.827,
+          "planning_ms": 0.049,
+          "plan": {
+            "Node Type": "Function Scan",
+            "Plan Rows": 50,
+            "Plan Width": 16,
+            "Startup Cost": 0,
+            "Total Cost": 13,
+            "Actual Rows": 50,
+            "Actual Loops": 1,
+            "Actual Total Time": 60.749,
+            "Shared Hit Blocks": 4940,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 5,
+            "Shared Written Blocks": 4,
+            "WAL Records": 560,
+            "WAL Bytes": 69351
+          },
+          "transaction": "rolled_back_not_commit_latency"
+        }
+      }
+    }
+  ],
+  "limitations": [
+    "Warm local SQL medians, not HTTP latency or hosted p95.",
+    "No index/schema change proposed or adopted.",
+    "Measured writes roll back; not commit latency.",
+    "Shared executor load may affect timings; repeat before comparing runs.",
+    "Operator-only synthetic fixture loading is not the canonical Demo seed.",
+    "Write timing gains are not stable evidence; before/after order and concurrent executor load confound timing.",
+    "No-membership SQL bypasses the HTTP early membership rejection for RLS testing; it is not unauthenticated API latency.",
+    "Product-filtered facilities and guarantees do not use the new source-first path.",
+    "Sums of SQL medians omit transport, Auth and application overhead; they are not HTTP p95."
+  ],
+  "plan_scope": "Full compact node trees for 100k joined/source-first pages; root cost/buffers/WAL and five execution samples for other cases. Full original EXPLAIN JSON is generated by the benchmark command."
+}
