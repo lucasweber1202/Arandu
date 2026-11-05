@@ -66,7 +66,7 @@ export function browserCounts(log) {
  for(const line of String(log).split('\n')) {
   const match=line.match(/ARANDU_BROWSER_COUNTS (\{.*\})$/);if(!match)continue;
   let v;try{v=JSON.parse(match[1]);}catch{continue;}
-  if(!/^[a-f0-9]{40}$/.test(v.sha||'')||!['chromium','firefox','webkit','safari','presentation'].includes(v.group)||!['passed','failed','timedout','interrupted'].includes(v.result))continue;
+  if(!/^[a-f0-9]{40}$/.test(v.sha||'')||!['chromium','firefox','chromium_firefox','webkit','safari','presentation'].includes(v.group)||!['passed','failed','timedout','interrupted'].includes(v.result))continue;
   const counters=['planned','executed','attempts','retries','flaky','skipped','passed'];
   if(!counters.every(k=>Number.isSafeInteger(v[k])&&v[k]>=0))continue;
   values.push({sha:v.sha,group:v.group,result:v.result,...Object.fromEntries(counters.map(k=>[k,v[k]]))});

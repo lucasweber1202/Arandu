@@ -32,8 +32,8 @@ console.log('CI Velocity: shared diff parser, five projects once, sensitive/unkn
 assert.equal(riskReceipt('not a receipt'),null);
 assert.equal(riskReceipt('ARANDU_RISK_RECEIPT '+JSON.stringify({sha:'a'.repeat(40),risk:'D',reasons:[],private:'DO_NOT_SERIALIZE'})).private,undefined);
 
-assert.deepEqual(browserEngines('chromium'),['chromium']);
-assert.deepEqual(browserEngines('firefox'),['firefox']);
+assert.deepEqual(browserEngines('chromium_firefox'),['chromium','firefox']);
+assert.throws(()=>browserEngines('firefox'));
 assert.deepEqual(browserEngines('webkit'),['webkit']);
 assert.deepEqual(browserEngines('safari'),['webkit']);
 assert.throws(()=>browserEngines('typo'));

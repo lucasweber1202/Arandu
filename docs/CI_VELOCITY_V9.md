@@ -20,12 +20,11 @@ pacotes de sistema do runner oficial. Ausência local não equivale a PASS.
 
 ## Navegadores e trabalho redundante
 
-Quatro grupos disjuntos, preservando os cinco projetos:
+Três grupos disjuntos na candidata final, preservando os cinco projetos:
 
 | Grupo | Projetos | Tempo de workers histórico, ms |
 |---|---|---:|
-| chromium | Chromium desktop + Chrome mobile | 1.412.486 |
-| firefox | Firefox desktop | 1.142.258 |
+| chromium_firefox | Chromium desktop + Chrome mobile + Firefox desktop | 2.554.744 |
 | webkit | WebKit desktop | 1.709.595 |
 | safari | Safari mobile | 1.593.170 |
 
@@ -33,11 +32,16 @@ Fonte: run `41898780191`; comparação reproduzível:
 `node scripts/ci/browser-balance.mjs`. Dois/três/quatro grupos têm carga máxima
 3.005.656 / 2.554.744 / 1.709.595 ms, com os mesmos 5.857.509 ms totais de
 workers. Isto é balanceamento de trabalho medido, **não wall-clock** nem economia
-comprovada de runner-minutes. O custo de dois runners adicionais inclui instalação,
-checkout e dispatch; a escolha precisa ser confrontada com o run oficial.
+comprovada de runner-minutes. O custo de runners adicionais inclui instalação, checkout e dispatch.
+O experimento oficial de quatro grupos (`42092929396`) reduziu o maior job
+de 844 para 548 s, mas elevou a matriz de 29 para 31 runner-minutes, no mesmo
+catálogo de 2.150 casos (2.122 pass, 28 skips). A matriz e presentation passaram
+sem retries; a integração desse run foi cancelada pela atualização remota da
+branch e não comprova D integral. Como o seed domina, a candidata final usa três
+grupos para reduzir overhead; seu resultado integral ainda exige medição.
 
 Cada grupo instala/prova somente seu motor. Presentation continua com os três.
-O cache de binários tem sufixo de grupo, evitando que quatro jobs salvem conjuntos
+O cache de binários tem sufixo de grupo, evitando que jobs paralelos salvem conjuntos
 parciais na mesma chave. Restore de cache antigo pode conter mais motores;
 o motor exigido sempre é instalado/verificado, mesmo em cache hit. Nada depende
 do cache ou da quota de artifacts para executar testes. Builds locais do mesmo
@@ -45,7 +49,7 @@ checkout continuam baratos e preservam budgets/asset integrity; não se transfer
 dist não verificável entre jobs.
 
 O plano integral é produzido antes dos grupos. O verificador exige o SHA,
-a presença dos quatro recibos, união exata dos IDs, projeto/arquivo/linha,
+a presença dos três recibos, união exata dos IDs, projeto/arquivo/linha,
 nenhuma duplicação, retries contíguos e skips explícitos. Falha/ausência/cancelamento
 não vira sucesso. Todos os gates originais permanecem e aguardam full/integration.
 

@@ -52,7 +52,7 @@ jobs:
       - name: Real synthetic encrypted export and same-backup restore
         run: node scripts/test-recovery-real.mjs
 
-  # Cheap source + both build budgets gate browser setup. All four disjoint groups
+  # Cheap source + both build budgets gate browser setup. All three disjoint groups
   # preserve all five projects; explicit coverage receipts fail closed per SHA.
   # Full deploy boundaries remain mandatory in parallel, before final contexts.
   validate-source:
@@ -136,13 +136,7 @@ jobs:
     needs: validate-source
     uses: ./.github/workflows/ci-browser.yml
     with:
-      browser_group: firefox
-
-  validate-mobile:
-    needs: validate-source
-    uses: ./.github/workflows/ci-browser.yml
-    with:
-      browser_group: chromium
+      browser_group: chromium_firefox
 
   validate-webkit:
     needs: validate-source
@@ -157,14 +151,13 @@ jobs:
       browser_group: safari
 
   browser-coverage:
-    needs: [validate-source, validate, validate-mobile, validate-webkit, validate-safari]
+    needs: [validate-source, validate, validate-webkit, validate-safari]
     if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     env:
       BROWSER_PLAN: ${{ needs.validate-source.outputs.plan }}
-      BROWSER_FIREFOX: ${{ needs.validate.outputs.receipt }}
-      BROWSER_CHROMIUM: ${{ needs.validate-mobile.outputs.receipt }}
+      BROWSER_CHROMIUM_FIREFOX: ${{ needs.validate.outputs.receipt }}
       BROWSER_WEBKIT: ${{ needs.validate-webkit.outputs.receipt }}
       BROWSER_SAFARI: ${{ needs.validate-safari.outputs.receipt }}
     steps:
@@ -173,7 +166,7 @@ jobs:
         with:
           persist-credentials: false
           sparse-checkout: scripts
-      - name: Check exact SHA and complete union of all four browser groups
+      - name: Check exact SHA and complete union of all three browser groups
         run: node scripts/ci-browser-coverage.mjs --job-outputs
 
   presentation:

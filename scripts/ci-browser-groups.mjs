@@ -1,8 +1,7 @@
-// Four disjoint groups, measured against run 41898780191 worker durations.
+// Three disjoint groups; avoid a fourth runner while the real seed dominates.
 // One execution of every existing project; no sharding by a guessed risk label.
 export const BROWSER_GROUPS=Object.freeze({
-  chromium:Object.freeze(['chromium-desktop','mobile-chrome']),
-  firefox:Object.freeze(['firefox-desktop']),
+  chromium_firefox:Object.freeze(['chromium-desktop','mobile-chrome','firefox-desktop']),
   webkit:Object.freeze(['webkit-desktop']),
   safari:Object.freeze(['mobile-safari'])
 });
