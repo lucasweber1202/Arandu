@@ -36,8 +36,11 @@ try {
   sql(connection.PGDATABASE,`create database ${source}`);
   apply(source,'tests/database/bootstrap.sql');
   const files=JSON.parse(fs.readFileSync('docs/supabase-migrations.json')).cleanInstall;
-  assert.equal(files.at(-1),repair);
-  for(const file of files.slice(0,-1)) apply(source,file);
+  const repairIndex=files.indexOf(repair);
+  assert.ok(repairIndex>0,'Canonical manifest must contain the repair after its prerequisites');
+  // Reproduce the historical defect at its original boundary. Later additive
+  // migrations must not move this regression fixture past the repair itself.
+  for(const file of files.slice(0,repairIndex)) apply(source,file);
   sql(source,'create table public.fp_logic(a boolean,b boolean,c boolean, constraint fp_logic_check check(a and (b or c)))');
   resetTarget();
   assert.notEqual(fingerprint(source),fingerprint(target),'Pre-fix clean install must reproduce schema drift');
@@ -63,6 +66,9 @@ try {
   assert.equal(fingerprint(source),beforeHash,'Rollback restores the previous definition');
   apply(source,repair); resetTarget();
   assert.equal(fingerprint(source),fingerprint(target),'Upgrade after rollback roundtrips');
+  for(const file of files.slice(repairIndex+1)) apply(source,file);
+  resetTarget();
+  assert.equal(fingerprint(source),fingerprint(target),'Current manifest including later migrations roundtrips');
   console.log('PASS recovery schema: reproduced aliases; clean install, reapply, upgrade, rollback; grouping/view tamper and missing view rejected.');
 } finally {
   for(const db of [target,source]) sql(connection.PGDATABASE,`drop database if exists ${db}`);

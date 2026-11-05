@@ -28,7 +28,9 @@ apply_file() {
 # Migrations posteriores à aposentadoria da arte (o guarda de marker dela é
 # imutável e só aceita o estado anterior): aplicadas depois dela, duas vezes.
 after_decommission() {
-  node -e "const m=require('./docs/supabase-migrations.json'); const i=m.cleanInstall.indexOf('docs/supabase-financial-legacy-art-decommission.sql'); for (const f of m.cleanInstall.slice(i+1)) console.log(f)"
+  # New projections are applied below after every historical rollback test,
+  # so their dependencies do not prevent exercising an older rollback.
+  node -e "const m=require('./docs/supabase-migrations.json'); const i=m.cleanInstall.indexOf('docs/supabase-financial-legacy-art-decommission.sql'); for (const f of m.cleanInstall.slice(i+1).filter(f=>f!=='docs/supabase-financial-operating-context.sql')) console.log(f)"
 }
 
 apply_file "$clean_db" "tests/database/bootstrap.sql"
@@ -766,6 +768,17 @@ for current_db in "$clean_db" "$upgrade_db" "$fresh_db"; do
   apply_file "$current_db" "docs/supabase-financial-crm-view-roundtrip.sql"
   apply_file "$current_db" "docs/supabase-financial-crm-view-roundtrip.sql"
   apply_file "$current_db" "tests/database/financial-crm-institution.sql"
+done
+# Authorized operating projections: forward, rollback, reapply and four real
+# SQL/RPC journeys on all historical installation paths, without deleting data.
+for current_db in "$clean_db" "$upgrade_db" "$fresh_db"; do
+  apply_file "$current_db" "docs/supabase-financial-operating-context.sql"
+  apply_file "$current_db" "docs/rollback/supabase-financial-operating-context.rollback.sql"
+  apply_file "$current_db" "docs/supabase-financial-operating-context.sql"
+  apply_file "$current_db" "docs/supabase-financial-operating-context.sql"
+  apply_file "$current_db" "tests/database/financial-operating-context.sql"
+  apply_file "$current_db" "ops/sql/post-migration-probes.sql"
+  apply_file "$current_db" "ops/sql/pilot-isolation-canary.sql"
 done
 node "$root_dir/tests/database/recovery-schema-roundtrip.mjs" "$base_url"
 # Additional direct financial install: full catalog/ACL equivalence to history,

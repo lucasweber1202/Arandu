@@ -127,6 +127,7 @@ case "$phase" in
   journey)
     local_env; fresh_app
     PILOT_REPORT="$out/journey.md" timeout 900 node "$root/scripts/pilot-local/journey.mjs"
+    timeout 300 node "$here/operating-journey.mjs"
     ;;
   platform)
     local_env; fresh_app

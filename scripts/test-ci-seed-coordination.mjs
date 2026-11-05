@@ -57,7 +57,7 @@ for(const slug of ['0000000001','0000000002','0000000003','0000000004'])fs.write
   const env={...process.env,...local,ARANDU_SEED_PROFILE_DIR:path.join(fixture,'profiles')};delete env.CI_DEMO_SEED_COORDINATION_DIR;
   for(const key of ['VERCEL_ENV','VERCEL_URL','SUPABASE_ACCESS_TOKEN','SUPABASE_DB_PASSWORD','DEMO_SUPABASE_REFS','ARANDU_DEMO_WORKSPACE'])delete env[key];
   const result=spawnSync(process.execPath,[runner],{cwd:fixture,env,encoding:'utf8',timeout:15000});
-  assert.equal(result.status,fail?1:0,result.stdout+result.stderr);
+  assert.equal(result.status,fail?1:0,JSON.stringify({signal:result.signal,error:result.error?.message,stdout:result.stdout,stderr:result.stderr}));
   assert.match(result.stdout+result.stderr,fail?/PARALLEL_OFFICIAL_SEEDS_FAILED/:/PARALLEL_OFFICIAL_SEEDS_PASS/);
   assert.deepEqual(fs.readdirSync(path.join(fixture,'scripts/pilot-local/.state')),[],'Coordination state was not cleaned');
  }

@@ -46,7 +46,7 @@ select d.id,d.organization_id,d.buyer_organization_id,
        case when d.entity_type='contract' then 'direct_contract'::text
             else 'sourcing_proposal'::text end as source_relation,
        v.version as available_version,v.mime_type,v.size_bytes,v.sha256,
-       v.uploaded_by,v.completed_at
+       v.uploaded_by,v.completed_at,c.provider_id,c.legal_entity_id
 from public.fin_contracts c
 join public.fin_private_documents d
   on d.buyer_organization_id=c.organization_id
@@ -62,7 +62,7 @@ comment on view public.fin_portfolio_facility_context is 'Live caller-RLS projec
 comment on view public.fin_portfolio_guarantee_context is 'Associated references, not financial allocation; one row per guarantee and live caller RLS on every source.';
 comment on view public.fin_contract_document_evidence is 'Caller-RLS contract/proposal document evidence; available current metadata only, never Storage locators.';
 
-insert into public.fin_settings(key,value) values ('schema_version','financial-operating-context-1')
+insert into public.fin_settings(key,value) values ('schema_version', 'financial-operating-context-1')
 on conflict(key) do update set value=excluded.value,updated_at=now();
 notify pgrst,'reload schema';
 commit;

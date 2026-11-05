@@ -26,7 +26,7 @@ incluíam o PUT de bytes no Storage e a chamada de cron; não atribuir seus temp
 
 ```mermaid
 flowchart TD
-  A[Guardas locais e banco efêmero] --> B[Reset oficial e marker concluídos]
+  A[Guardas locais e banco efêmero] --> B[Reset, marker, contas base e allowlist global concluídos]
   B --> C[Baseline: contas, organizações, memberships e história]
   B --> D[Pool oficial: quatro seeds com identidades independentes]
   C --> E[Cinco histórias preparadas pela API real]

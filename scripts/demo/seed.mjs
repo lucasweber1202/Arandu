@@ -1109,11 +1109,14 @@ async function main() {
       await resetDemo();
     }
     if (!marker) await service('fin_settings', { method: 'POST', body: { key: DEMO_MARKER_KEY, value: DEMO_MARKER_VALUE }, prefer: 'return=minimal' });
-    await coordination.initialized();
     if (WORKSPACE) await saveWorkspace({ status: 'provisioning', baseline_version: BASELINE_VERSION, last_error: null });
     const started = Date.now();
     log('Criando contas das personas e liberando os domínios fictícios…');
     await profile.phase('createAccounts',()=>createAccounts());
+    // Visitors also depend on the baseline's global fictitious-domain
+    // allowlist, installed by createAccounts. Never release them at marker
+    // creation alone, while that operator setup may still be in flight.
+    await coordination.initialized();
     log('Semeando a história da Vitta Foods pela API do Arandu…');
     await profile.phase('setupOrganizations',()=>setupOrganizations());
     await profile.phase('seedStory',()=>seedStory());

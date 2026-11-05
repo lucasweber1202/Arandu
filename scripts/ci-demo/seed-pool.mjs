@@ -58,7 +58,10 @@ try {
     invariants:['official_api_seed','real_persona_jwt','unchanged_quotas','retry_after_obeyed','reset_before_visitors','global_cron_after_business','full_sanity_per_seed']}));
 } catch(error) {
   abort();
-  await Promise.race([Promise.all(children.map(entry=>entry.done)),new Promise(resolve=>setTimeout(resolve,5000))]);
+  let cleanupDeadline;
+  try {
+    await Promise.race([Promise.all(children.map(entry=>entry.done)),new Promise(resolve=>{cleanupDeadline=setTimeout(resolve,5000);})]);
+  } finally {clearTimeout(cleanupDeadline);}
   // Own process groups only: an interrupted pool must not leave seed children
   // writing while the workflow tears down its isolated stack.
   for(const entry of children)if(Number.isInteger(entry.child.pid))try{process.kill(-entry.child.pid,'SIGKILL');}catch(e){if(e.code!=='ESRCH')throw e;}
