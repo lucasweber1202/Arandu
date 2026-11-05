@@ -161,6 +161,7 @@ export async function contracts(ctx) {
 // uma instituição abre a carteira já recortada, e voltar/recarregar preserva o
 // recorte. Exceções são fatos do registro (lib/finance/contract-portfolio.mjs).
 export const OVERVIEW_CONTRACT_CAP = 200;
+export const CARD_PAGE = 50;
 export const PORTFOLIO_MAX_PAGES = 50;
 /** Carteira completa: a da visão geral, ou todas as páginas quando a visão geral bateu no limite. */
 export async function portfolioCoverage(ctx) {
@@ -217,6 +218,8 @@ function portfolioControlTower(ctx, ordered, { card, focusId, coverage = { state
   const list = el('div', { class: 'stack contract-list' });
   const clear = button('Limpar filtros', { size: 'sm', variant: 'ghost', onClick: () => { for (const k of Object.keys(filters)) filters[k] = ''; search.value = ''; for (const [k, c] of Object.entries(controls)) c.value = filters[k]; draw(); } });
   const cards = new Map();
+  // Deep link (#contract-…) para um contrato além dos primeiros: renderiza até ele.
+  let shown = Math.max(CARD_PAGE, focusId ? ordered.findIndex((c) => c.id === focusId) + 1 : 0);
   const cardFor = (c) => { if (!cards.has(c.id)) cards.set(c.id, card(c)); return cards.get(c.id); };
 
   function draw() {
@@ -239,7 +242,11 @@ function portfolioControlTower(ctx, ordered, { card, focusId, coverage = { state
       ]))) : mutedText('Nenhuma instituição no recorte.'));
     const visible = filterContracts(ordered, filters, exceptions);
     count.textContent = `${visible.length} de ${ordered.length} contratos`;
-    list.replaceChildren(...visible.map(cardFor));
+    // Renderização progressiva: cada cartão consulta documentos e monta a linha do
+    // tempo; com carteiras grandes, só os primeiros CARD_PAGE do recorte entram de
+    // imediato. Contagens e pendências continuam valendo para o recorte inteiro.
+    list.replaceChildren(...visible.slice(0, shown).map(cardFor));
+    if (visible.length > shown) list.append(button(`Mostrar mais ${Math.min(CARD_PAGE, visible.length - shown)} de ${visible.length - shown} restantes`, { variant: 'secondary', attrs: { 'data-more': 'contracts' }, onClick: () => { shown += CARD_PAGE; draw(); } }));
     if (!visible.length) list.append(emptyState({ title: 'Nenhum contrato neste recorte', text: 'Ajuste ou limpe os filtros. Os filtros ficam no endereço da página.', iconName: 'search', compact: true, action: clear }));
     // Só as chaves de filtro mudam; o resto do endereço (?abrir=…, #contract-…) fica.
     const params = new URLSearchParams(location.search);

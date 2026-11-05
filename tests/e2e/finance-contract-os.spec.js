@@ -174,8 +174,14 @@ test('carteira grande: no limite da visão geral lê todas as páginas e conta a
   await page.goto('/finance/contracts.html');
   await expect(page.getByRole('status').filter({ hasText: 'contratos' }).first()).toContainText('250 de 250 contratos');
   expect(calls.filter((c) => c.path === 'contracts' && c.query.paged === '1').length).toBe(3);
-  await expect(card(page, PAST)).toBeVisible(); // estava fora das 200 primeiras
   await expect(page.locator('[data-coverage]')).toHaveCount(0);
+  // Renderização progressiva: 50 cartões, o resto sob demanda; contagens cobrem os 250.
+  await expect(page.locator('.contract-list > .contract-card')).toHaveCount(50);
+  await page.locator('[data-more="contracts"]').click();
+  await expect(page.locator('.contract-list > .contract-card')).toHaveCount(100);
+  // O contrato da 3ª página entra nas pendências e aparece pelo filtro.
+  await page.getByRole('group', { name: 'Pendências da carteira' }).getByRole('button', { name: /Aviso prévio vencido\s*1/ }).click();
+  await expect(card(page, PAST)).toBeVisible();
 });
 
 test('carteira grande: falha na leitura completa é dita e as contagens valem só para o recorte lido', async ({ page }) => {
