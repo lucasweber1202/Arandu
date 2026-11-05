@@ -72,3 +72,8 @@ assert.throws(()=>browserProjects('presentation'),'presentation must never becom
 const preparation={sha:'a'.repeat(40),result:'PASS',wall_ms:600001,overlap_ms:30000,phases:[{name:'seed',result:'success',wall_ms:600000},{name:'browser',result:'success',wall_ms:30000}],secret:'DO_NOT_SERIALIZE'};
 assert.equal(demoPreparations('ARANDU_SEED_BROWSER_PREPARATION '+JSON.stringify(preparation))[0].secret,undefined);
 assert.equal(demoPreparations('ARANDU_SEED_BROWSER_PREPARATION '+JSON.stringify({...preparation,overlap_ms:NaN})).length,0);
+
+// A B change must actually execute the modified suite in fast CI.
+for(const filename of ['tests/e2e/perf-journey-weight.spec.js','tests/e2e/demo-work-os-v3.spec.js','tests/e2e/demo-persona-entry.spec.js','tests/e2e/unknown.spec.js','tests/e2e/finance-unmapped-new.spec.js'])assert.equal(classifyChanges([{status:'modified',filename}]).risk,'D',filename);
+assert.equal(classifyChanges([{status:'modified',filename:'tests/e2e/finance-contract-os.spec.js'}]).risk,'B');
+assert.equal(classifyChanges([{status:'modified',filename:'tests/e2e/public-tour.spec.js'}]).risk,'B');

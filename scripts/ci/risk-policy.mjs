@@ -1,3 +1,4 @@
+import { PRODUCT_E2E } from '../e2e-suites.mjs';
 // Política fechada de CI proporcional ao risco (v6.2).
 //
 // A — apresentação simples: estática, build e smoke de superfície.
@@ -100,7 +101,8 @@ function classifyPath(path, { status, readSource }) {
   if (/^finance\/(?:style\.css|src\/icons\.svg)$/.test(path)) return { risk: 'A', why: 'style/asset' };
   if (/^finance\/(?:styles|assets)\/.+\.(?:css|svg|png|jpg|webp)$/.test(path)) return { risk: 'A', why: 'style/asset' };
   if (/^finance\/src\/.+\.js$/.test(path)) return { risk: 'B', why: 'view/component' };
-  if (/^tests\/e2e\/[a-z0-9-]+\.(?:spec\.)?js$/.test(path)) return { risk: 'B', why: 'browser test' };
+  if (path === 'tests/e2e/public-tour.spec.js' || (/^tests\/e2e\/finance-[a-z0-9-]+\.spec\.js$/.test(path) && PRODUCT_E2E.includes(path))) return { risk: 'B', why: 'browser test executed by the fast path' };
+  if (path.startsWith('tests/e2e/')) return { risk: 'D', why: 'browser suite outside verified fast-path selection' };
   if (PURE_MODULES.has(path) || PRESENTER.test(path)) {
     if (removed) return { risk: 'B', why: 'pure module removed (build + all suites)' };
     return isPureModule(readSource(path))

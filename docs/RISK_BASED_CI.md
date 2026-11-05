@@ -122,3 +122,21 @@ success com preflight, ambos os grupos, coverage, SQL, apresentação e
 deploy-boundaries concluídos. A integração real continua separada e obrigatória
 para D. Nada nesta divisão reduz a classe de risco ou usa CI anterior como prova.
 Detalhes e métricas: [CI_ACCELERATION_V7.md](CI_ACCELERATION_V7.md).
+
+## Refinamentos CI Velocity 9.0
+
+As classes, a ancestralidade estrita e os quatro contextos permanecem. O preflight
+local reutiliza esta política e a seleção de suítes da CI; não aprova merge.
+
+- Evidência raster passiva PNG/JPG/WebP sob `docs/evidence` pode ser A. Termos
+  críticos no caminho prevalecem; Markdown, JSON, SVG/HTML, release/recovery e
+  arquivos desconhecidos não recebem essa exceção.
+- E2E só é B quando a suíte alterada é efetivamente executada no fast path:
+  `finance-*.spec.js` presente no catálogo canônico ou `public-tour.spec.js`.
+  Work OS, demo-persona-entry, perf-journey-weight e suítes novas/desconhecidas
+  exigem D. O nome/extensão de um teste não pode deixar sua própria execução
+  fora da validação oficial.
+
+Arquitetura dos três grupos, experimento de quatro grupos, espera de quota,
+preparação independente sobreposta, medições e limites estão em
+[CI_VELOCITY_V9.md](CI_VELOCITY_V9.md). Toda alteração desta política é D.

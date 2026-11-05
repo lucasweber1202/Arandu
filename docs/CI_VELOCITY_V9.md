@@ -113,6 +113,10 @@ termos críticos no caminho continuam prevalecendo. SVG/HTML/JSON/Markdown,
 contratos de API, CI, governança, Auth, SQL e infraestrutura não recebem essa
 exceção. `CONTRACT_PORTFOLIO_SCALE.md`, por exemplo, define contratos de API e
 permanece D. Evidência de release/recovery não é documentação explicativa.
+A auditoria também fechou um falso negativo: E2E fora da seleção executada pelo
+caminho rápido (como perf-journey-weight, demo-persona-entry e Work OS) ficam em
+D. Só suítes finance-* canônicas e o tour público, efetivamente executados no
+fast path, podem receber B. Suíte nova/desconhecida não fica em B por extensão.
 
 `npm run ci:prepublish` confirma main remota/ancestralidade antes e depois,
 executa check:all hermético, builds regular/Demo, budgets e integridade de assets.
