@@ -16,15 +16,26 @@ export function dueText(row) {
 }
 
 export function contractObligationsSection(ctx, contract, { manage = false } = {}) {
-  const ledger = ctx.href(`/finance/covenants.html?${new URLSearchParams({ contract_id: contract.id, contrato: contract.id })}`);
-  const head = el('div', { class: 'cc-head' }, [el('h3', { id: `obl-${contract.id}`, text: 'Covenants e obrigações' }),
+  return obligationsSection(ctx, { key: contract.id, filter: { contract_id: contract.id }, ledger: { contract_id: contract.id, contrato: contract.id }, manage,
+    empty: 'Nenhum covenant ou obrigação registrado para este contrato. Ausência de registro não significa conformidade.' });
+}
+
+/** Obrigações em aberto de uma instituição (Relationship 360°): mesmo leitor, filtro do servidor. */
+export function providerObligationsSection(ctx, provider) {
+  return obligationsSection(ctx, { key: provider.id, filter: { provider_id: provider.id, status: 'open' }, ledger: { provider_id: provider.id }, title: 'Obrigações em aberto com esta instituição',
+    empty: 'Nenhuma obrigação em aberto registrada com esta instituição. Ausência de registro não significa conformidade.' });
+}
+
+function obligationsSection(ctx, { key, filter, ledger: ledgerQuery, manage = false, title = 'Covenants e obrigações', empty }) {
+  const ledger = ctx.href(`/finance/covenants.html?${new URLSearchParams(ledgerQuery)}`);
+  const head = el('div', { class: 'cc-head' }, [el('h3', { id: `obl-${key}`, text: title }),
     el('a', { class: 'btn btn-sm btn-ghost', href: ledger, text: manage ? 'Registrar ou revisar' : 'Abrir registro' })]);
-  const box = el('section', { class: 'cc-section contract-obligations', 'aria-labelledby': `obl-${contract.id}` }, [head, loading('Carregando obrigações…')]);
+  const box = el('section', { class: 'cc-section contract-obligations', 'aria-labelledby': `obl-${key}` }, [head, loading('Carregando obrigações…')]);
   const who = (id) => !id ? 'Responsável não definido' : (ctx.members || []).find((m) => m.user_id === id)?.display_name || 'Pessoa fora da sua lista de membros';
-  ctx.api(`covenants?${new URLSearchParams({ organization_id: ctx.organization.id, contract_id: contract.id })}`).then((page) => {
+  ctx.api(`covenants?${new URLSearchParams({ organization_id: ctx.organization.id, ...filter })}`).then((page) => {
     const rows = page.rows || [];
     if (!rows.length) {
-      box.replaceChildren(head, mutedText('Nenhum covenant ou obrigação registrado para este contrato. Ausência de registro não significa conformidade.'));
+      box.replaceChildren(head, mutedText(empty));
       return;
     }
     box.replaceChildren(head,
@@ -37,7 +48,7 @@ export function contractObligationsSection(ctx, contract, { manage = false } = {
       mutedText('Estado factual do período; conformidade só após revisão humana independente.'));
   }).catch((error) => {
     box.replaceChildren(head, el('p', { class: error.status === 503 || error.status === 404 ? 'muted small' : 'callout callout-warning compact', role: error.status === 503 || error.status === 404 ? null : 'alert',
-      text: error.status === 403 ? 'Seu acesso não permite ver as obrigações deste contrato.' : error.status === 503 || error.status === 404 ? 'Registro de covenants indisponível neste ambiente.' : 'Não conseguimos carregar as obrigações agora. Isso não significa que não existam.' }));
+      text: error.status === 403 ? 'Seu acesso não permite ver as obrigações deste recorte.' : error.status === 503 || error.status === 404 ? 'Registro de covenants indisponível neste ambiente.' : 'Não conseguimos carregar as obrigações agora. Isso não significa que não existam.' }));
   });
   return box;
 }

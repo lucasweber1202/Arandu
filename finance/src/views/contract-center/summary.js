@@ -8,6 +8,8 @@ import { CONTRACT_CATEGORIES } from '../../../../lib/finance/contract-terms.mjs'
 import { renewalButton } from './renewal.js';
 import { lazyDocuments } from '../shared/documents.js';
 
+const SIGNAL_ACTION = Object.freeze({ contract_terms_missing: 'terms', contract_notice_missing: 'amendment', contract_document_missing: 'documents',
+  contract_owner_missing: 'owner', contract_owner_membership_review: 'owner', contract_renewal_review: 'renewal', contract_status_review: 'renewal' });
 const isoDay = (value) => (/^\d{4}-\d{2}-\d{2}/.test(value || '') ? value.slice(0, 10) : null);
 
 /**
@@ -29,7 +31,13 @@ export function contractSummary(detail, { members = [] } = {}) {
   if (live && isoDay(c.ends_on) && !deadline) gaps.push({ key: 'notice', text: 'Sem aviso prévio registrado: a data-limite para avisar a não renovação é desconhecida.', action: 'amendment' });
   if (live && !c.owner_id) gaps.push({ key: 'owner', text: 'Sem responsável: ninguém recebe os avisos de renovação deste contrato.' });
   if (!c.document_reference) gaps.push({ key: 'document', text: 'Sem referência do documento assinado: as condições registradas não têm evidência vinculada.', action: 'documents' });
+  // v8: sinais calculados no servidor (contract-operational.mjs) são a fonte
+  // canônica; a regra local acima só vale quando a API não os traz (sandbox,
+  // versões anteriores). Código → ação existente nesta tela.
+  const serverGaps = Array.isArray(detail.next_actions) ? detail.next_actions.map((signal) => ({
+    key: signal.code, text: signal.reason, action: SIGNAL_ACTION[signal.code] || null })) : null;
   return {
+    serverSignals: Boolean(serverGaps), observedOn: detail.information_quality?.observed_on || null,
     product: CONTRACT_CATEGORIES[c.product] || 'Produto financeiro',
     status: CONTRACT_STATUS[c.status] || null,
     origin: detail.source_rfq ? { kind: 'sourcing', rfq: detail.source_rfq } : { kind: c.origin === 'imported' ? 'imported' : 'manual' },
@@ -40,7 +48,7 @@ export function contractSummary(detail, { members = [] } = {}) {
     autoRenew: c.auto_renew === true ? 'Sim' : c.auto_renew === false ? 'Não' : 'Não informado',
     version: detail.effective?.version || null,
     owner: c.owner_id ? owner?.display_name || 'Pessoa sem acesso atual a esta organização' : null,
-    gaps,
+    gaps: serverGaps || gaps,
   };
 }
 
@@ -68,7 +76,9 @@ export function contractSummaryCard(ctx, detail, { onStructureTerms = null, onAm
     if (!manage) return null;
     if (gap.action === 'terms' && onStructureTerms) return button('Estruturar termos', { size: 'sm', onClick: onStructureTerms });
     if (gap.action === 'amendment' && onAmendment && ['active', 'renewing'].includes(c.status)) return button('Registrar aditivo', { size: 'sm', variant: 'ghost', onClick: onAmendment });
-    return null;
+    // Leva ao bloco da mesma gaveta que resolve a lacuna (sem nova tela).
+    const jump = { documents: ['.lazy-documents, [data-documents]', 'Ver documentos'], owner: ['[aria-labelledby^="owner-"]', 'Ver responsável'], renewal: ['.contract-summary .row-actions', 'Ver renovação'] }[gap.action];
+    return jump ? button(jump[1], { size: 'sm', variant: 'ghost', onClick: (event) => { const scope = event.currentTarget.closest('.contract-center') || document; const target = scope.querySelector(jump[0]); target?.scrollIntoView({ behavior: 'smooth', block: 'center' }); target?.querySelector('button, a, summary')?.focus({ preventScroll: true }); } }) : null;
   };
   const gaps = s.gaps.length
     ? el('ul', { class: 'contract-gaps', 'aria-label': 'Lacunas que impedem decisões' }, s.gaps.map((gap) => el('li', { class: 'contract-gap', dataset: { gap: gap.key } }, [
@@ -80,6 +90,7 @@ export function contractSummaryCard(ctx, detail, { onStructureTerms = null, onAm
     s.deadlinePassed ? el('p', { class: 'callout callout-warning compact', role: 'note', text: `O prazo para avisar a não renovação passou em ${formatDate(s.deadline)}. Confira o contrato antes de agir.` }) : null,
     facts,
     el('h4', { class: 'small', text: 'O que falta para decidir' }), gaps,
+    s.serverSignals ? mutedText(`Sinais calculados pelo servidor sobre o que está registrado${s.observedOn ? ` (${formatDate(s.observedOn)})` : ''}; não avaliam qualidade de crédito nem conformidade.`) : null,
     lazyDocuments(ctx, 'contract', c.id, 'Documentos e evidências do contrato', { canUpload: ctx.can('upload_document') }),
     el('div', { class: 'row-actions' }, [renewalButton(ctx, { ...c, provider_name: c.provider_name })]),
   ]);
