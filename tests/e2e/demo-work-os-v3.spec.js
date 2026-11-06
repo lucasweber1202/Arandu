@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { distribution } from '../../scripts/performance-contract.mjs';
 
 // Ultimate Financial Work OS (demonstração): estado local-first, decisão
 // otimista com fila offline, colaboração com escopo, menções, notificações,
@@ -332,7 +333,23 @@ test('desempenho: sem ouvintes acumulando entre re-renders; medições dentro do
   await page.evaluate(() => { window.__aranduCtx && document.dispatchEvent(new Event('noop')); });
   expect(await count()).toBeLessThanOrEqual(before + 2);
   const route = await page.evaluate(() => globalThis.__aranduWorkOS.perfSummary().find((row) => row.name === 'route'));
-  expect(route.p95).toBeLessThan(1500);
+  // A route mark is navigation-start → first render, not a re-render sample.
+  // Keep the initial observation and collect a fixed 20 navigations per attempt.
+  // No outlier deletion, warm-up exclusion or pooling across retries/browsers.
+  const samples = [route.last];
+  for (let sample = 1; sample < 20; sample += 1) {
+    await ready(page, `/demo/finance/rfq.html?id=${CAPITAL}`);
+    samples.push(await page.evaluate(() => globalThis.__aranduWorkOS.perfSummary().find(row => row.name === 'route').last));
+  }
+  const summary = distribution(samples);
+  const mean = samples.reduce((sum, value) => sum + value, 0) / samples.length;
+  const variability = { ...summary, min_ms: Math.min(...samples), max_ms: Math.max(...samples),
+    stddev_ms: Math.sqrt(samples.reduce((sum, value) => sum + (value - mean) ** 2, 0) / samples.length),
+    samples_ms: samples, retry: testInfo.retry, project: testInfo.project.name,
+    scope: 'local navigation timing; not a population SLA' };
+  await testInfo.attach('route-variability', { body: JSON.stringify(variability), contentType: 'application/json' });
+  expect(summary.samples).toBe(20);
+  expect(summary.p95_ms, JSON.stringify(variability)).toBeLessThan(1500);
   await page.keyboard.press('Alt+Shift+D');
   await expect(page.locator('#perf-debug')).toContainText('Ouvintes');
   await page.keyboard.press('Alt+Shift+D');

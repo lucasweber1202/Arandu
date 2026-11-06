@@ -37,7 +37,7 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
  if(process.argv[2]==='--job-outputs') {
    sha=process.env.GITHUB_SHA;
    plan=unpackReceipt(process.env.BROWSER_PLAN);
-   receipts=[unpackReceipt(process.env.BROWSER_GECKO),unpackReceipt(process.env.BROWSER_MOBILE)];
+   receipts=Object.keys(BROWSER_GROUPS).map(group=>unpackReceipt(process.env['BROWSER_'+group.toUpperCase()]));
  } else {
    const directory=process.argv[2];sha=process.argv[3];
    const read=name=>JSON.parse(fs.readFileSync(path.join(directory,name),'utf8'));

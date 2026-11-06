@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { seedQuotaReport } from '../ci/seed-quota-report.mjs';
 // Seed e reset da demonstração canônica do Arandu (Vitta Foods S.A.).
 //
 //   npm run demo:seed    → semeia um banco DEMO vazio (ou já marcado e sem a Vitta)
@@ -1157,6 +1158,7 @@ function writeTiming(success) {
   report.sanity=sanityEvidence;
   fs.mkdirSync(directory,{recursive:true});
   fs.writeFileSync(path.join(directory,`seed-${WORKSPACE||'baseline'}-${MODE}.json`),JSON.stringify(report,null,2)+'\n',{mode:0o600});
+  if(report.requests.length)console.log('ARANDU_SEED_QUOTA '+JSON.stringify(seedQuotaReport(report)));
   console.log('ARANDU_SEED_TIMING '+JSON.stringify({result:report.result,wall_ms:report.wall_ms,waits:report.waits,requests:report.requests.reduce((n,r)=>n+r.attempts,0)}));
 }
 main().then(()=>writeTiming(true)).catch((error) => {

@@ -62,7 +62,7 @@
     "check:env:release": "node scripts/check-production-env.mjs --require-ready",
     "check:evidence": "node scripts/test-release-evidence.mjs && node scripts/check-release-evidence.mjs",
     "check:evidence:release": "node scripts/check-release-evidence.mjs --require-ready",
-    "check:governance": "node scripts/ci/test-risk-policy.mjs && node scripts/test-ci-acceleration.mjs && node scripts/test-demo-backpressure.mjs && node scripts/check-governance.mjs && node scripts/test-merge-gates.mjs && node scripts/test-ci-browser-preparation.mjs && node scripts/test-consolidation.mjs && node scripts/test-release-candidate.mjs && node scripts/test-live-governance.mjs && node scripts/test-stage0-static-preflight.mjs",
+    "check:governance": "node scripts/test-ci-velocity.mjs && node scripts/test-ci-seed-browser.mjs && node scripts/ci/test-risk-policy.mjs && node scripts/test-ci-acceleration.mjs && node scripts/test-demo-backpressure.mjs && node scripts/check-governance.mjs && node scripts/test-merge-gates.mjs && node scripts/test-ci-browser-preparation.mjs && node scripts/test-consolidation.mjs && node scripts/test-release-candidate.mjs && node scripts/test-live-governance.mjs && node scripts/test-stage0-static-preflight.mjs",
     "merge:gates": "node scripts/check-merge-gates.mjs",
     "check:staging": "node scripts/test-operational-tooling.mjs && node scripts/test-ci-demo.mjs && node scripts/test-staging-workflow.mjs && node scripts/check-staging-rehearsal.mjs && node scripts/test-pending-migration-bundle.mjs && node scripts/test-pilot-backup-preflight.mjs && node scripts/test-consolidation-export.mjs && node scripts/test-recovery-transfer.mjs && node scripts/test-storage-recovery.mjs && node scripts/test-recovery-doctor.mjs && node scripts/test-recovery-reconciliation.mjs && node scripts/test-recovery-github.mjs",
     "check:live": "node scripts/check-live-production.mjs",
@@ -119,7 +119,10 @@
     "check:public-publication": "node scripts/test-publication-proof.mjs && node scripts/test-performance-contract.mjs && node scripts/test-request-receipt-harness.mjs",
     "smoke:public-demo": "node --use-env-proxy scripts/smoke-public-demo.mjs",
     "benchmark:domain": "node scripts/benchmark-proposal-join.mjs",
-    "recovery:github:check": "node scripts/check-recovery-github.mjs"
+    "recovery:github:check": "node scripts/check-recovery-github.mjs",
+    "ci:preflight": "node scripts/ci/preflight.mjs",
+    "ci:prepublish": "node scripts/ci-prepublish.mjs",
+    "ci:report": "node scripts/ci/velocity-report.mjs"
   },
   "dependencies": {
     "@vercel/functions": "3.10.5",

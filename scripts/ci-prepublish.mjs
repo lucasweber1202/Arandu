@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 // Cheap pre-publication checks, never merge/release authorization or deep CI.
-import fs from 'node:fs';
 import { spawnSync,execFileSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
-import { classifyChanges } from './ci/risk-policy.mjs';
+import { preflight } from './ci/preflight.mjs';
 const stages=[],start=performance.now();
 const git=(...args)=>{try{return execFileSync('git',args,{encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();}catch{throw Error('git_'+args[0].replaceAll('-','_')+'_failed');}};
 function stage(name,command,args,env=process.env) {
@@ -21,11 +20,9 @@ try {
  if(!/^[a-f0-9]{40}$/.test(remote)||remote!==base)throw Error('fetch_main_before_prepublish');
  try {git('merge-base','--is-ancestor',base,sha);}catch{throw Error('main_not_ancestor');}
  if(git('status','--porcelain','--untracked-files=normal'))throw Error('commit_checkpoint_before_prepublish');
- const fields=execFileSync('git',['diff','--name-status','-z','--find-renames',`${base}...${sha}`],{encoding:'utf8'}).split('\0');
- const changes=[];
- for(let i=0;i<fields.length&&fields[i];){const status=fields[i++],filename=fields[i++];changes.push(status.startsWith('R')?{status:'renamed',previous_filename:filename,filename:fields[i++]}:{status:status==='D'?'removed':status==='A'?'added':'modified',filename});}
- const plan=classifyChanges(changes,{readSource:file=>fs.existsSync(file)?fs.readFileSync(file,'utf8'):null});risk=plan.risk;
- console.log(JSON.stringify({tool:'arandu-ci-prepublish',sha,base,risk,changed_files:changes.map(c=>c.filename),scope:'CHEAP_LOCAL_CHECKS_ONLY',ci_required:true,deep_ci_required:risk==='D'}));
+ const plan=preflight();risk=plan.risk;
+ console.log(JSON.stringify(plan));
+ console.log(JSON.stringify({tool:'arandu-ci-prepublish',sha,base,risk,changed_files:plan.reasons.map(r=>r.path),scope:'CHEAP_LOCAL_CHECKS_ONLY',ci_required:true,deep_ci_required:risk==='D'}));
  // Match the public site fixture inherited by source/deploy CI jobs. Local
  // integration fixtures must override it themselves, never relax host guards.
  stage('source_contracts',process.execPath,['scripts/run-hermetic.mjs','npm','run','check:all'],{...process.env,ARANDU_SITE_URL:'https://arandu.example.com'});

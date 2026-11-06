@@ -99,6 +99,7 @@ test('preflight local falha cedo se Node não for 24 ou faltarem as ferramentas 
   assert(runner.indexOf('preflight)') < runner.indexOf('images)'), 'tool preflight deve preceder provisionamento');
   const install = workflow.slice(workflow.indexOf('      - name: Preflight'), workflow.indexOf('      - name: Block hosted'));
   assert.match(install, /command -v age-keygen/);
+  assert(install.indexOf('scripts/configure-ci-apt.mjs')<install.indexOf('sudo apt-get update'),'signed archive and bounded network retries must precede apt');
 });
 test('workflow: limpeza e evidência sempre executam', () => {
   for (const name of ['Collect sanitized evidence', 'Final Demo rehearsal decision', 'Teardown (containers, volumes, keys)', 'Upload sanitized evidence']) {
@@ -151,7 +152,11 @@ test('recovery usa seed verificado antes da jornada que cadastra fatores MFA', (
   }
 });
 test('Playwright: só Chromium, um worker, sem trace', () => {
-  assert.match(workflow, /npx playwright install --with-deps chromium\n/);
+  assert.match(workflow, /run: node scripts\/ci-demo\/seed-browser\.mjs/);
+  const prepare=fs.readFileSync('scripts/ci-demo/seed-browser.mjs','utf8');
+  assert.match(prepare,/args:\['playwright','install','--with-deps','chromium'\]/);
+  assert.match(prepare,/bash scripts\/ci-demo\/run\.sh seed-pool/);
+  assert.match(workflow,/run: node scripts\/ci-demo\/seed-browser\.mjs --verify/);
   assert.doesNotMatch(workflow, /firefox|webkit/);
   assert.match(runner, /--workers 1 --trace off/);
 });

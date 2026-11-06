@@ -1,3 +1,4 @@
+import { PRODUCT_E2E } from '../e2e-suites.mjs';
 // Política fechada de CI proporcional ao risco (v6.2).
 //
 // A — apresentação simples: estática, build e smoke de superfície.
@@ -91,13 +92,17 @@ function classifyPath(path, { status, readSource }) {
     return { risk: 'D', why: 'critical surface' };
   }
   const removed = status === 'removed';
+  // Passive raster test evidence is not a contract or executable document.
+  // Critical path terms above still win. SVG/HTML/JSON/Markdown stay closed.
+  if (/^docs\/evidence\/[a-z0-9_./-]+\.(?:png|jpg|webp)$/.test(path)) return { risk: 'A', why: 'passive raster test evidence' };
   if (/^(?:README|CHANGELOG)\.md$/.test(path)) return { risk: 'A', why: 'explanatory doc' };
   const doc = path.match(/^docs\/([A-Za-z0-9_]+)\.md$/);
   if ((doc && FUNCTIONAL_DOCS.has(doc[1])) || FUNCTIONAL_DOC.test(path)) return { risk: 'A', why: 'functional doc' };
   if (/^finance\/(?:style\.css|src\/icons\.svg)$/.test(path)) return { risk: 'A', why: 'style/asset' };
   if (/^finance\/(?:styles|assets)\/.+\.(?:css|svg|png|jpg|webp)$/.test(path)) return { risk: 'A', why: 'style/asset' };
   if (/^finance\/src\/.+\.js$/.test(path)) return { risk: 'B', why: 'view/component' };
-  if (/^tests\/e2e\/[a-z0-9-]+\.(?:spec\.)?js$/.test(path)) return { risk: 'B', why: 'browser test' };
+  if (path === 'tests/e2e/public-tour.spec.js' || (/^tests\/e2e\/finance-[a-z0-9-]+\.spec\.js$/.test(path) && PRODUCT_E2E.includes(path))) return { risk: 'B', why: 'browser test executed by the fast path' };
+  if (path.startsWith('tests/e2e/')) return { risk: 'D', why: 'browser suite outside verified fast-path selection' };
   if (PURE_MODULES.has(path) || PRESENTER.test(path)) {
     if (removed) return { risk: 'B', why: 'pure module removed (build + all suites)' };
     return isPureModule(readSource(path))

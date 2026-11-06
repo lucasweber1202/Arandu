@@ -24,12 +24,17 @@ for (const [job,section] of [['browser',browserWorkflow],['presentation',workflo
   assert.ok(tests>verify,`${job} suite must follow verification`);
   assert.doesNotMatch(steps[tests],/if:.*!cancelled\(\)|continue-on-error:/,`${job} suite fails closed`);
 }
-for(const job of ['validate','validate-mobile']) {
+for(const job of ['validate','validate-webkit','validate-safari']) {
  const section=workflow.split(new RegExp(`^  ${job}:`,'m'))[1].split(/^  [a-z][\w-]*:/m)[0];
  assert.match(section,/needs: validate-source/);assert.match(section,/uses: \.\/\.github\/workflows\/ci-browser\.yml/);
 }
-assert.match(workflow,/needs: \[validate-source, validate, validate-mobile\]/);
+assert.match(workflow,/needs: \[validate-source, validate, validate-webkit, validate-safari\]/);
 assert.match(workflow,/node scripts\/ci-browser-coverage\.mjs --job-outputs/);
 assert.match(workflow,/Cheap explicit Demo build and unchanged budgets before browsers/);
 assert.doesNotMatch(workflow.split(/^  browser-coverage:/m)[1].split(/^  presentation:/m)[0],/continue-on-error:/);
 console.log('CI browser preparation: signed source preservation, transport scope, idempotence and suite fail-fast PASS.');
+
+assert.match(browserWorkflow,/browserEngines/);
+assert.match(browserWorkflow,/install-deps \$BROWSER_ENGINES/);
+assert.match(browserWorkflow,/run: npx playwright install \$BROWSER_ENGINES/);
+assert.match(browserWorkflow,/hashFiles\('package-lock.json'\) }}-\$\{\{ inputs.browser_group }}/);

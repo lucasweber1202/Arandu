@@ -1,6 +1,9 @@
 import { chromium, firefox, webkit } from '@playwright/test';
+import { browserEngines } from './ci-browser-groups.mjs';
+const selected=process.env.ARANDU_BROWSER_GROUP?browserEngines(process.env.ARANDU_BROWSER_GROUP):['chromium','firefox','webkit'];
 
-for (const [name, engine] of Object.entries({ chromium, firefox, webkit })) {
+for (const name of selected) {
+  const engine={chromium,firefox,webkit}[name];
   let browser;
   try {
     browser = await engine.launch({ headless: true, timeout: 30000 });

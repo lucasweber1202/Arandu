@@ -94,8 +94,14 @@ test('busca: falha ao carregar o módulo avisa sem detalhe técnico e recarregar
   await expect(notice).toBeVisible();
   await expect(page.getByText(/dynamically|assets\//)).toHaveCount(0);
   block = false;
-  await page.getByRole('button', { name: 'Recarregar' }).click();
+  // Register before clicking: networkidle on the old document may already
+  // be satisfied while WebKit is still starting the reload navigation.
+  await Promise.all([
+    page.waitForEvent('domcontentloaded'),
+    page.getByRole('button', { name: 'Recarregar' }).click()
+  ]);
   await page.waitForLoadState('networkidle');
+  await expect(page.locator('#view')).toHaveAttribute('aria-busy', 'false');
   await page.keyboard.press('Control+k');
   await expect(page.getByRole('dialog', { name: 'Buscar no espaço da empresa' })).toBeVisible();
 });

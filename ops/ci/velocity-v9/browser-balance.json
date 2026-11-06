@@ -1,0 +1,86 @@
+{
+  "source_run": 41898780191,
+  "source_cases": 2020,
+  "worker_ms_by_project": {
+    "mobile-safari": 1593170,
+    "webkit-desktop": 1709595,
+    "firefox-desktop": 1142258,
+    "mobile-chrome": 715619,
+    "chromium-desktop": 696867
+  },
+  "designs": [
+    {
+      "name": "two",
+      "groups": [
+        [
+          "firefox-desktop",
+          "webkit-desktop"
+        ],
+        [
+          "chromium-desktop",
+          "mobile-chrome",
+          "mobile-safari"
+        ]
+      ],
+      "worker_ms": [
+        2851853,
+        3005656
+      ],
+      "max_worker_ms": 3005656,
+      "total_worker_ms": 5857509
+    },
+    {
+      "name": "three",
+      "groups": [
+        [
+          "webkit-desktop"
+        ],
+        [
+          "mobile-safari"
+        ],
+        [
+          "chromium-desktop",
+          "mobile-chrome",
+          "firefox-desktop"
+        ]
+      ],
+      "worker_ms": [
+        1709595,
+        1593170,
+        2554744
+      ],
+      "max_worker_ms": 2554744,
+      "total_worker_ms": 5857509
+    },
+    {
+      "name": "four",
+      "groups": [
+        [
+          "chromium-desktop",
+          "mobile-chrome"
+        ],
+        [
+          "firefox-desktop"
+        ],
+        [
+          "webkit-desktop"
+        ],
+        [
+          "mobile-safari"
+        ]
+      ],
+      "worker_ms": [
+        1412486,
+        1142258,
+        1709595,
+        1593170
+      ],
+      "max_worker_ms": 1709595,
+      "total_worker_ms": 5857509
+    }
+  ],
+  "limitations": [
+    "Worker time is the sum of test durations, not wall-clock, queue or runner minutes.",
+    "Each additional job pays checkout/install/system dependency overhead. Measure actual CI before accepting the partition."
+  ]
+}

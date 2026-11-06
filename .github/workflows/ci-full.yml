@@ -52,7 +52,7 @@ jobs:
       - name: Real synthetic encrypted export and same-backup restore
         run: node scripts/test-recovery-real.mjs
 
-  # Cheap source + both build budgets gate browser setup. Both measured groups
+  # Cheap source + both build budgets gate browser setup. All three disjoint groups
   # preserve all five projects; explicit coverage receipts fail closed per SHA.
   # Full deploy boundaries remain mandatory in parallel, before final contexts.
   validate-source:
@@ -136,30 +136,37 @@ jobs:
     needs: validate-source
     uses: ./.github/workflows/ci-browser.yml
     with:
-      browser_group: gecko_webkit
+      browser_group: chromium_firefox
 
-  validate-mobile:
+  validate-webkit:
     needs: validate-source
     uses: ./.github/workflows/ci-browser.yml
     with:
-      browser_group: chromium_mobile
+      browser_group: webkit
+
+  validate-safari:
+    needs: validate-source
+    uses: ./.github/workflows/ci-browser.yml
+    with:
+      browser_group: safari
 
   browser-coverage:
-    needs: [validate-source, validate, validate-mobile]
+    needs: [validate-source, validate, validate-webkit, validate-safari]
     if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     env:
       BROWSER_PLAN: ${{ needs.validate-source.outputs.plan }}
-      BROWSER_GECKO: ${{ needs.validate.outputs.receipt }}
-      BROWSER_MOBILE: ${{ needs.validate-mobile.outputs.receipt }}
+      BROWSER_CHROMIUM_FIREFOX: ${{ needs.validate.outputs.receipt }}
+      BROWSER_WEBKIT: ${{ needs.validate-webkit.outputs.receipt }}
+      BROWSER_SAFARI: ${{ needs.validate-safari.outputs.receipt }}
     steps:
       - name: Checkout coverage verifier
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           sparse-checkout: scripts
-      - name: Check exact SHA and complete union of both browser groups
+      - name: Check exact SHA and complete union of all three browser groups
         run: node scripts/ci-browser-coverage.mjs --job-outputs
 
   presentation:
@@ -169,6 +176,8 @@ jobs:
     env:
       ARANDU_SITE_URL: https://arandu.example.com
       ARANDU_PRESENTATION_MODE: "true"
+      ARANDU_BROWSER_PROFILE_DIR: reports/ci-performance/presentation
+      ARANDU_BROWSER_GROUP: presentation
       VERCEL_ENV: preview
     steps:
       - name: Checkout
