@@ -214,6 +214,20 @@ await attack('Nova RFQ: B usa o link de "Banco A" (cadastro já vinculado à con
   const legit = await api(people.providerA, 'POST', '/api/finance/invites/accept', { token: tokenA2, provider_organization_id: ctx.orgA });
   return { ok: hijack.status >= 400 && legit.status === 200, observed: `B ${hijack.status} ${hijack.data?.code}; A ${legit.status}` };
 });
+await step('RFQs paginadas: readback completo, sem duplicação e cursor vinculado ao filtro', async () => {
+  const base = `/api/finance/rfqs?organization_id=${ctx.buyerOrg}&paged=1&limit=1`;
+  const first = ok(await api(people.buyer, 'GET', base), 'primeira página');
+  must(first.rows.length === 1 && first.page.has_more && first.page.next_cursor, 'continuação ausente');
+  const second = ok(await api(people.buyer, 'GET', `${base}&cursor=${first.page.next_cursor}`), 'segunda página');
+  const ids = [...first.rows, ...second.rows].map(row=>row.id);
+  must(new Set(ids).size === 2 && ids.includes(ctx.rfq) && ids.includes(ctx.rfq2), 'RFQ perdida ou duplicada na continuação');
+  must(second.page.has_more === false && second.page.next_cursor === null, 'fim da listagem incorreto');
+  const changed = await api(people.buyer, 'GET', `${base}&status=open&cursor=${first.page.next_cursor}`);
+  must(changed.status === 400 && changed.data.code === 'invalid_operational_page', 'cursor aceitou outros filtros');
+  const outsider = await api(people.outsider, 'GET', base);
+  must(outsider.status === 403, 'externo paginou solicitações do comprador');
+  return 'duas RFQs persistidas em duas páginas; filtro alterado 400, externo 403';
+});
 await attack('Convite expirado (e-mail certo)', 'recusado', async () => {
   const tokenB2 = ok(await api(people.buyer, 'POST', '/api/finance/invites/send', { rfq_id: ctx.rfq2, provider_id: ctx.provB }), 'convite B2').invitationToken;
   ctx.tokenB2 = tokenB2;
@@ -378,12 +392,14 @@ await step('Lifecycle contextual: decisão preservada, contrato, Central e taref
   must(!context[0].snapshot, 'fotografias concorrentes desnecessárias no handoff');
   const detail = ok(await api(people.buyer, 'GET', `/api/finance/contract-detail?id=${ctx.contract}`), 'contrato');
   must(detail.source_rfq?.id===ctx.rfq, 'origem do contrato perdida');
+  const tower = ok(await api(people.buyer, 'GET', `/api/finance/contracts?organization_id=${ctx.buyerOrg}&paged=1&limit=1&provider_id=${detail.contract.provider_id}`), 'carteira contratual');
+  must(tower.rows.some(row=>row.id===ctx.contract && row.decision_id===ctx.decision && row.proposal_id===ctx.propB), 'carteira divergiu do contrato canônico');
   const relationship = ok(await api(people.buyer, 'GET', `/api/finance/provider-relationship?organization_id=${ctx.buyerOrg}&provider_id=${detail.contract.provider_id}`), 'Central');
   must(relationship.contracts.some(row=>row.id===ctx.contract), 'contrato não aparece no relacionamento');
-  const task = ok(await api(people.buyer, 'POST', '/api/finance/tasks', {organization_id:ctx.buyerOrg,title:'Conferir condições contratadas',due_on:addDays(5),related_type:'contract',related_id:ctx.contract,idempotency_key:crypto.randomUUID()}), 'próxima ação').row;
+  const task = ok(await api(people.buyer, 'POST', '/api/finance/tasks', {organization_id:ctx.buyerOrg,title:'Conferir condições contratadas',due_on:addDays(5),assignee_id:people.buyer.id,related_type:'contract',related_id:ctx.contract,idempotency_key:crypto.randomUUID()}), 'próxima ação').row;
   ok(await api(people.buyer, 'PATCH', '/api/finance/tasks', {organization_id:ctx.buyerOrg,task_id:task.id,status:'done'}), 'concluir ação');
   const done=ok(await api(people.buyer, 'GET', `/api/finance/tasks?organization_id=${ctx.buyerOrg}&contract_id=${ctx.contract}&status=done`), 'histórico de trabalho').rows;
-  must(done.some(row=>row.id===task.id && row.status==='done'), 'ação não foi persistida no contrato');
+  must(done.some(row=>row.id===task.id && row.status==='done' && row.assignee_id===people.buyer.id), 'ação não foi persistida no contrato');
   return 'RFQ → decisão/versionamento → contrato → instituição → tarefa concluída, com sessão e banco reais';
 });
 await step('Portal contextual: instituição lê somente sua proposta pelo link exato', async () => {
@@ -671,6 +687,17 @@ if (process.env.ARANDU_FINANCIAL_LAB === '1') {
   const { financialLifecycle } = await import('../financial-lab/lifecycle.mjs');
   await financialLifecycle({step,attack,api,ok,must,sql,people,ctx,today,addDays,upload});
 }
+
+await attack('Sessão revogada: replay de cookie e JWT ainda não expirado após logout real', 'API 401; PostgREST recusado', async () => {
+  const replay = { cookie: people.providerB.cookie };
+  const claims = JSON.parse(Buffer.from(accessToken(replay).split('.')[1], 'base64url').toString('utf8'));
+  must(claims.exp > Math.floor(Date.now()/1000), 'pré-condição: JWT expirado');
+  ok(await api(replay, 'GET', `/api/finance/proposals?organization_id=${ctx.orgB}`), 'sessão antes da revogação');
+  ok(await api(people.providerB, 'POST', '/api/auth/logout', {}), 'logout real');
+  const route = await api(replay, 'GET', `/api/finance/proposals?organization_id=${ctx.orgB}`);
+  const direct = await rest(replay, `fin_proposals?select=id&provider_organization_id=eq.${ctx.orgB}`);
+  return { ok: route.status === 401 && [401,403].includes(direct.status), observed: `API ${route.status}; PostgREST ${direct.status}; JWT não expirado` };
+});
 
 // ----------------------------------------------------------------- relatório
 const table = (rows, columns) => [`| ${columns.join(' | ')} |`, `| ${columns.map(() => '---').join(' | ')} |`, ...rows.map((row) => `| ${columns.map((column) => String(row[column] ?? '').replace(/\|/g, '/').replace(/\n/g, ' ')).join(' | ')} |`)].join('\n');

@@ -1,4 +1,4 @@
-# Arandu 9.1 — contrato de integração v1
+# Arandu 9.1 — contrato de integração v1.1
 
 Base comum: `4f9e01b27ec33359cfe2a7b07e26af926c4fe6aa`. Coordenação: issue #334.
 Proprietário: Codex. Frontend: Claude em `claude/arandu-9-1-product`.
@@ -82,8 +82,7 @@ RFQ usa `request_key` por intenção e recibo persistido; revisão usa expected_
 decisão usa expected_version, snapshot e locks. Repetir criação de RFQ pode retornar
 ID existente. Não presumir replay seguro de **todas** as demais operações: submissão
 pode gerar nova versão; convite pode rotacionar token. Após resposta perdida, consultar
-estado persistido antes de repetir. Testes reais ainda precisam aferir concorrência,
-repetição de decisão/contrato e sessão revogada no SHA desta missão.
+estado persistido antes de repetir. O ensaio real desta missão comprova replay de sessão revogada, paginação e cron concorrente; concorrência e replay de decisão/contrato também têm cobertura SQL existente, registrada separadamente da API.
 
 ## Exemplo sintético mínimo
 
@@ -106,5 +105,24 @@ repetição de decisão/contrato e sessão revogada no SHA desta missão.
 | Multi-tenant, instituições, revogação, concorrência | NÃO VERIFICADA nesta missão | testes existentes não substituem execução nesta base |
 | Hospedados | NÃO VERIFICADA | sem mutações; preservar legado e bloqueio de cutover |
 
-Não há endpoint novo autorizado por esta v1. Claude deve registrar na issue #334
+Extensão retrocompatível v1.1: `GET rfqs?organization_id=<UUID>&paged=1` aceita
+`legal_entity_id` (UUID ou group), `status`, `product`, `limit` (1–100, padrão 25)
+e `cursor`. Retorna `{ok,rows,next_states,page:{limit,has_more,next_cursor},consistency}`.
+Usar `cursor=page.next_cursor` mantendo todos os filtros; cursor é vinculado a
+usuário/organização/filtros. Ordem estável por id asc; leituras são vivas, sem
+snapshot entre páginas. Não há total global inferido da página. Sem `paged=1`,
+o contrato legado permanece. Convites/propostas legados ainda têm cobertura limitada.
+
+Não há endpoint novo nesta versão. Claude deve registrar na issue #334
 qualquer impedimento concreto de interface e publicar seu SHA/base antes da integração.
+
+## Evidência do checkpoint v1.1
+
+`docs/integration/evidence/ARANDU_9_1_REAL_JOURNEY.md`: 27 etapas e 64 ataques via API/Auth/RLS/Storage
+reais, sem falhas. Inclui readback da carteira contratual (`contracts?paged=1`),
+Contract 360, instituição, tarefa atribuída/concluída, documentos e renovação.
+Portfolio de facilities é outra visão: só contém facilities registradas, não se
+deve fabricar uma facility para fazer um contrato de serviço aparecer nela.
+Frontend e quatro gates no SHA integrado continuam pendentes da entrega Claude.
+A matriz inicial acima permanece como baseline anterior à execução, não como
+classificação atual da evidência local.

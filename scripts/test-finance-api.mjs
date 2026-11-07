@@ -143,6 +143,39 @@ assert.equal(sent.length, 0, 'organization_id inválido não pode chegar ao banc
 reset(() => []);
 await rejects('GET', 'rfqs', { url: `/api/finance/rfqs?organization_id=${OTHER_ORG}` }, 403);
 
+// RFQ pagination: sentinel, deterministic continuation, bound filters and live JWT.
+{
+  const ids = [RFQ, '00000000-0000-4000-8000-0000000000f2'];
+  reset(entry => {
+    if (entry.url.includes('fin_organizations')) return orgRow(BUYER, 'BUYER');
+    if (entry.url.includes('fin_rfqs')) {
+      const q = new URL(entry.url).searchParams;
+      assert.equal(q.get('organization_id'), `eq.${BUYER}`);
+      assert.equal(q.get('status'), 'eq.open');
+      assert.equal(q.get('legal_entity_id'), 'is.null');
+      assert.equal(q.get('order'), 'id.asc');
+      assert.equal(q.get('limit'), '2');
+      assert.equal(entry.authorization, 'Bearer user-jwt');
+      return (q.has('or') ? ids.slice(1) : ids).map(id => ({id,status:'open'}));
+    }
+    return [];
+  });
+  const url = `/api/finance/rfqs?organization_id=${BUYER}&paged=1&limit=1&status=open&legal_entity_id=group`;
+  const first = (await call('GET', 'rfqs', {url})).payload;
+  assert.deepEqual(first.rows.map(row=>row.id), [ids[0]]);
+  assert.equal(first.page.has_more, true);
+  assert.deepEqual(Object.keys(first.next_states), [ids[0]]);
+  const cursor = first.page.next_cursor;
+  const second = (await call('GET', 'rfqs', {url: `${url}&cursor=${cursor}`})).payload;
+  assert.deepEqual(second.rows.map(row=>row.id), [ids[1]]);
+  assert.equal(second.page.next_cursor, null);
+  const reads = sent.filter(entry=>entry.url.includes('fin_rfqs')).length;
+  await rejects('GET', 'rfqs', {url: `${url.replace('status=open','status=closed')}&cursor=${cursor}`}, 400);
+  await rejects('GET', 'rfqs', {url: `${url}&limit=2`}, 400);
+  await rejects('GET', 'rfqs', {url: `${url}&unknown=value`}, 400);
+  assert.equal(sent.filter(entry=>entry.url.includes('fin_rfqs')).length, reads, 'invalid continuation must not read RFQs');
+}
+
 // ------------------------------------------------------ mass assignment
 
 reset((entry) => (entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : [{ id: RFQ }]));
