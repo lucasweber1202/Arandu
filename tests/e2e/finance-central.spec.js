@@ -176,3 +176,17 @@ test('Painel: "Aguardando instituições" mostra convites sem resposta e leva à
   await expect(card.getByRole('link', { name: 'Capital de giro 2027' })).toHaveAttribute('href', new RegExp(`rfq\\.html\\?id=${RFQ}`));
   await expect(card).toContainText('Aguardando 2 de 2 instituições');
 });
+
+// Arandu 9.1 — a pendência da Caixa de Trabalho leva ao Contract 360 aberto,
+// não apenas a uma linha destacada na lista de contratos.
+test('Caixa de Trabalho: pendência de contrato abre o Contract 360 do contrato vinculado', async ({ page }) => {
+  const task = { id: '00000000-0000-4000-8000-0000000000e1', organization_id: ORG, title: 'Enviar comprovante de garantia', status: 'open', due_on: day(5), assignee_id: 'u1', related_type: 'contract', related_id: C1 };
+  await setup(page, { overview: { ...OVERVIEW, tasks: [task] } });
+  await page.route('**/api/finance/tasks?*', (route) => route.fulfill({ json: { ok: true, rows: [task], page: { limit: 25, has_more: false, next_cursor: null } } }));
+  await page.goto('/finance/tasks.html');
+  const link = page.getByRole('link', { name: 'Atlas Bank · Capital de giro' });
+  await expect(link).toHaveAttribute('href', `/finance/contracts.html?abrir=contrato#contract-${C1}`);
+  await link.click();
+  await expect(page.getByRole('dialog', { name: 'Capital de giro' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+});

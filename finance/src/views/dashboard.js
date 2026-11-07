@@ -82,13 +82,13 @@ export function actionItems(ctx, approvals) {
       const stage = renewalStage(contract);
       if (stage.stage === 'window' && contract.status === 'active') {
         items.push({ rank: stage.daysToDeadline <= 7 ? 1 : 2, due: stage.daysToDeadline, tone: 'warning', icon: 'repeat', kind: 'Renovação', title: `Decidir renovação: ${contract.provider_name}`,
-          detail: `${productLabel(contract.product, { short: true })} · aviso prévio ${relativeDays(stage.deadline)} (${formatDate(stage.deadline)}) · vence ${formatDate(contract.ends_on)}`, cta: 'Decidir', href: ctx.href(`/finance/contracts.html#contract-${contract.id}`) });
+          detail: `${productLabel(contract.product, { short: true })} · aviso prévio ${relativeDays(stage.deadline)} (${formatDate(stage.deadline)}) · vence ${formatDate(contract.ends_on)}`, cta: 'Decidir', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${contract.id}`) });
       } else if (stage.stage === 'past_notice') {
         items.push({ rank: 1, due: stage.daysToDeadline, tone: 'danger', icon: 'alert', kind: 'Renovação', title: `Aviso prévio vencido: ${contract.provider_name}`,
-          detail: `Vence ${relativeDays(contract.ends_on)} (${formatDate(contract.ends_on)}). Negocie ou prepare a substituição.`, cta: 'Ver', href: ctx.href(`/finance/contracts.html#contract-${contract.id}`) });
+          detail: `Vence ${relativeDays(contract.ends_on)} (${formatDate(contract.ends_on)}). Negocie ou prepare a substituição.`, cta: 'Ver', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${contract.id}`) });
       } else if (stage.stage === 'window' && contract.status === 'renewing') {
         items.push({ rank: 3, tone: 'accent', icon: 'repeat', kind: 'Renovação', title: `Renovação em andamento: ${contract.provider_name}`,
-          detail: `Compare as propostas antes de ${formatDate(stage.deadline)}.`, cta: 'Acompanhar', href: ctx.href(`/finance/contracts.html#contract-${contract.id}`) });
+          detail: `Compare as propostas antes de ${formatDate(stage.deadline)}.`, cta: 'Acompanhar', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${contract.id}`) });
       }
     }
   }
@@ -287,7 +287,7 @@ export async function dashboard(ctx) {
     return el('li', { class: 'mini-row' }, [
       el('span', { class: `mini-icon ${inWindow ? 'tone-warning' : 'tone-neutral'}` }, icon(inWindow ? 'repeat' : 'calendar', { size: 14 })),
       el('div', { class: 'mini-main' }, [
-        el('a', { class: 'mini-title stretched', href: ctx.href(`/finance/contracts.html#contract-${contract.id}`), text: contract.provider_name }),
+        el('a', { class: 'mini-title stretched', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${contract.id}`), text: contract.provider_name }),
         el('span', { class: 'mini-meta', text: `${productLabel(contract.product, { short: true })} · ${stage.stage === 'past_notice' ? 'aviso prévio vencido' : inWindow ? `decidir até ${formatDate(stage.deadline, { withYear: 'auto' })}` : `janela abre ${formatDate(stage.opensAt, { withYear: 'auto' })}`}` })
       ]),
       // Mesma conta e mesmo texto da página Contratos ("vence em N dias"): um

@@ -1146,7 +1146,7 @@ test('lifecycle: RFQ fora do resumo abre decisão e contrato reais do processo',
   if(process.env.PROCUREMENT_CAPTURE){await mkdir('reports',{recursive:true});await page.screenshot({path:`reports/procurement-${process.env.PROCUREMENT_CAPTURE}-${info.project.name}.png`,fullPage:true});}
   await expect(page.getByRole('heading',{level:1})).toHaveText(rfq.title);
   await expect(page.locator('#decisao-registrada')).toContainText('Condições preservadas no momento da decisão · proposta v1');
-  await expect(page.getByRole('link',{name:'Abrir ciclo de vida do contrato'})).toHaveAttribute('href','/finance/contracts.html#contract-contract-old');
+  await expect(page.getByRole('link',{name:'Abrir ciclo de vida do contrato'})).toHaveAttribute('href','/finance/contracts.html?abrir=contrato#contract-contract-old');
   await expect(page.locator('#contract-form')).toHaveCount(0);
   expect(new URL(urls[0]).searchParams.get('rfq_id')).toBe(RFQ);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)).toBeLessThanOrEqual(1);

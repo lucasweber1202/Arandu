@@ -34,7 +34,7 @@ export function decisionTab(ctx, rfq, { decision, contract, policy, approvals, m
       chosen ? keyTerms(rfq.product, chosen.terms, decision.external_proposal_id?{currency:chosen.currency??null}:{}) : null
     ] }));
     if (contract) wrap.append(card({ title: 'Contrato', body: [el('p', { text: `Vigência de ${formatDate(contract.starts_on)} a ${formatDate(contract.ends_on)} · aviso prévio de ${contract.renewal_notice_days} dias.` }),
-      linkButton('Abrir ciclo de vida do contrato', ctx.href(`/finance/contracts.html#contract-${contract.id}`), { iconName: 'arrowRight', variant: 'primary' })] }));
+      linkButton('Abrir ciclo de vida do contrato', ctx.href(`/finance/contracts.html?abrir=contrato#contract-${contract.id}`), { iconName: 'arrowRight', variant: 'primary' })] }));
     else if (frozenMissing) wrap.append(emptyState({title:'Condições da decisão indisponíveis',text:'Não foi possível recuperar a proposta preservada na decisão. Recarregue e confira o histórico antes de registrar o contrato.',iconName:'alert'}));
     else if (manage && decision.external_proposal_id) wrap.append(externalUi ? externalUi.externalContractContinuation(ctx,rfq,decision) : errorState({error:new Error('Continuidade externa indisponível.'),onRetry:()=>ctx.reload()}));
     else if (manage) wrap.append(contractForm(ctx, rfq, decision, chosen));
