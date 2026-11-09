@@ -1632,3 +1632,97 @@ test('link direto para uma proposta abre a aba de propostas e o cartão dela', a
   await expect(page.getByRole('tab', { name: /Propostas/ })).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('#proposal-p2')).toBeFocused();
 });
+
+// Estúdio de decisão: cenários de pesos sobre o MESMO motor (POST comparison com
+// pesos → applyUserWeights no mock). API SIMULADA; não prova o servidor real.
+async function openStudio(page, data = overview(), approvals = null) {
+  await mockSession(page, { data });
+  if (approvals) await page.route('**/api/finance/approvals?*', (route) => route.fulfill({ json: { ok: true, rows: approvals } }));
+  await page.goto(`/finance/rfq.html?id=${RFQ}#comparacao`);
+  await page.getByRole('tab', { name: 'Comparação' }).click();
+  const studio = page.locator('#estudio-decisao');
+  await expect(studio).toBeVisible();
+  return studio;
+}
+async function setWeight(studio, scenario, label, value) {
+  await studio.getByLabel(`${scenario}: peso de ${label}`).fill(String(value));
+}
+
+test('estúdio: dois cenários pelo mesmo motor mostram que a primeira posição depende dos pesos', async ({ page }) => {
+  const studio = await openStudio(page);
+  await expect(studio).toContainText('não são salvos na empresa, não registram decisão');
+  await setWeight(studio, 'Cenário A', 'Valor ofertado (R$)', 70);
+  await setWeight(studio, 'Cenário A', 'Taxa (% a.m.)', 30);
+  await studio.getByRole('button', { name: 'Calcular Cenário A' }).click();
+  await expect(studio.getByText(/Calculado\. Pesos: Valor ofertado \(R\$\) 70% · Taxa \(% a\.m\.\) 30%/)).toBeVisible();
+  await studio.getByRole('button', { name: 'Novo cenário a partir do último' }).click();
+  await setWeight(studio, 'Cenário B', 'Valor ofertado (R$)', 0);
+  await studio.getByRole('button', { name: 'Calcular Cenário B' }).click();
+  const table = studio.getByRole('region', { name: 'Tabela de cenários' });
+  await expect(table.locator('tr[data-proposal="p1"]')).toContainText('1º');
+  await expect(table.locator('tr[data-proposal="p1"]')).toContainText('2º');
+  await expect(table.locator('tr[data-proposal="p1"]')).toContainText('Posição muda');
+  await expect(studio.getByText('A primeira posição muda conforme os pesos')).toBeVisible();
+  // Sensibilidade: sem "valor", a ordem do cenário A se inverte; sem "taxa", se mantém.
+  await studio.getByRole('button', { name: 'Analisar sensibilidade' }).click();
+  const sens = studio.locator('.studio-sensitivity');
+  await expect(sens.locator('[data-criterion="offered_amount"]')).toContainText('a ordem muda para Banco Dois → Banco Um');
+  await expect(sens.locator('[data-criterion="interest_rate_month"]')).toContainText('a ordem se mantém');
+  await expect(studio).not.toContainText(/recomend|melhor proposta/i);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test('estúdio: cenários continuam ao ir à proposta e voltar; pesos alterados invalidam o resultado', async ({ page }) => {
+  const studio = await openStudio(page);
+  await setWeight(studio, 'Cenário A', 'Taxa (% a.m.)', 50);
+  await studio.getByRole('button', { name: 'Calcular Cenário A' }).click();
+  await expect(studio.getByText(/Calculado\./)).toBeVisible();
+  await studio.getByRole('button', { name: 'Novo cenário a partir do último' }).click();
+  await studio.getByRole('button', { name: 'Calcular Cenário B' }).click();
+  await studio.getByRole('region', { name: 'Tabela de cenários' }).getByRole('link', { name: 'Banco Dois' }).click();
+  await expect(page.locator('#proposal-p2')).toBeFocused();
+  await page.locator('#proposal-p2').getByRole('link', { name: 'Ver esta proposta na comparação' }).click();
+  const back = page.locator('#estudio-decisao');
+  await expect(back.getByRole('region', { name: 'Tabela de cenários' })).toBeVisible();
+  await expect(back.getByLabel('Cenário B: peso de Taxa (% a.m.)')).toHaveValue('50');
+  await setWeight(back, 'Cenário B', 'Taxa (% a.m.)', 80);
+  await expect(back.getByText('Pesos alterados: calcule de novo.')).toBeVisible();
+  await expect(back.getByText('Calcule um segundo cenário para comparar')).toBeVisible();
+});
+
+test('estúdio: falha do cálculo não vira resultado e mantém a causa do servidor', async ({ page }) => {
+  const studio = await openStudio(page);
+  await page.route('**/api/finance/comparison', (route) => {
+    const body = route.request().postDataJSON();
+    if (body.weights && Object.keys(body.weights).length) return route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ ok: false, code: 'forbidden', error: 'Sua função não pode calcular pesos nesta entidade.' }) });
+    return route.fallback();
+  });
+  await setWeight(studio, 'Cenário A', 'Taxa (% a.m.)', 50);
+  await studio.getByRole('button', { name: 'Calcular Cenário A' }).click();
+  await expect(studio.getByText('Sua função não pode calcular pesos nesta entidade.')).toBeVisible();
+  await expect(studio.getByRole('button', { name: 'Analisar sensibilidade' })).toHaveCount(0);
+});
+
+test('estúdio: dossiê factual traz versões, pendências, cenários, aprovação e decisão sem recomendação', async ({ page }) => {
+  const data = overview();
+  data.rfqs[0].proposals[0].version = 2;
+  data.rfqs[0].proposals[0].previous_version = { version: 1, submitted_at: '2026-08-01T10:00:00Z', terms: { ...data.rfqs[0].proposals[0].terms, interest_rate_month: 2.5 } };
+  const studio = await openStudio(page, data, [{ id: 'ap1', rfq_id: RFQ, proposal_id: 'p1', proposal_version: 1, status: 'pending', requested_at: '2026-10-20T10:00:00Z', rationale: 'Prazo maior', steps: [] }]);
+  await setWeight(studio, 'Cenário A', 'Taxa (% a.m.)', 50);
+  await studio.getByRole('button', { name: 'Calcular Cenário A' }).click();
+  await expect(studio.getByText(/Calculado\./)).toBeVisible();
+  await studio.getByRole('button', { name: 'Abrir dossiê da análise' }).click();
+  const dossier = page.locator('#dossie');
+  await expect(dossier).toContainText('Não é recomendação do Arandu');
+  await expect(dossier).toContainText('Banco Um: versão 2');
+  await expect(dossier).toContainText('condição(ões) alterada(s)');
+  await expect(dossier).toContainText(/Condições com informação pendente: .*CET informado/);
+  await expect(dossier).toContainText('Cenário A — pesos: Taxa (% a.m.) 100%');
+  // Aprovação da v1 com proposta já na v2: aparece desatualizada (regra conservadora da 9.1).
+  await expect(dossier).toContainText('Desatualizada');
+  await expect(dossier).toContainText('Nenhuma decisão registrada.');
+  await expect(dossier).not.toContainText(/recomendad|melhor opção/i);
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Baixar dossiê (HTML)' }).click();
+  expect((await download).suggestedFilename()).toMatch(/^arandu-dossie-[0-9a-f-]{8}\.html$/);
+});

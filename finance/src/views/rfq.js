@@ -168,7 +168,7 @@ export async function rfqDetail(ctx) {
   const tabset = tabs([
     { id: 'visao-geral', label: 'Visão geral', render: () => overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract, policy, governanceGap }) },
     { id: 'propostas', label: 'Propostas', count: proposals.length+(rfq.external_proposal_count||0), render: () => proposalsTab(ctx, rfq) },
-    { id: 'comparacao', label: 'Comparação', render: () => import('./rfq/comparison-tab.js').then((m) => m.comparisonTab(ctx, rfq, decision)) },
+    { id: 'comparacao', label: 'Comparação', render: () => import('./rfq/comparison-tab.js').then((m) => m.comparisonTab(ctx, rfq, decision, { approvals, contract })) },
     { id: 'aprovacoes', label: 'Aprovações', count: pending ? 1 : null, render: () => governanceGap ? governanceGapTab() : import('./rfq/approvals-tab.js').then((m) => m.approvalsTab(ctx, rfq, approvals, { manage })) },
     { id: 'decisao', label: 'Decisão', render: () => governanceGap ? governanceGapTab() : import('./rfq/decision-tab.js').then((m) => m.decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage, externalUi })) },
     { id: 'atividade', label: 'Atividade', render: () => activityTab(ctx, rfq) }
