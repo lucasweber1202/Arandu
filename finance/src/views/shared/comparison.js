@@ -143,6 +143,9 @@ export function comparisonMatrix(rfq, proposals, { currentRevision = rfq.revisio
       head.append(el('th', { scope: 'col', class: 'matrix-provider' }, [el('span', { class: 'matrix-name', text: column.provider_name }),
         el('span', { class: 'matrix-meta', text: `${historical.has(index) ? 'Consulta da versão anterior' : `v${column.version ?? '?'}`} · ${column.currency ?? 'moeda não identificada'}${column.currency_source === 'schema_brl_v1' ? ' (unidade do cadastro)' : ''}` }),
         el('span', { class: 'matrix-meta', text: coverageText(index) }),
+        // Na solicitação, a coluna leva à proposta completa (condições, nota e documentos).
+        persist && column.provenance?.source !== 'buyer_recorded_external' && proposals.some((proposal) => String(proposal.id) === String(column.id))
+          ? el('a', { class: 'matrix-link small', href: `#proposal-${column.id}`, text: 'Ver proposta e documentos' }) : null,
         column.provenance?.source === 'buyer_recorded_external' ? el('span', { class: 'matrix-flag matrix-external', text: 'Fonte externa · transcrita pela empresa · fora da decisão' }) : null,
         !historical.has(index) && column.changed_keys.length && column.previous_version ? el('span', { class: 'matrix-flag', text: `${column.changed_keys.length} ${column.changed_keys.length === 1 ? 'condição mudou' : 'condições mudaram'} desde a v${column.previous_version.version}` }) : null,
         column.revision_mismatch ? el('span', { class: 'matrix-flag', text: `Respondeu à revisão ${column.rfq_revision}` }) : null,
@@ -156,7 +159,7 @@ export function comparisonMatrix(rfq, proposals, { currentRevision = rfq.revisio
     pairBody.replaceChildren();
     let count = 0;
     const chosen = [Number(pickA.value), Number(pickB.value)];
-    pairStatus.replaceChildren(...chosen.map(index => { const column = data.columns[index]; return mutedText(`${column.provider_name} · ${historical.has(index) ? 'versão anterior' : `v${column.version ?? '?'}`} · ${column.currency ?? 'moeda não identificada'} · ${coverageText(index)} · ${column.expired ? 'versão atual vencida' : column.validity_unknown ? 'validade não informada' : 'consulte a validade informada'}${column.revision_mismatch ? ` · respondeu à revisão ${column.rfq_revision}` : ''}`); }));
+    pairStatus.replaceChildren(...chosen.flatMap(index => { const column = data.columns[index]; return [ mutedText(`${column.provider_name} · ${historical.has(index) ? 'versão anterior' : `v${column.version ?? '?'}`} · ${column.currency ?? 'moeda não identificada'} · ${coverageText(index)} · ${column.expired ? 'versão atual vencida' : column.validity_unknown ? 'validade não informada' : 'consulte a validade informada'}${column.revision_mismatch ? ` · respondeu à revisão ${column.rfq_revision}` : ''}`), persist && proposals.some((p) => String(p.id) === String(column.id)) ? el('a', { class: 'small', href: `#proposal-${column.id}`, text: `Ver proposta de ${column.provider_name}` }) : null].filter(Boolean); }));
     for (const [group, keys] of data.groups) {
       const rows = keys.map(key => rowsByKey[key]).filter(row => row && visible(row));
       if (!rows.length) continue;

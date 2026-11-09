@@ -1607,3 +1607,28 @@ test('comparação indisponível mantém a causa informada pelo servidor', async
   await expect(page.getByText('Sua função não pode consultar a comparação desta entidade.')).toBeVisible();
   await expect(page.getByText('As condições não puderam ser consultadas')).toHaveCount(0);
 });
+
+test('comparação → proposta completa → volta à comparação com a mesma leitura', async ({ page }) => {
+  await mockSession(page);
+  await page.goto(`/finance/rfq.html?id=${RFQ}#comparacao`);
+  await page.getByRole('tab', { name: 'Comparação' }).click();
+  await page.getByLabel('Foco da comparação').selectOption('differences');
+  const toProposal = page.getByRole('link', { name: /Ver proposta (e documentos|de Banco Um)/ }).filter({ visible: true }).first();
+  await toProposal.click();
+  await expect(page.getByRole('tab', { name: /Propostas/ })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#proposal-p1')).toBeFocused();
+  await expect(page).toHaveURL(/foco=differences.*#proposal-p1$/);
+  await page.locator('#proposal-p1').getByRole('link', { name: 'Ver esta proposta na comparação' }).click();
+  await expect(page.getByRole('tab', { name: 'Comparação' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByLabel('Foco da comparação')).toHaveValue('differences');
+  await page.goBack();
+  await expect(page.getByRole('tab', { name: /Propostas/ })).toHaveAttribute('aria-selected', 'true');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test('link direto para uma proposta abre a aba de propostas e o cartão dela', async ({ page }) => {
+  await mockSession(page);
+  await page.goto(`/finance/rfq.html?id=${RFQ}#proposal-p2`);
+  await expect(page.getByRole('tab', { name: /Propostas/ })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#proposal-p2')).toBeFocused();
+});
