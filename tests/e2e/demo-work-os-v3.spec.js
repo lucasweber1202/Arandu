@@ -332,6 +332,11 @@ test('desempenho: sem ouvintes acumulando entre re-renders; medições dentro do
   // Ouvintes de telas que saíram se desligam no próximo evento; nada cresce por render.
   await page.evaluate(() => { window.__aranduCtx && document.dispatchEvent(new Event('noop')); });
   expect(await count()).toBeLessThanOrEqual(before + 2);
+});
+
+test('desempenho: 20 navegações preservam p95 e painel de depuração escondido', async ({ page }, testInfo) => {
+  test.skip(isMobile(testInfo), 'medição de desktop');
+  await ready(page, `/demo/finance/rfq.html?id=${CAPITAL}`);
   const route = await page.evaluate(() => globalThis.__aranduWorkOS.perfSummary().find((row) => row.name === 'route'));
   // A route mark is navigation-start → first render, not a re-render sample.
   // Keep the initial observation and collect a fixed 20 navigations per attempt.
