@@ -1438,3 +1438,35 @@ test('aprovação de versão substituída aparece desatualizada mesmo sem o camp
   await expect(page.getByText('Esta aprovação não vale para a versão atual; peça uma nova.')).toBeVisible();
   await expect(page.getByRole('button', { name: /^Aprovar/ })).toHaveCount(0);
 });
+
+async function pagedProvider(page, pages) {
+  await mockSession(page, { organizations: [{ id: 'provider-org', kind: 'PROVIDER', legal_name: 'Instituição sintética' }], viewerRole: 'provider_user' });
+  await page.route('**/api/finance/organizations', route => route.fulfill({ json: { ok: true, rows: [{ id: 'provider-org', kind: 'PROVIDER', legal_name: 'Instituição sintética' }], capabilities: { operational_pagination: true } } }));
+  await page.route('**/api/finance/assignments?**', route => { const q = new URL(route.request().url()).searchParams; return route.fulfill({ json: pages(q.get('cursor')) }); });
+}
+
+test('portal institucional paginado sem nenhuma oportunidade orienta pelo convite, não por filtro vazio', async ({ page }) => {
+  await pagedProvider(page, () => ({ ok: true, rows: [], page: { has_more: false, next_cursor: null } }));
+  await page.goto('/provider/rfqs.html');
+  await expect(page.getByText('Nenhuma oportunidade ainda')).toBeVisible();
+  await expect(page.getByText(/quando uma empresa convida a sua instituição/)).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Aceitar convite' })).toHaveAttribute('href', '/provider/invite.html');
+  await expect(page.getByText('Nada neste filtro')).toHaveCount(0);
+});
+
+test('portal institucional paginado: filtro vazio na página não vira "nenhuma oportunidade"', async ({ page }) => {
+  const row = (i, status) => ({ proposal_id: `proposal-${i}`, rfq_id: `rfq-${i}`, title: `Oportunidade ${i}`, product: 'credit', rfq_status: status, version: 0, demand: {} });
+  await pagedProvider(page, (cursor) => cursor ? { ok: true, rows: [row(2, 'closed')], page: { has_more: false, next_cursor: null } } : { ok: true, rows: [row(1, 'open')], page: { has_more: true, next_cursor: 'c2' } });
+  await page.goto('/provider/rfqs.html');
+  await expect(page.getByText('Oportunidade 1', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: /^Encerradas/ }).click();
+  await expect(page.getByText('Nada neste filtro nesta página')).toBeVisible();
+  await expect(page.getByText('Nenhuma oportunidade ainda')).toHaveCount(0);
+});
+
+test('painel sem concorrências oferece a primeira solicitação a quem pode criar', async ({ page }) => {
+  await mockSession(page, { data: overview({ rfqs: [] }) });
+  await page.goto('/finance/dashboard.html');
+  await expect(page.getByText('Nenhuma concorrência em andamento')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Nova solicitação' }).last()).toHaveAttribute('href', '/finance/new-rfq.html');
+});

@@ -274,7 +274,8 @@ export async function dashboard(ctx) {
   }));
   const pipelineCard = card({ title: 'Concorrências em andamento', subtitle: 'Da abertura à avaliação, com prazo e respostas.',
     actions: [linkButton('Ver todas', ctx.href('/finance/rfqs.html'), { variant: 'ghost', size: 'sm', iconName: 'arrowRight' })],
-    body: [inFlight.length ? processes : emptyState({ title: 'Nenhuma concorrência em andamento', text: 'Solicitações abertas aparecem aqui com prazo e número de respostas.', compact: true }),
+    body: [inFlight.length ? processes : emptyState({ title: 'Nenhuma concorrência em andamento', text: 'Solicitações abertas aparecem aqui com prazo e número de respostas.', compact: true,
+      action: ctx.can('create_rfq') ? linkButton('Nova solicitação', ctx.href('/finance/new-rfq.html'), { variant: 'secondary', size: 'sm', iconName: 'plus' }) : null }),
       // Contagem por etapa é consulta, não tarefa: fica sob demanda.
       el('details', { class: 'pipeline-more' }, [el('summary', { text: 'Ver solicitações por etapa' }), pipeline])] });
 

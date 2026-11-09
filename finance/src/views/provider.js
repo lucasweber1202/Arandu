@@ -169,7 +169,9 @@ export async function providerRfqs(ctx) {
   let rows = ctx.data.assignments || [];
   const paged = Boolean(ctx.data.assignment_page);
   ctx.header({ title: 'Oportunidades', subtitle: 'Solicitações para as quais a sua instituição foi convidada.' });
-  if (!rows.length && !paged) return emptyState({ title: 'Nenhuma oportunidade ainda', text: 'Aceite um convite para ver a solicitação e responder.', iconName: 'inbox', action: linkButton('Aceitar convite', ctx.href('/provider/invite.html'), { iconName: 'send' }) });
+  // Primeira página vazia e sem continuação: a instituição ainda não tem oportunidades
+  // (paginado ou não). Com mais páginas, não é "nenhuma" — é só esta página.
+  if (!rows.length && (!paged || !ctx.data.assignment_page.has_more)) return emptyState({ title: 'Nenhuma oportunidade ainda', text: 'Oportunidades aparecem aqui quando uma empresa convida a sua instituição e o convite é aceito. O convite chega por um link enviado pela empresa; se você recebeu um, abra-o ou cole o código na página de convite.', iconName: 'inbox', action: linkButton('Aceitar convite', ctx.href('/provider/invite.html'), { iconName: 'send' }) });
   const filters = el('div', { class: 'chips', role: 'group', 'aria-label': 'Filtrar oportunidades' });
   const list = el('div', { class: 'opportunity-list card card-flush' });
   let active = '';
@@ -177,7 +179,7 @@ export async function providerRfqs(ctx) {
   const draw = () => {
     for (const chip of filters.children) { const key = chip.dataset.value; chip.querySelector('.chip-count').textContent = String(key ? rows.filter(row => assignmentState(row).key === key || (key === 'todo' && assignmentState(row).key === 'outdated')).length : rows.length); }
     const visible = rows.filter((row) => !active || assignmentState(row).key === active || (active === 'todo' && assignmentState(row).key === 'outdated'));
-    list.replaceChildren(...(visible.length ? visible.map((row) => opportunityRow(ctx, row)) : [emptyState({ title: 'Nada neste filtro', compact: true })]));
+    list.replaceChildren(...(visible.length ? visible.map((row) => opportunityRow(ctx, row)) : [emptyState({ title: paged ? 'Nada neste filtro nesta página' : 'Nada neste filtro', text: paged ? 'Os filtros valem para a página exibida; outras páginas podem ter oportunidades nesta situação.' : undefined, compact: true })]));
   };
   for (const [value, label] of options) {
     const count = value ? rows.filter((row) => assignmentState(row).key === value || (value === 'todo' && assignmentState(row).key === 'outdated')).length : rows.length;
