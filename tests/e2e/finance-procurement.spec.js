@@ -1470,3 +1470,47 @@ test('painel sem concorrências oferece a primeira solicitação a quem pode cri
   await expect(page.getByText('Nenhuma concorrência em andamento')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Nova solicitação' }).last()).toHaveAttribute('href', '/finance/new-rfq.html');
 });
+
+test('escala: 230 solicitações percorridas por cursor sem duplicar nem inventar total', async ({ page }) => {
+  await mockSession(page, { data: overview({ rfqs: manyRfqs(230) }) });
+  const seen = await rfqRequests(page);
+  await page.goto('/finance/rfqs.html');
+  const more = page.getByRole('button', { name: 'Carregar mais solicitações' });
+  for (let loaded = 25; loaded < 230; loaded += 25) {
+    await expect(page.locator('.result-count')).toHaveText(`${loaded} de ${loaded} carregadas · há mais neste filtro`);
+    await more.click();
+  }
+  await expect(page.locator('.result-count')).toHaveText('230 de 230 carregadas · todas deste filtro');
+  const ids = await page.locator('.rfq-table tbody tr').evaluateAll((rows) => rows.map((row) => row.dataset.id));
+  expect(new Set(ids).size).toBe(230);
+  expect(seen).toHaveLength(10);
+  expect(new Set(seen.slice(1).map((q) => q.get('cursor'))).size).toBe(9);
+  await expect(page.locator('main')).not.toContainText(/total de \d+/i);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test('escala: trocar o produto enquanto a página anterior carrega não mistura recortes', async ({ page }) => {
+  const rows = manyRfqs(120);
+  await mockSession(page, { data: overview({ rfqs: rows }) });
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  await page.route('**/api/finance/rfqs?*', async (route) => {
+    const u = new URL(route.request().url());
+    if (u.searchParams.get('cursor')) await gate; // continuação do recorte antigo atrasa
+    const r = pagedRfqs(rows, u);
+    return route.fulfill({ status: r.status, contentType: 'application/json', body: JSON.stringify(r.body) });
+  });
+  await page.goto('/finance/rfqs.html?status=comparing');
+  await expect(page.locator('.rfq-table tbody tr')).toHaveCount(25);
+  await page.getByRole('button', { name: 'Carregar mais solicitações' }).click();
+  await page.getByLabel('Filtrar por produto').selectOption('acquiring');
+  await expect(page.locator('.result-count')).toHaveText('25 de 25 carregadas · há mais neste filtro');
+  release();
+  await page.waitForTimeout(300);
+  const products = await page.locator('.rfq-table .row-sub').allTextContents();
+  expect(products.every((text) => /Adquir/i.test(text))).toBe(true);
+  await expect(page.locator('.rfq-table tbody tr')).toHaveCount(25);
+  await page.reload();
+  await expect(page.getByLabel('Filtrar por produto')).toHaveValue('acquiring');
+  await expect(page.locator('[data-status="comparing"]')).toHaveAttribute('aria-pressed', 'true');
+});
