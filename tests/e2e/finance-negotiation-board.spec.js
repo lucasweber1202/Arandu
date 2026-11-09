@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { pagedRfqs } from './helpers/rfq-pages.js';
 import { EXTERNAL_PROPOSAL_NOTICE } from '../../lib/finance/external-proposals.mjs';
 import { buildComparison } from '../../lib/finance/comparison.mjs';
 import { PRODUCTS } from '../../lib/finance/products.mjs';
@@ -31,6 +32,7 @@ async function setup(page, { externals = 'ok', role = 'admin', rfqs = [rfq] } = 
     const json = (v, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(v) });
     if (path === 'organizations') return json({ ok: true, rows: [{ id: ORG, kind: 'BUYER', legal_name: 'Grupo Vitta' }] });
     if (path === 'overview') return json({ ok: true, organization: { id: ORG, kind: 'BUYER', legal_name: 'Grupo Vitta' }, providers: [{ id: PA, name: 'Atlas Bank', status: 'active' }, { id: PB, name: 'Boreal Banco', status: 'active' }, { id: PC, name: 'Cais Financeira', status: 'active' }], contracts: [], rfqs, tasks: [] });
+    if (path === 'rfqs' && req.method() === 'GET') { const page = pagedRfqs(rfqs, u); return json(page.body, page.status); }
     if (path === 'members') return json({ ok: true, rows: [{ user_id: 'u1', role, display_name: 'Ana Tesouraria' }], viewer_id: 'u1' });
     if (path === 'entities') return json({ ok: true, rows: [], scope: 'group', can_admin: role === 'admin' });
     if (path === 'external-proposals' && req.method() === 'GET') {
