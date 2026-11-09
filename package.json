@@ -125,10 +125,10 @@
     "ci:report": "node scripts/ci/velocity-report.mjs"
   },
   "dependencies": {
-    "@vercel/functions": "3.10.5",
-    "@vercel/speed-insights": "^2.0.0",
-    "ai": "7.0.159",
-    "vite": "^8.3.5"
+    "@vercel/functions": "3.11.0",
+    "@vercel/speed-insights": "^2.1.0",
+    "ai": "7.0.163",
+    "vite": "^8.3.6"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.0"
