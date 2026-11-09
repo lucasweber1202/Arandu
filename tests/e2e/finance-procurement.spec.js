@@ -1569,3 +1569,41 @@ test('busca com uma letra sem resultado local não afirma que nada existe na org
   await expect(dialog.getByRole('status')).toHaveText('Digite ao menos 2 letras para buscar em toda a organização.');
   await expect(dialog.getByText('Nenhum resultado nesta organização')).toHaveCount(0);
 });
+
+// Retomar a análise: a leitura da comparação volta igual depois de recarregar
+// ou de ir à aprovação e voltar. Só opções de tela e ids de proposta vão ao endereço.
+test('comparação retoma foco, detalhe e versão anterior consultada depois de recarregar', async ({ page }) => {
+  const data = overview();
+  const [first] = data.rfqs[0].proposals;
+  first.version = 2;
+  first.previous_version = { version: 1, submitted_at: '2026-08-01T10:00:00Z', terms: { ...first.terms, interest_rate_month: 2.5 } };
+  await mockSession(page, { data });
+  await page.goto(`/finance/rfq.html?id=${RFQ}#comparacao`);
+  await page.getByRole('tab', { name: 'Comparação' }).click();
+  await page.getByLabel('Foco da comparação').selectOption('changed');
+  await page.getByLabel('Detalhamento da comparação').selectOption('summary');
+  await page.getByLabel('Versão de Banco Um').selectOption('previous');
+  await expect(page).toHaveURL(/foco=changed/);
+  await expect(page).toHaveURL(/detalhe=resumo/);
+  await expect(page).toHaveURL(/anterior=p1/);
+  expect(new URL(page.url()).searchParams.get('id')).toBe(RFQ);
+  expect(page.url()).not.toMatch(/interest|500000|2\.5/);
+  await page.getByRole('tab', { name: /Aprovações/ }).click();
+  await page.reload();
+  await page.getByRole('tab', { name: 'Comparação' }).click();
+  await expect(page.getByLabel('Foco da comparação')).toHaveValue('changed');
+  await expect(page.getByLabel('Detalhamento da comparação')).toHaveValue('summary');
+  await expect(page.getByLabel('Versão de Banco Um')).toHaveValue('previous');
+  await page.getByLabel('Foco da comparação').selectOption('all');
+  await page.getByLabel('Versão de Banco Um').selectOption('current');
+  await expect(page).not.toHaveURL(/foco=|anterior=/);
+});
+
+test('comparação indisponível mantém a causa informada pelo servidor', async ({ page }) => {
+  await mockSession(page);
+  await page.route('**/api/finance/comparison', (route) => route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ ok: false, code: 'forbidden', error: 'Sua função não pode consultar a comparação desta entidade.' }) }));
+  await page.goto(`/finance/rfq.html?id=${RFQ}`);
+  await page.getByRole('tab', { name: 'Comparação' }).click();
+  await expect(page.getByText('Sua função não pode consultar a comparação desta entidade.')).toBeVisible();
+  await expect(page.getByText('As condições não puderam ser consultadas')).toHaveCount(0);
+});

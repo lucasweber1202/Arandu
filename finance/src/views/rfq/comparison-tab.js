@@ -16,14 +16,16 @@ export function comparisonTab(ctx, rfq, decision = null) {
   const load = () => {
     matrix.replaceChildren(loading('Carregando comparação…'));
     fetchComparison().then(({ comparison }) => {
-      matrix.replaceChildren(comparisonMatrix(rfq, proposals, { model: comparison }));
+      matrix.replaceChildren(comparisonMatrix(rfq, proposals, { model: comparison, persist: true }));
       // Com propostas externas conferidas, o servidor pode comparar mais colunas
       // que as do portal: os pesos (mesmo motor, via servidor) ficam disponíveis.
       if (proposals.length <= 1 && (comparison?.columns?.length || 0) > 1 && !weightsSlot.childElementCount) weightsSlot.append(panel());
     })
-      .catch(() => matrix.replaceChildren(errorState({ title: 'Comparação indisponível', error: 'As condições não puderam ser consultadas. Tente novamente.', onRetry: load })));
+      // A causa do servidor (permissão, conflito, limite de requisições) é mantida;
+      // só uma falha sem mensagem vira o texto genérico.
+      .catch((error) => matrix.replaceChildren(errorState({ title: 'Comparação indisponível', error: error?.message ? error : 'As condições não puderam ser consultadas. Tente novamente.', onRetry: load })));
   };
-  if ((__ARANDU_DEMO__ && ctx.mode === 'demo')) matrix.replaceChildren(comparisonMatrix(rfq, proposals));
+  if ((__ARANDU_DEMO__ && ctx.mode === 'demo')) matrix.replaceChildren(comparisonMatrix(rfq, proposals, { persist: true }));
   else load();
   // Coleta aberta: a matriz é parcial. Diz quantas convidadas responderam, sem
   // tratar quem ainda não enviou como pior nem antecipar o resultado.

@@ -24,7 +24,7 @@ function valueCell(field, value, best, currency = 'BRL') {
   return cell;
 }
 
-export function comparisonMatrix(rfq, proposals, { currentRevision = rfq.revision, model = null } = {}) {
+export function comparisonMatrix(rfq, proposals, { currentRevision = rfq.revision, model = null, persist = false } = {}) {
   const data = model || buildComparison(rfq.product, proposals, rfq.demand, { revision: currentRevision });
   const wrap = el('div', { class: 'comparison' });
   if (!data.columns.length) {
@@ -79,6 +79,31 @@ export function comparisonMatrix(rfq, proposals, { currentRevision = rfq.revisio
   const pairStatus = el('div', { class: 'comparison-versions' });
   mobile.append(el('div', { class: 'pair-pickers' }, [pickA, pickB]), pairStatus, pairBody);
   wrap.append(wide, mobile);
+  // Retomar a análise: foco, detalhe, versões anteriores consultadas e o par do
+  // celular ficam no endereço (só ids de proposta e opções de tela, nenhum valor
+  // financeiro). Voltar da aprovação, da decisão ou de um link reabre a mesma leitura.
+  const columnIndex = new Map(data.columns.map((column, index) => [String(column.id), index]));
+  if (persist) {
+    const q = new URLSearchParams(location.search);
+    if (['differences', 'missing', 'changed'].includes(q.get('foco'))) filter.value = q.get('foco');
+    if (q.get('detalhe') === 'resumo') detail.value = 'summary';
+    for (const id of (q.get('anterior') || '').split(',')) {
+      const index = columnIndex.get(id);
+      if (index !== undefined && data.columns[index].previous_version) { historical.add(index); versions.querySelectorAll('select')[index].value = 'previous'; }
+    }
+    const pair = (q.get('par') || '').split(',').map((id) => columnIndex.get(id));
+    if (pair.length === 2 && pair.every((index) => index !== undefined)) { pickA.value = String(pair[0]); pickB.value = String(pair[1]); }
+  }
+  const remember = () => {
+    if (!persist) return;
+    const url = new URL(location.href);
+    const set = (key, value) => value ? url.searchParams.set(key, value) : url.searchParams.delete(key);
+    set('foco', filter.value === 'all' ? '' : filter.value);
+    set('detalhe', detail.value === 'summary' ? 'resumo' : '');
+    set('anterior', [...historical].sort((a, b) => a - b).map((index) => data.columns[index].id).join(','));
+    set('par', data.columns.length > 2 ? [pickA.value, pickB.value].map((index) => data.columns[Number(index)].id).join(',') : '');
+    history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+  };
   const visible = row => {
     if (detail.value === 'summary' && !byKey[row.key].comparable && !['index', 'amortization', 'collateral_required'].includes(row.key)) return false;
     return filter.value === 'all' || (filter.value === 'differences' && row.differs) ||
@@ -171,7 +196,8 @@ export function comparisonMatrix(rfq, proposals, { currentRevision = rfq.revisio
     table.append(body);
     wide.replaceChildren(table);
   }
-  for (const control of [filter, detail, pickA, pickB]) control.addEventListener('change', draw);
+  for (const control of [filter, detail, pickA, pickB]) control.addEventListener('change', () => { draw(); remember(); });
+  for (const select of versions.querySelectorAll('select')) select.addEventListener('change', remember);
   draw();
   return wrap;
 }
