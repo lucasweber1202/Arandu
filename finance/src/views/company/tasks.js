@@ -249,6 +249,8 @@ export async function tasks(ctx) {
         const contract = task.related_type === 'contract' ? contractsById.get(task.related_id) : null;
         const related = task.related_type === 'rfq' && rfqs.get(task.related_id) ? el('a', { href: ctx.href(`/finance/rfq.html?id=${task.related_id}`), text: rfqs.get(task.related_id).title })
           : task.related_type === 'contract' ? el('a', { href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${task.related_id}`), text: contract ? `${contract.provider_name || 'Contrato'} · ${contract.title || CONTRACT_CATEGORIES[contract.product] || 'contrato'}` : 'Ver contrato' }) : null;
+        // Volta ao relacionamento pela instituição registrada no próprio contrato (sem inferência).
+        const providerLink = contract?.provider_id ? el('a', { href: ctx.href(`/finance/providers.html?provider_id=${encodeURIComponent(contract.provider_id)}`), text: `Relacionamento com ${contract.provider_name || 'a instituição'}` }) : null;
         const contractDue = contract && ['active', 'renewing'].includes(contract.status) && contract.ends_on
           ? el('span', { class: 'task-contract-due', text: `Contrato vence em ${formatDate(contract.ends_on)}${contract.review_from ? ` · aviso prévio até ${formatDate(contract.review_from)}` : ''}` }) : null;
         const owner = !task.assignee_id ? 'Sem responsável' : task.assignee_id === ctx.viewer?.id ? `${task.assignee_name || 'Você'} (você)` : task.assignee_name || 'Responsável indisponível';
@@ -257,13 +259,15 @@ export async function tasks(ctx) {
           : el('span', { class: `task-owner${task.assignee_id ? '' : ' muted'}`, text: owner });
         (grouped ? lists.get(bucketOf(task)) : single).append(el('li', { class: `task-item${task.status === 'done' ? ' done' : ''}${location.hash === `#task-${task.id}` || focusId === task.id ? ' highlighted' : ''}`, id: `task-${task.id}`, dataset: { assignee: task.assignee_id ? 'set' : 'none' } }, [
           check, el('div', { class: 'task-main' }, [state, el('span', { class: 'task-title', text: task.title }),
-            el('span', { class: 'task-meta' }, [el('span', { class: 'sr-only', text: 'Responsável: ' }), canAssign && task.status === 'open' ? null : owner, canAssign && task.status === 'open' ? null : (related ? ' · ' : null), related].filter(Boolean)), contractDue]),
+            el('span', { class: 'task-meta' }, [el('span', { class: 'sr-only', text: 'Responsável: ' }), canAssign && task.status === 'open' ? null : owner, canAssign && task.status === 'open' ? null : (related ? ' · ' : null), related, providerLink ? ' · ' : null, providerLink].filter(Boolean)), contractDue]),
           canAssign && task.status === 'open' ? el('label', { class: 'task-owner-field' }, [el('span', { class: 'sr-only', text: 'Responsável' }), ownerNode]) : null,
           task.due_on ? el('span', { class: `task-due${task.status === 'open' && days < 0 ? ' overdue' : task.status === 'open' && days <= 2 ? ' soon' : ''}` }, [icon('calendar', { size: 12 }), textSpan(`${formatDate(task.due_on, { withYear: false })}${task.status === 'open' ? ` · ${relativeDays(task.due_on)}` : ''}`)]) : el('span', { class: 'task-due muted', text: 'sem prazo' })
         ]));
       }
       const empty = { abertas: ['Nenhuma tarefa aberta', 'Tarefas de renovação são criadas automaticamente a partir dos contratos.'], minhas: ['Nenhuma tarefa aberta atribuída a você', 'Quando alguém atribuir uma tarefa a você, ela aparece aqui.'],
-        vinculada: ['Tarefa não disponível neste escopo', 'Atualize a lista ou confira o acesso à entidade desta tarefa.'], 'sem-responsavel': ['Toda tarefa aberta tem responsável', null], concluidas: ['Nenhuma tarefa concluída', null] }[filter.value];
+        vinculada: ['Tarefa não disponível neste escopo', 'Atualize a lista ou confira o acesso à entidade desta tarefa.'], 'sem-responsavel': ['Toda tarefa aberta tem responsável', null], concluidas: ['Nenhuma tarefa concluída', null] }[filter.value].slice();
+      // No recorte por contrato, o vazio vale só para aquele contrato.
+      if (contractScope && filter.value !== 'vinculada') empty[0] = `${empty[0]} neste contrato`;
       const list = grouped
         ? el('div', { class: 'task-list task-groups' }, BUCKETS.filter(([key]) => lists.get(key).children.length).map(([key, label]) => el('section', { class: `notice-group task-group task-group-${key}`, 'aria-label': label }, [
           el('h2', { class: 'notice-group-title', text: `${label} · ${lists.get(key).children.length}` }), lists.get(key)])))
