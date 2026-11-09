@@ -1465,3 +1465,12 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 .contract-exceptions{display:flex;flex-wrap:wrap;gap:6px;list-style:none;margin:var(--s2) 0 0;padding:0}
 .portfolio-institutions{padding:var(--s4) var(--s5)}
 .portfolio-institutions .mini-row.selected{background:var(--surface-sunken);border-radius:8px}
+.renewal-workbench .card-head{display:flex;flex-wrap:wrap;gap:var(--s3);align-items:center;justify-content:space-between}
+.renewal-group-title{display:flex;gap:var(--s2);align-items:center;font-size:var(--fs-md)}
+.renewal-list{display:flex;flex-direction:column;gap:var(--s2);padding:0;margin:0}
+.renewal-row{display:flex;flex-wrap:wrap;gap:var(--s3);justify-content:space-between;align-items:flex-start;padding:var(--s3);border:1px solid var(--border);border-radius:var(--r-md)}
+.renewal-main{display:flex;flex-direction:column;gap:var(--s1);min-width:0;flex:1 1 280px}
+.renewal-title{font-weight:600;overflow-wrap:anywhere}
+.renewal-meta,.renewal-actions{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center}
+.studio-scenarios{display:grid;gap:var(--s3);grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+.studio-sensitivity ul{margin:var(--s2) 0;padding-left:var(--s4)}

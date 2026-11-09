@@ -245,3 +245,62 @@ test('Caixa de Trabalho: tarefa de contrato volta ao relacionamento; vazio no re
   await page.goto(`/finance/tasks.html?contrato=${C1}`);
   await expect(page.getByText('Nenhuma tarefa aberta neste contrato')).toBeVisible();
 });
+
+// Plano de renovações (contratos): grupos pelo prazo do aviso prévio, tarefas
+// abertas, renovação em andamento e ações reais. API SIMULADA.
+const RW = (n) => `00000000-0000-4000-8000-0000000007${String(n).padStart(2, '0')}`;
+const RENEWALS = [
+  { ...CONTRACT, id: RW(1), title: 'Giro sazonal', ends_on: day(70), renewal_notice_days: 60, owner_id: 'u1' },
+  { ...CONTRACT, id: RW(2), title: 'Fiança aduaneira', product: 'acquiring', ends_on: day(30), renewal_notice_days: 60, owner_id: null },
+  { ...CONTRACT, id: RW(3), title: 'Conta garantida', ends_on: null, owner_id: 'u1' },
+  { ...CONTRACT, id: RW(4), title: 'Antecipação', status: 'renewing', ends_on: day(150), renewal_notice_days: 60, owner_id: 'u1' },
+  { ...CONTRACT, id: RW(5), title: 'Longo prazo', ends_on: day(900), renewal_notice_days: 60, owner_id: 'u1' }
+];
+
+test('plano de renovações agrupa pelo prazo do aviso, mostra tarefas e quem responde, sem tratar falta de data como tranquilo', async ({ page }) => {
+  const tasks = [{ id: '00000000-0000-4000-8000-0000000008a1', title: 'Pedir minuta', due_on: day(5), status: 'open', related_type: 'contract', related_id: RW(1), assignee_id: 'u1' }];
+  await setup(page, { overview: { ...OVERVIEW, contracts: RENEWALS, tasks } });
+  await page.goto('/finance/contracts.html');
+  const plan = page.locator('#plano-renovacoes');
+  await expect(plan.locator('.renewal-past_notice [data-contract]')).toHaveCount(1);
+  await expect(plan.locator(`.renewal-past_notice [data-contract="${RW(2)}"]`)).toContainText('Sem responsável');
+  await expect(plan.locator(`.renewal-soon [data-contract="${RW(1)}"]`)).toContainText('1 tarefa aberta');
+  await expect(plan.locator(`.renewal-soon [data-contract="${RW(1)}"]`).getByRole('link', { name: '1 tarefa aberta' })).toHaveAttribute('href', `/finance/tasks.html?contrato=${RW(1)}`);
+  await expect(plan.locator(`.renewal-undated [data-contract="${RW(3)}"]`)).toContainText('Fim de vigência não cadastrado');
+  await expect(plan.locator(`.renewal-upcoming [data-contract="${RW(4)}"]`)).toContainText('Renovação em andamento');
+  await expect(plan).toContainText('1 contrato vigente tem aviso prévio depois de 6 meses');
+  await expect(plan.locator(`[data-contract="${RW(1)}"]`).getByRole('link', { name: /Atlas Bank · Giro sazonal/ })).toHaveAttribute('href', `/finance/contracts.html?abrir=contrato#contract-${RW(1)}`);
+  await plan.getByLabel('Plano de renovações: responsável').selectOption('none');
+  await expect(plan.locator('[data-contract]')).toHaveCount(1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test('plano de renovações registra tarefa de preparação; resposta incerta reenvia a mesma chave sem duplicar', async ({ page }) => {
+  await setup(page, { overview: { ...OVERVIEW, contracts: RENEWALS, tasks: [] } });
+  const posts = [];
+  await page.route('**/api/finance/tasks', (route) => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    posts.push(route.request().postDataJSON());
+    return posts.length === 1 ? route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'Indisponível' }) })
+      : route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ ok: true, row: { id: '00000000-0000-4000-8000-0000000008b1' } }) });
+  });
+  await page.goto('/finance/contracts.html');
+  const row = page.locator(`#plano-renovacoes [data-contract="${RW(1)}"]`);
+  await row.getByRole('button', { name: 'Registrar tarefa de preparação' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Registrar tarefa' }).click();
+  await expect(row.getByRole('button', { name: 'Conferir registro' })).toBeVisible();
+  await row.getByRole('button', { name: 'Conferir registro' }).click();
+  await expect(row).toContainText('1 tarefa aberta');
+  expect(posts).toHaveLength(2);
+  expect(posts[1].idempotency_key).toBe(posts[0].idempotency_key);
+  expect(posts[0]).toMatchObject({ related_type: 'contract', related_id: RW(1), organization_id: ORG });
+  expect(posts[0].due_on).toBe(day(10));
+});
+
+test('plano de renovações: leitor vê o plano sem ações de escrita', async ({ page }) => {
+  await setup(page, { role: 'viewer', overview: { ...OVERVIEW, contracts: RENEWALS, tasks: [] } });
+  await page.goto('/finance/contracts.html');
+  const plan = page.locator('#plano-renovacoes');
+  await expect(plan.locator('[data-contract]').first()).toBeVisible();
+  await expect(plan.getByRole('button', { name: /Registrar tarefa|Iniciar nova concorrência|Abrir concorrência/ })).toHaveCount(0);
+});

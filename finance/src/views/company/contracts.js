@@ -256,7 +256,10 @@ function portfolioControlTower(ctx, ordered, { card, focusId, coverage = { state
     const next = `${location.pathname}${query ? `?${query}` : ''}${location.hash}`;
     if (next !== `${location.pathname}${location.search}${location.hash}`) history.replaceState(history.state, '', next);
   }
-  const root = el('div', { class: 'stack contracts-tower' }, [coverageNote(coverage),
+  // Plano de renovações: carregado sob demanda, sobre os mesmos contratos do recorte.
+  const plan = el('div');
+  import('../contract-center/renewal-workbench.js').then((m) => { if (plan.isConnected || !plan.childElementCount) plan.replaceWith(m.renewalWorkbench(ctx, ordered, { coverage })); }).catch(() => plan.remove());
+  const root = el('div', { class: 'stack contracts-tower' }, [coverageNote(coverage), plan,
     el('div', { class: 'toolbar' }, [el('div', { class: 'toolbar-search' }, [icon('search'), search]), ...Object.values(controls), count]),
     el('div', { class: 'toolbar-chips' }, chips), summary, list].filter(Boolean));
   draw();
