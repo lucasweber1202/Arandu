@@ -24,19 +24,20 @@ export async function browserJourney({ app, people, ctx, password, certificate, 
   try {
     await context.addCookies([cookie(people.buyer)]);
     await page.goto(`${app}/finance/rfqs.html`);
-    await page.getByRole('button', { name: 'Próxima página', exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Carregar mais solicitações', exact: true }).waitFor();
     const seen = new Set();
     let pages = 0;
     for (;;) {
-      await page.locator('.result-count').filter({ hasText: 'nesta página' }).waitFor();
+      await page.locator('.result-count').filter({ hasText: 'carregad' }).waitFor();
       const ids = await page.locator('tr[data-entity="rfq"]').evaluateAll(nodes => nodes.map(n => n.dataset.id));
-      for (const id of ids) { assert(!seen.has(id), 'duplicate RFQ across pages'); seen.add(id); }
+      assert.equal(new Set(ids).size, ids.length, 'duplicate RFQ in rendered list');
+      for (const id of ids) seen.add(id);
       pages++;
-      const next = page.getByRole('button', { name: 'Próxima página', exact: true });
-      if (await next.isDisabled()) break;
+      const next = page.getByRole('button', { name: 'Carregar mais solicitações', exact: true });
+      if (await next.isHidden()) break;
       const changed = page.waitForResponse(r => r.url().includes('/api/finance/rfqs?') && r.request().method() === 'GET');
       await next.click(); await changed;
-      await page.waitForFunction(old => document.querySelector('tr[data-entity="rfq"]')?.dataset.id !== old, ids[0]);
+      await page.waitForFunction(old => document.querySelectorAll('tr[data-entity="rfq"]').length > old, ids.length);
       assert(pages < 20, 'unbounded RFQ pagination');
     }
     assert(seen.has(ctx.rfq) && seen.size > 100, 'browser did not traverse the persisted RFQs');

@@ -198,6 +198,35 @@ await rejects('GET', 'rfqs', { url: `/api/finance/rfqs?organization_id=${OTHER_O
   await rejects('GET', 'rfqs', { url: `/api/finance/rfqs?organization_id=${BUYER}&paged=1&context=forged` }, 400);
 }
 
+// Server ordering, null deadlines and subtree scope are part of cursor identity.
+{
+  const child = '00000000-0000-4000-8000-0000000000a8';
+  const sibling = '00000000-0000-4000-8000-0000000000a9';
+  for (const order of ['created_desc', 'deadline_asc']) {
+    reset(entry => {
+      if (entry.url.includes('fin_organizations')) return orgRow(BUYER, 'BUYER');
+      if (entry.url.includes('fin_legal_entities')) return [{id:ACTOR,parent_id:null},{id:child,parent_id:ACTOR},{id:sibling,parent_id:null}];
+      if (entry.url.includes('fin_rfqs?')) {
+        const q=new URL(entry.url).searchParams;
+        assert.equal(q.get('legal_entity_id'),`in.(${[ACTOR,child].sort().join(',')})`);
+        assert.equal(q.get('legal_entity_id').includes(sibling),false);
+        assert.equal(q.get('order'),order==='created_desc'?'created_at.desc,id.desc':'response_deadline.asc.nullslast,id.asc');
+        return [{id:RFQ,status:'open',created_at:'2026-11-01T00:00:00Z',response_deadline:null},{id:PROPOSAL,status:'open',created_at:'2026-10-01T00:00:00Z',response_deadline:null}];
+      }
+      return [];
+    });
+    const url=`/api/finance/rfqs?organization_id=${BUYER}&paged=1&limit=1&legal_entity_id=${ACTOR}&include_children=1&order=${order}`;
+    const first=(await call('GET','rfqs',{url})).payload;
+    assert(first.page.next_cursor);
+    await call('GET','rfqs',{url:url+'&cursor='+first.page.next_cursor});
+    await rejects('GET','rfqs',{url:url.replace(order,'id_asc')+'&cursor='+first.page.next_cursor},400);
+    await rejects('GET','rfqs',{url:url.replace('&include_children=1','')+'&cursor='+first.page.next_cursor},400);
+  }
+  for(const tail of ['&order=forged','&order=','&include_children=1','&legal_entity_id=group&include_children=1','&include_children=0'])
+    await rejects('GET','rfqs',{url:`/api/finance/rfqs?organization_id=${BUYER}&paged=1${tail}`},400);
+  await rejects('GET','rfqs',{url:`/api/finance/rfqs?organization_id=${BUYER}&paged=0`},400);
+}
+
 // Institutional lists continue beyond the legacy cap without historical scans.
 {
   const ids = [PROPOSAL, '00000000-0000-4000-8000-0000000000e2'];

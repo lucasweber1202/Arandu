@@ -5,140 +5,194 @@ import { PRODUCTS, PRODUCT_IDS, checkAcquiringShares } from '../../../lib/financ
 import { passportPrefill, SOURCE_LABELS } from '../../../lib/finance/passport.mjs';
 import { negotiationNextStep, ACTOR_LABEL } from '../../../lib/finance/negotiation-next-step.mjs';
 import { el, icon, fold, daysUntil, relativeDays, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, fieldValue, todayIso, textSpan, textStrong, textItem } from '../core.js';
-import { pill, linkButton, button, emptyState, person, progress, field, catalogControl, saveIndicator, toast, confirmDialog, tag, onSubmit, toastError } from '../ui.js';
+import { pill, linkButton, button, emptyState, errorState, person, progress, field, catalogControl, saveIndicator, toast, confirmDialog, tag, onSubmit, toastError } from '../ui.js';
 import { loadEntities, entityContextSelect, inContext, entityName, entityField } from './entities.js';
 
 // Próximo passo e de quem é a vez: regra única (lib/finance/negotiation-board.mjs),
 // a mesma do cartão "Próximo passo" da solicitação.
 const ACTOR_TONE = { company: 'accent', institution: 'neutral', approver: 'warning', none: 'neutral' };
 
+// Leitura paginada (contrato 9.1 v1.3: GET rfqs?paged=1). Situação, produto e
+// entidades com suas unidades vão ao servidor; o cursor só vale para o mesmo recorte e é
+// descartado a cada mudança de filtro. Nada aqui infere total global: a tela
+// diz quantas foram carregadas e se há mais neste filtro.
+const PAGE = 25;
+const CONTEXT_KEYS = ['proposals', 'invites', 'invites_count', 'owner_name', 'pending_approval', 'decision_id'];
+
 export async function rfqList(ctx) {
   const entities = await loadEntities(ctx);
-  const paged = ctx.mode === 'real' && ctx.capabilities?.operational_pagination === true;
-  let rfqs = ctx.data.rfqs || [];
+  // A visão geral já traz as solicitações mais recentes com convites, respostas e
+  // responsável. É contexto de exibição, não a lista: linha fora dela não ganha
+  // respostas ou próximo passo inventados.
+  const context = new Map((ctx.data.rfqs || []).map((rfq) => [rfq.id, rfq]));
+  const sandbox = __ARANDU_DEMO__ && ctx.mode === 'demo';
   ctx.header({
-    title: 'Solicitações', subtitle: paged ? 'Solicitações da empresa; consulte as páginas para consultar todas as solicitações.' : 'Todas as concorrências de crédito e adquirência da empresa.',
+    title: 'Solicitações', subtitle: 'Todas as concorrências de crédito e adquirência da empresa.',
     actions: ctx.can('create_rfq') ? [linkButton('Nova solicitação', ctx.href('/finance/new-rfq.html'), { variant: 'primary', iconName: 'plus' })] : []
   });
   const root = el('div', { class: 'list-page' });
-  if (!rfqs.length && !paged) {
-    root.append(emptyState({ title: 'Nenhuma solicitação ainda', text: 'Estruture uma necessidade de crédito ou de adquirência; o Arandu organiza convites, propostas, comparação e aprovação.', iconName: 'file',
-      action: ctx.can('create_rfq') ? linkButton('Criar a primeira solicitação', ctx.href('/finance/new-rfq.html'), { variant: 'primary', iconName: 'plus' }) : null }));
-    return root;
-  }
   const params = new URLSearchParams(location.search);
   const search = el('input', { type: 'search', class: 'input', placeholder: 'Buscar por título…', value: params.get('q') || '', 'aria-label': 'Buscar solicitação por título' });
   const status = el('div', { class: 'chips', role: 'group', 'aria-label': 'Filtrar por status' });
   const statuses = [['', 'Todas'], ['draft', 'Rascunho'], ['open', 'Abertas'], ['collecting', 'Em coleta'], ['comparing', 'Em avaliação'], ['decided', 'Decididas'], ['contracted', 'Contratadas']];
-  let activeStatus = params.get('status') || '';
+  let activeStatus = statuses.some(([value]) => value === params.get('status')) ? params.get('status') : '';
   for (const [value, label] of statuses) {
-    const count = value ? rfqs.filter((rfq) => rfq.status === value).length : rfqs.length;
-    const chip = el('button', { type: 'button', class: 'chip', 'aria-pressed': String(value === activeStatus), dataset: { status: value } }, [textSpan(label), !paged ? el('span', { class: 'chip-count', text: String(count) }) : null]);
-    chip.addEventListener('click', () => { activeStatus = value; for (const node of status.children) node.setAttribute('aria-pressed', String(node.dataset.status === value)); paged ? loadPage(null) : draw(); });
+    const chip = el('button', { type: 'button', class: 'chip', 'aria-pressed': String(value === activeStatus), dataset: { status: value } }, [textSpan(label)]);
+    chip.addEventListener('click', () => { if (activeStatus === value) return; activeStatus = value; for (const node of status.children) node.setAttribute('aria-pressed', String(node.dataset.status === value)); reload(); });
     status.append(chip);
   }
   const product = el('select', { class: 'input', 'aria-label': 'Filtrar por produto' });
   product.add(new Option('Todos os produtos', ''));
   for (const id of PRODUCT_IDS) product.add(new Option(productLabel(id, { short: true }), id));
-  product.value = params.get('product') || '';
-  const owners = paged ? (ctx.members || []).map(m => [m.user_id, m.display_name]) : [...new Map(rfqs.map((rfq) => [rfq.owner_id, rfq.owner_name])).entries()].filter(([id]) => id);
+  product.value = PRODUCT_IDS.includes(params.get('product')) ? params.get('product') : '';
   const owner = el('select', { class: 'input', 'aria-label': 'Filtrar por responsável' });
   owner.add(new Option('Qualquer responsável', ''));
-  for (const [id, name] of owners) owner.add(new Option(name || 'Membro', id));
-  owner.value = params.get('owner') || '';
+  const knownOwners = new Map([...(ctx.members || []).map((m) => [m.user_id, m.display_name]), ...[...context.values()].map((rfq) => [rfq.owner_id, rfq.owner_name])].filter(([id]) => id));
+  for (const [id, name] of knownOwners) owner.add(new Option(name || 'Membro', id));
+  owner.value = knownOwners.has(params.get('owner')) ? params.get('owner') : '';
   const sort = el('select', { class: 'input', 'aria-label': 'Ordenar solicitações' });
   for (const [value, label] of [['deadline', 'Prazo mais próximo'], ['recent', 'Mais recentes'], ['responses', 'Mais respostas']]) sort.add(new Option(label, value));
-  sort.value = params.get('sort') || 'deadline';
+  sort.value = ['recent', 'responses'].includes(params.get('sort')) ? params.get('sort') : 'deadline';
   const today = todayIso();
-  let steps = new Map(rfqs.map((rfq) => [rfq.id, negotiationNextStep(rfq, today)]));
   const actor = el('select', { class: 'input', 'aria-label': 'Filtrar por de quem é a vez' });
   actor.add(new Option('De quem é a vez: todos', ''));
-  for (const key of ['company', 'institution', 'approver']) actor.add(new Option(paged ? `Aguardando: ${ACTOR_LABEL[key]}` : `Aguardando: ${ACTOR_LABEL[key]} (${rfqs.filter((rfq) => steps.get(rfq.id).actor === key).length})`, key));
+  for (const key of ['company', 'institution', 'approver']) actor.add(new Option(`Aguardando: ${ACTOR_LABEL[key]}`, key));
   actor.value = ['company', 'institution', 'approver'].includes(params.get('vez')) ? params.get('vez') : '';
   const entitySelect = entityContextSelect(entities, { label: 'Filtrar por entidade' });
   const count = el('span', { class: 'result-count', role: 'status', 'aria-live': 'polite' });
-  const clear = button('Limpar filtros', { variant: 'ghost', size: 'sm', onClick: () => { search.value = ''; product.value = ''; owner.value = ''; actor.value = ''; activeStatus = ''; for (const node of status.children) node.setAttribute('aria-pressed', String(node.dataset.status === '')); paged ? loadPage(null) : draw(); } });
+  const clear = button('Limpar filtros', { variant: 'ghost', size: 'sm', onClick: () => {
+    const serverChanged = activeStatus || product.value;
+    search.value = ''; product.value = ''; owner.value = ''; actor.value = ''; activeStatus = '';
+    for (const node of status.children) node.setAttribute('aria-pressed', String(node.dataset.status === ''));
+    if (serverChanged) reload(); else draw();
+  } });
 
   const table = el('table', { class: 'data-table rfq-table' });
   table.append(el('thead', {}, el('tr', {}, ['Solicitação', 'Status', 'Responsável', 'Prazo', 'Respostas', 'Próxima ação'].map((label) => el('th', { scope: 'col', text: label })))));
   const body = el('tbody');
   table.append(body);
-  const empty = el('div', { hidden: true }, emptyState({ title: 'Nenhuma solicitação com esses filtros', text: 'Ajuste a busca ou limpe os filtros para ver tudo.', iconName: 'search', action: clear }));
+  const empty = el('div', { hidden: true });
+  const coverage = el('div', { class: 'callout callout-warning', hidden: true });
+  const more = button('Carregar mais solicitações', { iconName: 'chevronDown', onClick: () => load({ append: true }) });
+  more.hidden = true;
+  const tableCard = el('div', { class: 'table-card', 'aria-busy': 'true' }, [table, empty]);
 
-  let generation = 0, currentCursor = null, nextCursor = null;
-  const previous = [];
-  const pageNotice = el('p', { class: 'muted', role: 'status', 'aria-live': 'polite' });
-  const retry = button('Tentar novamente', { onClick: () => loadPage(currentCursor, false) });
-  retry.hidden = true;
-  const back = button('Página anterior', { onClick: () => { const cursor = previous.pop() ?? null; loadPage(cursor, false); } });
-  const more = button('Próxima página', { onClick: () => { previous.push(currentCursor); loadPage(nextCursor, false); } });
-  async function loadPage(cursor, reset = true) {
-    const sequence = ++generation;
-    if (reset) previous.length = 0;
-    currentCursor = cursor;
-    retry.hidden = true; back.disabled = true; more.disabled = true;
-    pageNotice.textContent = 'Carregando solicitações…';
-    const q = new URLSearchParams({ organization_id: ctx.orgId, paged: '1', limit: '25', context: '1' });
+  // Estado da leitura: linhas carregadas, cursor do recorte atual e geração
+  // (resposta de um recorte antigo nunca entra na lista nova).
+  let loaded = [];
+  let nextCursor = null;
+  let generation = 0;
+  let firstFailure = null;
+
+  const entityValue = () => entitySelect?.value || '';
+  function serverQuery(cursor) {
+    const q = new URLSearchParams({ organization_id: ctx.organization.id, paged: '1', limit: String(PAGE), context: '1', order: sort.value === 'deadline' ? 'deadline_asc' : 'created_desc' });
     if (activeStatus) q.set('status', activeStatus);
     if (product.value) q.set('product', product.value);
-    if (entitySelect?.value && entitySelect.value !== 'all') q.set('legal_entity_id', entitySelect.value);
+    // O servidor inclui descendentes autorizados e vincula o cursor à árvore.
+    if (entityValue() && entityValue() !== 'all') { q.set('legal_entity_id', entityValue()); if (entityValue() !== 'group') q.set('include_children', '1'); }
     if (cursor) q.set('cursor', cursor);
+    return `rfqs?${q}`;
+  }
+  async function fetchPage(cursor) {
+    if (sandbox) return { rows: [...context.values()], page: { has_more: false, next_cursor: null } };
+    const data = await ctx.api(serverQuery(cursor));
+    const page = data?.page;
+    if (!Array.isArray(data?.rows) || !page || typeof page.has_more !== 'boolean' || (page.has_more && !page.next_cursor) || data.rows.length > PAGE) {
+      const error = new Error('A lista de solicitações não veio completa. Atualize para tentar de novo.');
+      error.status = 502;
+      throw error;
+    }
+    return data;
+  }
+  function reload() { loaded = []; nextCursor = null; load({ append: false }); }
+  async function load({ append }) {
+    const mine = ++generation;
+    if (append && !nextCursor) return;
+    more.disabled = true;
+    tableCard.setAttribute('aria-busy', 'true');
+    if (!append) { firstFailure = null; coverage.hidden = true; }
     try {
-      const result = await ctx.api(`rfqs?${q}`);
-      if (sequence !== generation) return;
-      if (!Array.isArray(result.rows) || !result.page || (result.page.has_more && !result.page.next_cursor)) throw new Error('Não foi possível confirmar a página. Tente novamente.');
-      const names = new Map((ctx.members || []).map(m => [m.user_id, m.display_name]));
-      rfqs = result.rows.map(row => ({ ...row, owner_name: names.get(row.owner_id) || null }));
-      ctx.data.rfqs = rfqs;
-      steps = new Map(rfqs.map(rfq => [rfq.id, negotiationNextStep(rfq, today)]));
-      nextCursor = result.page.next_cursor;
-      pageNotice.textContent = `${rfqs.length} solicitações nesta página. ${result.page.has_more ? 'Há mais solicitações.' : 'Fim deste recorte.'} Busca por título, responsável, vez e ordenação aplicam-se a esta página.`;
-      draw();
-      back.disabled = previous.length === 0; more.disabled = !nextCursor;
+      const data = await fetchPage(append ? nextCursor : null);
+      if (mine !== generation) return;
+      const known = new Set(loaded.map((rfq) => rfq.id));
+      const fresh = data.rows.filter((rfq) => rfq && !known.has(rfq.id)).map((rfq) => {
+        const extra = Array.isArray(rfq.invites) && Array.isArray(rfq.proposals) ? rfq : context.get(rfq.id);
+        return extra ? { ...rfq, ...Object.fromEntries(CONTEXT_KEYS.filter((key) => key in extra).map((key) => [key, extra[key]])), contextLoaded: true } : { ...rfq, contextLoaded: false };
+      });
+      loaded = append ? [...loaded, ...fresh] : fresh;
+      nextCursor = data.page.has_more ? data.page.next_cursor : null;
+      coverage.hidden = true;
     } catch (error) {
-      if (sequence !== generation) return;
-      // An old page must not masquerade as the result of newly selected filters.
-      rfqs = []; steps = new Map(); draw();
-      pageNotice.textContent = error.status === 401 ? 'Sua sessão expirou. Entre novamente para continuar.' : error.status === 403 ? 'Você não tem acesso a estas solicitações.' : 'Não foi possível carregar esta página. Tente novamente.';
-      retry.hidden = error.status === 401 || error.status === 403;
-      back.disabled = previous.length === 0; more.disabled = true;
+      if (mine !== generation) return;
+      if (!append) { loaded = []; nextCursor = null; firstFailure = error; }
+      else {
+        // As já exibidas continuam; a cobertura fica declarada como incompleta.
+        coverage.hidden = false;
+        coverage.replaceChildren(el('p', { role: 'alert', text: `${error.message || 'Não foi possível carregar mais solicitações.'} As ${loaded.length} já exibidas continuam; a lista deste filtro está incompleta.` }));
+      }
+    } finally {
+      if (mine === generation) { more.disabled = false; tableCard.removeAttribute('aria-busy'); draw(); }
     }
   }
 
   function draw() {
     const term = fold(search.value.trim());
-    const visible = rfqs.filter((rfq) => (!activeStatus || rfq.status === activeStatus)
+    const steps = new Map(loaded.filter((rfq) => rfq.contextLoaded).map((rfq) => [rfq.id, negotiationNextStep(rfq, today)]));
+    const visible = loaded.filter((rfq) => (!activeStatus || rfq.status === activeStatus)
       && (!product.value || rfq.product === product.value) && (!owner.value || rfq.owner_id === owner.value)
       && (!term || fold(`${rfq.title} ${rfq.description || ''}`).includes(term))
       && (!entitySelect || inContext(entities, rfq, entitySelect.value))
-      && (!actor.value || steps.get(rfq.id).actor === actor.value));
+      && (!actor.value || steps.get(rfq.id)?.actor === actor.value));
+    const responses = (rfq) => (rfq.proposals || []).length;
     visible.sort((a, b) => sort.value === 'recent' ? String(b.created_at).localeCompare(String(a.created_at))
-      : sort.value === 'responses' ? (b.proposals || []).length - (a.proposals || []).length
+      : sort.value === 'responses' ? responses(b) - responses(a)
         : String(['open', 'collecting', 'comparing', 'draft'].includes(a.status) ? a.response_deadline || '9999' : 'z').localeCompare(String(['open', 'collecting', 'comparing', 'draft'].includes(b.status) ? b.response_deadline || '9999' : 'z')));
     body.replaceChildren();
     for (const rfq of visible) {
       const days = daysUntil(rfq.response_deadline);
       const live = ['open', 'collecting'].includes(rfq.status);
       const invited = (rfq.invites || []).length || rfq.invites_count || 0;
+      const step = steps.get(rfq.id);
       body.append(el('tr', { class: 'row-link', dataset: { entity: 'rfq', id: rfq.id } }, [
         el('td', { 'data-label': 'Solicitação', class: 'cell-primary' }, [
           el('a', { class: 'row-title stretched', href: ctx.href(`/finance/rfq.html?id=${encodeURIComponent(rfq.id)}`), text: rfq.title }),
           el('span', { class: 'row-sub', text: `${productLabel(rfq.product, { short: true })} · ${demandHeadline(rfq)} · rev. ${rfq.revision || 1}${entities.rows.length ? ` · ${entityName(entities, rfq.legal_entity_id)}` : ''}` })
         ]),
         el('td', { 'data-label': 'Status' }, pill(RFQ_STATUS[rfq.status], { size: 'sm' })),
-        el('td', { 'data-label': 'Responsável' }, person(rfq.owner_name || 'Membro')),
+        el('td', { 'data-label': 'Responsável' }, person(rfq.owner_name || knownOwners.get(rfq.owner_id) || 'Membro')),
         el('td', { 'data-label': 'Prazo', class: live && days !== null && days <= 2 ? 'urgent' : '' }, rfq.response_deadline
           ? el('span', { class: 'date-cell' }, [textSpan(formatDate(rfq.response_deadline, { withYear: false })), live ? el('span', { class: 'date-rel', text: relativeDays(rfq.response_deadline) }) : null])
           : el('span', { class: 'muted', text: 'sem prazo' })),
-        el('td', { 'data-label': 'Respostas' }, invited || (rfq.proposals || []).length ? progress((rfq.proposals || []).length, Math.max(invited, (rfq.proposals || []).length), { label: `${(rfq.proposals || []).length} de ${invited} provedores responderam` }) : el('span', { class: 'muted', text: 'sem convites' })),
-        el('td', { 'data-label': 'Próxima ação', class: 'next-action' }, (() => { const step = steps.get(rfq.id); return [
+        el('td', { 'data-label': 'Respostas' }, !rfq.contextLoaded ? el('span', { class: 'muted', text: 'Abra para ver convites e respostas' })
+          : invited || responses(rfq) ? progress(responses(rfq), Math.max(invited, responses(rfq)), { label: `${responses(rfq)} de ${invited} provedores responderam` }) : el('span', { class: 'muted', text: 'sem convites' })),
+        el('td', { 'data-label': 'Próxima ação', class: 'next-action' }, step ? [
           el('span', { class: 'next-action-text' }, [textSpan(step.text), step.detail ? el('span', { class: 'row-sub', text: step.detail }) : null]),
-          step.actor !== 'none' ? tag(ACTOR_LABEL[step.actor], ACTOR_TONE[step.actor]) : null, icon('chevronRight', { size: 14 })]; })())
+          step.actor !== 'none' ? tag(ACTOR_LABEL[step.actor], ACTOR_TONE[step.actor]) : null, icon('chevronRight', { size: 14 })]
+          : [el('span', { class: 'next-action-text' }, textSpan('Abra a solicitação para ver o próximo passo')), icon('chevronRight', { size: 14 })])
       ]));
     }
-    count.textContent = `${visible.length} de ${rfqs.length}${paged ? ' nesta página' : ''}`;
-    table.hidden = !visible.length;
-    empty.hidden = Boolean(visible.length);
+    const unscoped = !activeStatus && !product.value && !owner.value && !actor.value && !search.value.trim() && !entityValue();
+    if (firstFailure) {
+      count.textContent = '';
+      table.hidden = true;
+      empty.hidden = false;
+      empty.replaceChildren(errorState({ title: 'Não foi possível carregar as solicitações', error: firstFailure, onRetry: reload }));
+    } else if (!loaded.length && !nextCursor && unscoped) {
+      count.textContent = '';
+      table.hidden = true;
+      empty.hidden = false;
+      empty.replaceChildren(emptyState({ title: 'Nenhuma solicitação ainda', text: 'Estruture uma necessidade de crédito ou de adquirência; o Arandu organiza convites, propostas, comparação e aprovação.', iconName: 'file',
+        action: ctx.can('create_rfq') ? linkButton('Criar a primeira solicitação', ctx.href('/finance/new-rfq.html'), { variant: 'primary', iconName: 'plus' }) : null }));
+    } else {
+      const complete = !nextCursor;
+      count.textContent = `${visible.length} de ${loaded.length} ${loaded.length === 1 ? 'carregada' : 'carregadas'}${complete ? ' · todas deste filtro' : ' · há mais neste filtro'}`;
+      table.hidden = !visible.length;
+      empty.hidden = Boolean(visible.length);
+      empty.replaceChildren(emptyState({ title: complete ? 'Nenhuma solicitação com esses filtros' : 'Nenhuma das carregadas atende a esses filtros',
+        text: complete ? 'Ajuste a busca ou limpe os filtros para ver tudo.' : 'Há mais solicitações neste recorte: carregue mais ou ajuste os filtros.', iconName: 'search', action: clear }));
+    }
+    more.hidden = !nextCursor || Boolean(firstFailure);
     const next = new URLSearchParams();
     if (search.value.trim()) next.set('q', search.value.trim());
     if (activeStatus) next.set('status', activeStatus);
@@ -146,16 +200,20 @@ export async function rfqList(ctx) {
     if (owner.value) next.set('owner', owner.value);
     if (sort.value !== 'deadline') next.set('sort', sort.value);
     if (actor.value) next.set('vez', actor.value);
-    history.replaceState(null, '', `${location.pathname}${next.toString() ? `?${next}` : ''}`);
+    history.replaceState(null, '', `${location.pathname}${next.toString() ? `?${next}` : ''}${location.hash}`);
   }
-  for (const control of [search, product, owner, sort, entitySelect, actor].filter(Boolean)) control.addEventListener(control === search ? 'input' : 'change', () => paged && [product, entitySelect].includes(control) ? loadPage(null) : draw());
+  for (const control of [search, owner, actor].filter(Boolean)) control.addEventListener(control === search ? 'input' : 'change', draw);
+  product.addEventListener('change', reload);
+  sort.addEventListener('change', reload);
+  entitySelect?.addEventListener('change', reload);
   root.append(
     el('div', { class: 'toolbar' }, [el('div', { class: 'toolbar-search' }, [icon('search'), search]), entitySelect, product, owner, actor, sort, count].filter(Boolean)),
     el('div', { class: 'toolbar-chips' }, status),
-    el('div', { class: 'table-card' }, [table, empty])
+    tableCard,
+    coverage,
+    el('div', { class: 'task-more' }, more)
   );
-  if (paged) { root.append(pageNotice, el('div', { class: 'toolbar' }, [back, more, retry])); await loadPage(null); }
-  else draw();
+  await load({ append: false });
   return root;
 }
 

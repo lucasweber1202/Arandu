@@ -1,4 +1,4 @@
-# Arandu 9.1 — contrato de integração v1.2
+# Arandu 9.1 — contrato de integração v1.3
 
 Base comum: `4f9e01b27ec33359cfe2a7b07e26af926c4fe6aa`. Coordenação: issue #334.
 Proprietário: Codex. Frontend: Claude em `claude/sweet-gates-epqu3i`.
@@ -186,3 +186,23 @@ que todas as mutações da jornada API foram feitas por cliques no navegador.
 `ARANDU_DATABASE_TEST_URL=<loopback> node scripts/benchmark-institutional-snapshots.mjs`
 compara snapshots equivalentes com históricos de 10/100/1000 versões, planos e
 buffers. Não mede HTTP/RLS/Auth/Storage nem capacidade hospedada.
+
+## Extensão v1.3 — checkpoint Claude 2
+
+`bf00b0b812da68565ab233c2d6787e66d20e0638` integrado com autoria preservada.
+A renderização de RFQs do Claude é a base da resolução da sobreposição: carrega
+mais de forma cumulativa, mantém linhas em erro de continuação e declara cobertura
+incompleta. Troca de filtros descarta cursor/respostas antigas. Não depende de
+overview para contexto quando `context=1` retorna convites/propostas da página.
+
+RFQs aceitam `order=id_asc|created_desc|deadline_asc` (padrão id_asc para legado).
+created_desc ordena created_at desc/id desc; deadline_asc ordena response_deadline
+asc nullslast/id asc. Cursor vinculado à ordenação; datas ausentes ficam no fim.
+`legal_entity_id=<UUID>&include_children=1` inclui a entidade e descendentes visíveis
+via RLS (limite explícito de 500 entidades na resolução). Entidade invisível recusa
+404; árvore maior recusa 422. Cursor também é vinculado ao conjunto de descendentes:
+mudança de estrutura exige reiniciar a primeira página. group não aceita include_children.
+Contexto acrescenta owner_name/invites_count e continua sem termos/histórico;
+nomes ausentes são null. Filtros inválidos/duplicados e modo paged diferente de 1
+são recusados. Interface usa deadline_asc/created_desc no servidor, inclusive na
+continuação; ordenação por quantidade de respostas continua local às carregadas.
