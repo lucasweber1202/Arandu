@@ -116,7 +116,7 @@ export async function rfqDetail(ctx) {
     if (['draft', 'open', 'collecting'].includes(rfq.status)) actions.push(button('Editar', { iconName: 'edit', onClick: () => editDrawer(ctx, rfq) }));
   }
   if (pending) actions.push(linkButton(isViewerTurn(pending, ctx.viewer?.id) ? 'Decidir aprovação' : 'Acompanhar aprovação', '#aprovacoes', { variant: 'primary', iconName: 'clock' }));
-  if (contract) actions.push(linkButton('Ver contrato', ctx.href(`/finance/contracts.html#contract-${contract.id}`), { iconName: 'briefcase' }));
+  if (contract) actions.push(linkButton('Ver contrato', ctx.href(`/finance/contracts.html?abrir=contrato#contract-${contract.id}`), { iconName: 'briefcase' }));
   const more = [
     { label: 'Exportar processo (JSON)', icon: 'download', onClick: () => exportProcess(ctx, rfq) },
     manage && rfq.status === 'comparing' && !decision ? { label: 'Reabrir coleta', icon: 'refresh', onClick: () => transition('collecting', { title: 'Reabrir a coleta?', description: 'Provedores voltam a poder enviar e revisar propostas.', confirmLabel: 'Reabrir' }) } : null,

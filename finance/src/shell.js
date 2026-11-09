@@ -312,7 +312,7 @@ export function notificationHref(ctx, row) {
       policy_exception_requested: 'aprovacoes', policy_exception_decided: 'aprovacoes', mention: 'atividade', comment: 'atividade', proposal_received: 'propostas', proposal_revised: 'propostas' }[row.event_type];
     return ctx.href(`/finance/rfq.html?id=${id}${tab ? `#${tab}` : ''}`);
   }
-  if (row.object_type === 'contract') return ctx.href(`/finance/contracts.html#contract-${id}`);
+  if (row.object_type === 'contract') return ctx.href(`/finance/contracts.html?abrir=contrato#contract-${id}`);
   if (row.object_type === 'task') return ctx.href(`/finance/tasks.html#task-${id}`);
   return ctx.href('/finance/notifications.html');
 }
