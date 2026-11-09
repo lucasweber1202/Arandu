@@ -777,6 +777,11 @@ for current_db in "$clean_db" "$upgrade_db" "$fresh_db"; do
   apply_file "$current_db" "docs/supabase-financial-operating-context.sql"
   apply_file "$current_db" "docs/supabase-financial-operating-context.sql"
   apply_file "$current_db" "tests/database/financial-operating-context.sql"
+  apply_file "$current_db" "docs/supabase-financial-contract-email-links.sql"
+  apply_file "$current_db" "docs/rollback/supabase-financial-contract-email-links.rollback.sql"
+  apply_file "$current_db" "docs/supabase-financial-contract-email-links.sql"
+  apply_file "$current_db" "docs/supabase-financial-contract-email-links.sql"
+  apply_file "$current_db" "tests/database/financial-contract-email-links.sql"
   apply_file "$current_db" "ops/sql/post-migration-probes.sql"
   apply_file "$current_db" "ops/sql/pilot-isolation-canary.sql"
 done

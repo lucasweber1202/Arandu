@@ -102,6 +102,7 @@ export async function providerHome(ctx) {
   const invites = ctx.data.pending_invites || [];
   ctx.header({ title: 'Portal da instituição', subtitle: `${greeting(ctx.viewer?.name)} · ${ctx.organization.legal_name}` });
   const root = el('div', { class: 'provider-home' });
+  if (ctx.data.assignment_coverage?.complete === false) root.append(el('p', { class: 'muted', role: 'note' }, [textSpan('Resumo de até 200 oportunidades. '), linkButton('Consultar todas as páginas', ctx.href('/provider/rfqs.html'))]));
 
   const todo = rows.filter((row) => ['todo', 'outdated'].includes(assignmentState(row).key))
     .sort((a, b) => String(a.response_deadline || '9999').localeCompare(String(b.response_deadline || '9999')));
@@ -127,7 +128,7 @@ export async function providerHome(ctx) {
     hero = { title: `Confira a validade da sua proposta: ${next.title}`, text: `${proposalPending(next).validity.text}. A coleta ainda está aberta: você pode enviar uma nova versão.`,
       action: linkButton('Ver ou revisar proposta', proposalHref(ctx, next), { variant: 'primary', iconName: 'arrowRight' }) };
   } else {
-    hero = { title: rows.length ? 'Nada pendente agora' : 'Nenhuma oportunidade ainda', text: rows.length ? 'Suas propostas foram enviadas. Você será avisado se a empresa revisar a solicitação ou comentar.' : 'Quando uma empresa convidar a sua instituição, a oportunidade aparece aqui.', action: null };
+    hero = { title: rows.length ? (ctx.data.assignment_coverage?.complete === false ? 'Nenhuma pendência nesta seleção' : 'Nada pendente agora') : 'Nenhuma oportunidade ainda', text: rows.length ? 'Suas propostas foram enviadas. Você será avisado se a empresa revisar a solicitação ou comentar.' : 'Quando uma empresa convidar a sua instituição, a oportunidade aparece aqui.', action: null };
   }
   root.append(el('section', { class: 'next-hero', id: 'provider-status', 'aria-labelledby': 'next-hero-title' }, [
     el('span', { class: 'next-step-kicker', text: 'Sua próxima ação' }),
@@ -165,14 +166,16 @@ export async function providerHome(ctx) {
 }
 
 export async function providerRfqs(ctx) {
-  const rows = ctx.data.assignments || [];
+  let rows = ctx.data.assignments || [];
+  const paged = Boolean(ctx.data.assignment_page);
   ctx.header({ title: 'Oportunidades', subtitle: 'Solicitações para as quais a sua instituição foi convidada.' });
-  if (!rows.length) return emptyState({ title: 'Nenhuma oportunidade ainda', text: 'Aceite um convite para ver a solicitação e responder.', iconName: 'inbox', action: linkButton('Aceitar convite', ctx.href('/provider/invite.html'), { iconName: 'send' }) });
+  if (!rows.length && !paged) return emptyState({ title: 'Nenhuma oportunidade ainda', text: 'Aceite um convite para ver a solicitação e responder.', iconName: 'inbox', action: linkButton('Aceitar convite', ctx.href('/provider/invite.html'), { iconName: 'send' }) });
   const filters = el('div', { class: 'chips', role: 'group', 'aria-label': 'Filtrar oportunidades' });
   const list = el('div', { class: 'opportunity-list card card-flush' });
   let active = '';
   const options = [['', 'Todas'], ['todo', 'Para responder'], ['sent', 'Enviadas'], ['closed', 'Encerradas']];
   const draw = () => {
+    for (const chip of filters.children) { const key = chip.dataset.value; chip.querySelector('.chip-count').textContent = String(key ? rows.filter(row => assignmentState(row).key === key || (key === 'todo' && assignmentState(row).key === 'outdated')).length : rows.length); }
     const visible = rows.filter((row) => !active || assignmentState(row).key === active || (active === 'todo' && assignmentState(row).key === 'outdated'));
     list.replaceChildren(...(visible.length ? visible.map((row) => opportunityRow(ctx, row)) : [emptyState({ title: 'Nada neste filtro', compact: true })]));
   };
@@ -184,7 +187,40 @@ export async function providerRfqs(ctx) {
   }
   draw();
   if (location.hash.startsWith('#rfq-')) queueMicrotask(() => document.querySelector(location.hash)?.scrollIntoView({ block: 'center' }));
-  return el('div', { class: 'stack' }, [el('div', { class: 'toolbar-chips' }, filters), list]);
+  const root = el('div', { class: 'stack' }, [el('div', { class: 'toolbar-chips' }, filters), list]);
+  if (paged) {
+    let info = ctx.data.assignment_page, current = null;
+    const cursors = [];
+    const note = el('p', { class: 'muted', role: 'status' });
+    const retry = button('Tentar novamente', { onClick: () => load(current) });
+    retry.hidden = true;
+    const previous = button('Página anterior', { onClick: () => load(cursors.pop() ?? null) });
+    const next = button('Próxima página', { onClick: () => { cursors.push(current); load(info.next_cursor); } });
+    const update = () => {
+      note.textContent = `${rows.length} oportunidades nesta página. ${info.has_more ? 'Há mais oportunidades.' : 'Fim deste recorte.'} Os filtros se aplicam a esta página.`;
+      previous.disabled = cursors.length === 0; next.disabled = !info.has_more;
+    };
+    async function load(cursor) {
+      current = cursor; previous.disabled = true; next.disabled = true; retry.hidden = true;
+      note.textContent = 'Carregando oportunidades…';
+      const q = new URLSearchParams({ organization_id: ctx.orgId, paged: '1', limit: '25' });
+      if (cursor) q.set('cursor', cursor);
+      try {
+        const result = await ctx.api(`assignments?${q}`);
+        if (!Array.isArray(result.rows) || !result.page || (result.page.has_more && !result.page.next_cursor)) throw new Error('invalid page');
+        rows = result.rows; info = result.page;
+        ctx.data.assignments = rows; ctx.data.assignment_page = info;
+        draw(); update();
+      } catch (error) {
+        rows = []; draw();
+        note.textContent = error.status === 401 ? 'Sua sessão expirou. Entre novamente.' : error.status === 403 ? 'Você não tem acesso a estas oportunidades.' : 'Não foi possível carregar esta página. Tente novamente.';
+        retry.hidden = error.status === 401 || error.status === 403;
+        previous.disabled = cursors.length === 0;
+      }
+    }
+    update(); root.append(note, el('div', { class: 'toolbar' }, [previous, next, retry]));
+  }
+  return root;
 }
 
 // ------------------------------------------------------------- proposta

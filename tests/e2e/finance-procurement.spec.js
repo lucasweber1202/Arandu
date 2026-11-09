@@ -1251,3 +1251,71 @@ test('buyer-first: organização vazia começa pelo que já existe; acompanhar s
   await expect(panel.getByRole('link', { name: /Acompanhar vencimentos e próximas ações/ })).toHaveAttribute('href', /tasks\.html$/);
   await expect(panel.getByRole('link', { name: /Revisar condições de um contrato/ })).toHaveAttribute('href', /contracts\.html$/);
 });
+
+// Integration contract v1.2: server filters/cursors, with an explicit page scope.
+test('RFQs paginadas: percorre 101 registros e reinicia o cursor ao mudar o filtro', async ({ page }) => {
+  await mockSession(page);
+  await page.route('**/api/finance/organizations', route => route.fulfill({ json: { ok: true, rows: [{ id: 'org1', kind: 'BUYER', legal_name: 'Empresa de teste' }], capabilities: { operational_pagination: true } } }));
+  const requests = [];
+  await page.route('**/api/finance/rfqs?**', route => {
+    const q = new URL(route.request().url()).searchParams;
+    requests.push(Object.fromEntries(q));
+    const offset = Number(q.get('cursor') || 0);
+    const count = q.get('status') ? 1 : 101;
+    const rows = Array.from({ length: Math.max(0, Math.min(25, count - offset)) }, (_, i) => ({ id: `paged-${offset + i}`, title: `Solicitação paginada ${offset + i + 1}`, product: 'credit', status: q.get('status') || 'open', owner_id: 'u1', invites: [], proposals: [], demand: {} }));
+    return route.fulfill({ json: { ok: true, rows, page: { limit: 25, has_more: offset + 25 < count, next_cursor: offset + 25 < count ? String(offset + 25) : null } } });
+  });
+  await page.goto('/finance/rfqs.html');
+  await expect(page.getByText('Solicitação paginada 1', { exact: true })).toBeVisible();
+  for (let i = 0; i < 4; i++) { await page.getByRole('button', { name: 'Próxima página', exact: true }).click(); await expect(page.getByText(`Solicitação paginada ${26 + i * 25}`, { exact: true })).toBeVisible(); }
+  await expect(page.getByText('Solicitação paginada 101', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Próxima página', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'Rascunho', exact: true }).click();
+  await expect(page.getByText('Solicitação paginada 1', { exact: true })).toBeVisible();
+  expect(requests.at(-1).status).toBe('draft');
+  expect(requests.at(-1).cursor).toBeUndefined();
+  expect(requests.every(q => q.paged === '1' && q.context === '1')).toBe(true);
+  await expect(page.getByText(/nesta página\. Fim deste recorte/)).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('RFQs paginadas: falha na continuação não vira fim do acervo e permite tentar de novo', async ({ page }) => {
+  await mockSession(page);
+  await page.route('**/api/finance/organizations', route => route.fulfill({ json: { ok: true, rows: [{ id: 'org1', kind: 'BUYER', legal_name: 'Empresa de teste' }], capabilities: { operational_pagination: true } } }));
+  let failed = false;
+  await page.route('**/api/finance/rfqs?**', route => {
+    const after = new URL(route.request().url()).searchParams.has('cursor');
+    if (after && !failed) { failed = true; return route.fulfill({ status: 503, json: { ok: false, code: 'unavailable', error: 'Temporariamente indisponível.' } }); }
+    return route.fulfill({ json: { ok: true, rows: [{ id: after ? 'second' : 'first', title: after ? 'Página recuperada' : 'Página inicial', product: 'credit', status: 'draft', invites: [], proposals: [] }], page: { has_more: !after, next_cursor: after ? null : 'next' } } });
+  });
+  await page.goto('/finance/rfqs.html');
+  await page.getByRole('button', { name: 'Próxima página', exact: true }).click();
+  await expect(page.getByText('Não foi possível carregar esta página. Tente novamente.', { exact: true })).toBeVisible();
+  await expect(page.getByText('Página inicial', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Tentar novamente', exact: true }).click();
+  await expect(page.getByText('Página recuperada', { exact: true })).toBeVisible();
+});
+
+test('portal institucional paginado: 101 oportunidades e continuidade após erro de backend', async ({ page }) => {
+  await mockSession(page, { organizations: [{ id: 'provider-org', kind: 'PROVIDER', legal_name: 'Instituição sintética' }], viewerRole: 'provider_user' });
+  await page.route('**/api/finance/organizations', route => route.fulfill({ json: { ok: true, rows: [{ id: 'provider-org', kind: 'PROVIDER', legal_name: 'Instituição sintética' }], capabilities: { operational_pagination: true } } }));
+  let failed = false;
+  await page.route('**/api/finance/assignments?**', route => {
+    const q = new URL(route.request().url()).searchParams;
+    expect(q.get('organization_id')).toBe('provider-org');
+    expect(q.get('paged')).toBe('1');
+    const offset = Number(q.get('cursor') || 0);
+    if (offset === 25 && !failed) { failed = true; return route.fulfill({ status: 503, json: { ok: false, code: 'unavailable', error: 'Indisponível' } }); }
+    const rows = Array.from({ length: Math.min(25, 101 - offset) }, (_, i) => ({ proposal_id: `proposal-${offset+i}`, rfq_id: `rfq-${offset+i}`, title: `Oportunidade sintética ${offset+i+1}`, product: 'credit', rfq_status: 'open', version: 0, demand: {}, terms: {} }));
+    return route.fulfill({ json: { ok: true, rows, page: { has_more: offset + 25 < 101, next_cursor: offset + 25 < 101 ? String(offset+25) : null }, coverage: { history: 'current_snapshot_only' } } });
+  });
+  await page.goto('/provider/rfqs.html');
+  await expect(page.getByText('Oportunidade sintética 1', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Próxima página', exact: true }).click();
+  await expect(page.getByText('Não foi possível carregar esta página. Tente novamente.', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Tentar novamente', exact: true }).click();
+  await expect(page.getByText('Oportunidade sintética 26', { exact: true })).toBeVisible();
+  for (let i=0;i<3;i++) { await page.getByRole('button', { name: 'Próxima página', exact: true }).click(); await expect(page.getByText(`Oportunidade sintética ${51+i*25}`, { exact: true })).toBeVisible(); }
+  await expect(page.getByRole('button', { name: 'Próxima página', exact: true })).toBeDisabled();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});

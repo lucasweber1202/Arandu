@@ -176,6 +176,93 @@ await rejects('GET', 'rfqs', { url: `/api/finance/rfqs?organization_id=${OTHER_O
   assert.equal(sent.filter(entry=>entry.url.includes('fin_rfqs')).length, reads, 'invalid continuation must not read RFQs');
 }
 
+// Visible-page context never reads historical financial terms or all RFQs.
+{
+  reset(entry => {
+    if (entry.url.includes('fin_organizations')) return orgRow(BUYER, 'BUYER');
+    if (entry.url.includes('fin_rfqs?')) return [{ id: RFQ, status: 'open' }];
+    assert.equal(entry.authorization, 'Bearer user-jwt');
+    if (entry.url.includes('fin_rfq_invites?')) return [{ id: RFQ, rfq_id: RFQ, provider_id: PROVIDER_ORG, status: 'accepted' }];
+    if (entry.url.includes('fin_proposals?')) return [{ id: PROPOSAL, rfq_id: RFQ, provider_id: PROVIDER_ORG, current_version: 8 }];
+    if (entry.url.includes('fin_proposal_versions?')) {
+      const q = new URL(entry.url).searchParams;
+      assert.equal(q.get('select').includes('terms'), false);
+      assert.match(q.get('or'), /version.eq.8/);
+      return [{ proposal_id: PROPOSAL, version: 8, rfq_revision: 3 }];
+    }
+    return [];
+  });
+  const result = (await call('GET', 'rfqs', { url: `/api/finance/rfqs?organization_id=${BUYER}&paged=1&context=1` })).payload;
+  assert.equal(result.rows[0].proposals[0].rfq_revision, 3);
+  assert.equal(result.rows[0].invites.length, 1);
+  await rejects('GET', 'rfqs', { url: `/api/finance/rfqs?organization_id=${BUYER}&paged=1&context=forged` }, 400);
+}
+
+// Institutional lists continue beyond the legacy cap without historical scans.
+{
+  const ids = [PROPOSAL, '00000000-0000-4000-8000-0000000000e2'];
+  for (const resource of ['invites', 'proposals']) {
+    reset(entry => {
+      if (entry.url.includes('fin_organizations')) return orgRow(entry.url.includes(OTHER_ORG) ? OTHER_ORG : PROVIDER_ORG, 'PROVIDER');
+      const q = new URL(entry.url).searchParams;
+      if (entry.url.includes('fin_proposal_versions')) {
+        assert.equal(q.get('limit'), '2');
+        assert.match(q.get('or'), /version.eq.999/);
+        return [{ proposal_id: q.get('or').includes(ids[1]) ? ids[1] : ids[0], version: 999, terms: { amount: 42 } }];
+      }
+      assert.equal(entry.authorization, 'Bearer user-jwt');
+      assert.equal(q.get('limit'), '2');
+      assert.equal(q.get('order'), 'id.asc');
+      if (resource === 'invites') {
+        assert.match(q.get('and'), new RegExp(`buyer_organization_id.eq.${PROVIDER_ORG}`));
+        assert.equal(q.has('or'), false);
+      } else assert.equal(q.get('provider_organization_id'), `eq.${PROVIDER_ORG}`);
+      const continued = resource === 'invites' ? q.get('and').includes('id.gt.') : q.has('or');
+      return (continued ? ids.slice(1) : ids).map(id => ({ id, current_version: 999 }));
+    });
+    const url = `/api/finance/${resource}?organization_id=${PROVIDER_ORG}&paged=1&limit=1`;
+    const first = (await call('GET', resource, { url })).payload;
+    assert.equal(first.page.has_more, true);
+    if (resource === 'proposals') {
+      assert.equal(first.rows[0].current_snapshot.version, 999);
+      assert.equal(first.coverage.history, 'current_snapshot_only');
+      assert.equal('history' in first.rows[0], false);
+    }
+    const cursor = first.page.next_cursor;
+    const next = (await call('GET', resource, { url: `${url}&cursor=${cursor}` })).payload;
+    assert.deepEqual(next.rows.map(r => r.id), ids.slice(1));
+    assert.equal(next.page.has_more, false);
+    for (const tail of ['&status=forged', '&unknown=1', '&limit=2', '&cursor=bad', '&rfq_id='+RFQ])
+      await rejects('GET', resource, { url: url+tail }, 400);
+    await rejects('GET', resource, { url: `${url}&status=${resource === 'invites' ? 'accepted' : 'submitted'}&cursor=${cursor}` }, 400);
+    await rejects('GET', resource, { url: `${url.replace(PROVIDER_ORG, OTHER_ORG)}&cursor=${cursor}` }, 400);
+  }
+  reset(entry => entry.url.includes('fin_organizations') ? orgRow(PROVIDER_ORG, 'PROVIDER') : entry.url.includes('fin_proposals?') ? [{ id: PROPOSAL, current_version: 999 }] : []);
+  await rejects('GET', 'proposals', { url: `/api/finance/proposals?organization_id=${PROVIDER_ORG}&paged=1` }, 409);
+}
+
+// Paged assignments reuse current snapshots and enrich only their RFQs/drafts.
+{
+  reset(entry => {
+    if (entry.url.includes('fin_organizations')) return orgRow(PROVIDER_ORG, 'PROVIDER');
+    if (entry.url.includes('fin_proposals?')) return [{id:PROPOSAL,rfq_id:RFQ,current_version:2,status:'submitted',product:'credit'}];
+    if (entry.url.includes('fin_proposal_versions?')) return [{proposal_id:PROPOSAL,version:2,rfq_revision:1,terms:{offered_amount:1000}}];
+    if (entry.url.includes('fin_rfqs?')) return [{id:RFQ,title:'Solicitação canônica',status:'open',revision:2,demand:{amount:1000}}];
+    if (entry.url.includes('fin_proposal_drafts?')) return [{proposal_id:PROPOSAL}];
+    if (entry.url.includes('fin_assignment_buyer_names')) return [{rfq_id:RFQ,buyer_name:'Empresa sintética'}];
+    return [];
+  });
+  const result=(await call('GET','assignments',{url:`/api/finance/assignments?organization_id=${PROVIDER_ORG}&paged=1&limit=1`})).payload;
+  assert.equal(result.rows[0].proposal_id,PROPOSAL);
+  assert.equal(result.rows[0].rfq_id,RFQ);
+  assert.equal(result.rows[0].has_draft,true);
+  assert.equal(result.rows[0].submitted_rfq_revision,1);
+  assert.equal(result.rows[0].rfq_revision,2);
+  assert.equal(result.rows[0].terms.offered_amount,1000);
+  assert.equal('history' in result.rows[0],false);
+  assert(sent.every(entry=>entry.authorization==='Bearer user-jwt'));
+}
+
 // ------------------------------------------------------ mass assignment
 
 reset((entry) => (entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : [{ id: RFQ }]));
@@ -390,7 +477,7 @@ reset((entry) => (entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER
 // A mensagem do Postgres nunca atravessa: o que chega é o motivo em português,
 // sem revelar tabela, policy nem a existência de registro de terceiro.
 reset((entry) => {
-  if (entry.url.includes('fin_organizations')) return orgRow(PROVIDER_ORG, 'PROVIDER');
+  if (entry.url.includes('fin_organizations')) return orgRow(entry.url.includes(OTHER_ORG) ? OTHER_ORG : PROVIDER_ORG, 'PROVIDER');
   const error = new Error('invalid invitation'); error.status = 400; throw error;
 });
 await assert.rejects(
@@ -697,7 +784,7 @@ reset((entry) => {
     if (missingBuyerRpc) throw Object.assign(new Error('private missing function'), { status: 404, details: { code: 'PGRST202' } });
     return [{ rfq_id: RFQ, buyer_name: 'Compradora sintética' }];
   }
-  if (entry.url.includes('fin_organizations')) return orgRow(PROVIDER_ORG, 'PROVIDER');
+  if (entry.url.includes('fin_organizations')) return orgRow(entry.url.includes(OTHER_ORG) ? OTHER_ORG : PROVIDER_ORG, 'PROVIDER');
   if (entry.url.includes('fin_proposal_versions')) return [{ proposal_id: PROPOSAL, version: 1, terms: { institution: 'Meu Banco' }, submitted_at: '2026-01-01T00:00:00Z', rfq_revision: 2 }];
   if (entry.url.includes('fin_proposals')) return [{ id: PROPOSAL, rfq_id: RFQ, product: 'credit', status: 'submitted', current_version: 1 }];
   if (entry.url.includes('fin_rfqs')) return [{ id: RFQ, title: 'RFQ', product: 'credit', status: 'collecting', demand: { amount: 500000 }, description: 'necessidade', revision: 3 }];
@@ -742,7 +829,7 @@ for (const resource of ['assignments', 'proposals']) {
     { proposal_id: OTHER_ORG, version: 1, terms: { institution: 'Concorrente privado' }, submitted_at: '2026-10-15T12:00:00Z' }
   ];
   reset((entry) => {
-    if (entry.url.includes('fin_organizations')) return orgRow(PROVIDER_ORG, 'PROVIDER');
+    if (entry.url.includes('fin_organizations')) return orgRow(entry.url.includes(OTHER_ORG) ? OTHER_ORG : PROVIDER_ORG, 'PROVIDER');
     if (entry.url.includes('fin_proposal_versions')) return structuredClone(snapshots);
     if (entry.url.includes('fin_proposals')) return [{ id: PROPOSAL, rfq_id: RFQ, product: 'credit', status: 'submitted', current_version: 2 }];
     if (entry.url.includes('fin_rfqs')) return [{ id: RFQ, title: 'RFQ', revision: 4 }];
@@ -776,7 +863,7 @@ for (const resource of ['assignments', 'proposals']) {
 }
 
 reset((entry) => {
-  if (entry.url.includes('fin_organizations')) return orgRow(PROVIDER_ORG, 'PROVIDER');
+  if (entry.url.includes('fin_organizations')) return orgRow(entry.url.includes(OTHER_ORG) ? OTHER_ORG : PROVIDER_ORG, 'PROVIDER');
   if (entry.url.includes('fin_proposal_drafts')) return [{ proposal_id: PROPOSAL }];
   if (entry.url.includes('fin_proposals')) return [{ id: PROPOSAL, rfq_id: RFQ, product: 'credit', status: 'draft', current_version: 0 }];
   if (entry.url.includes('fin_rfqs')) return [{ id: RFQ, title: 'RFQ', product: 'credit', status: 'collecting', demand: {}, revision: 1 }];
@@ -862,7 +949,7 @@ assert.equal(sent.filter((entry) => entry.url.includes('rpc/fin_record_client_ev
 // --- exportação é do comprador e não vira parecer ---
 
 reset((entry) => {
-  if (entry.url.includes('fin_organizations')) return orgRow(PROVIDER_ORG, 'PROVIDER');
+  if (entry.url.includes('fin_organizations')) return orgRow(entry.url.includes(OTHER_ORG) ? OTHER_ORG : PROVIDER_ORG, 'PROVIDER');
   if (entry.url.includes('fin_rfqs')) return [{ id: RFQ, organization_id: BUYER, product: 'credit', status: 'decided', demand: {} }];
   return [];
 });

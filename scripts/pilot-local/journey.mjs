@@ -581,7 +581,7 @@ await step('E-mail: mention, approval_requested, proposal_received, renewal_due 
   for (const needed of ['approval_requested', 'mention', 'proposal_received', 'renewal_due']) must(events.includes(needed), `sem e-mail de ${needed} (fila: ${events.join(',')})`);
   for (const row of rows) {
     must(JSON.stringify(row.keys) === JSON.stringify(['event', 'kind', 'path']), `payload com chaves extras: ${row.keys}`);
-    must(/^\/finance\/[a-z-]+\.html([?#][A-Za-z0-9=_-]+)?$/.test(row.path), `link fora do portal: ${row.path}`);
+    must(/^\/finance\/[a-z-]+\.html([?#][A-Za-z0-9=&#?_-]+)?$/.test(row.path), `link fora do portal: ${row.path}`);
     const mail = renderTransactionalEmail('finance_notification', { kind: row.kind, event: row.event, path: row.path });
     const text = `${mail.subject}\n${mail.text}\n${mail.html}`;
     for (const secret of ['3000000', '3.000.000', '1,52', '1.52', '1,39', '1.39', 'Banco A', 'Banco B', 'aval', 'teto', 'Parecer', 'Demonstrações']) must(!text.includes(secret), `e-mail contém "${secret}"`);
@@ -687,6 +687,18 @@ if (process.env.ARANDU_FINANCIAL_LAB === '1') {
   const { financialLifecycle } = await import('../financial-lab/lifecycle.mjs');
   await financialLifecycle({step,attack,api,ok,must,sql,people,ctx,today,addDays,upload});
 }
+
+if (process.env.PILOT_BROWSER_JOURNEY === '1') await step('Navegador real: continuidade, IDs canônicos, e-mail, isolamento e retomada da sessão', async () => {
+  // Scale fixture uses the canonical SQL RPC under the real buyer claims.
+  // It is separate from the API-created lifecycle above and does not relax the
+  // application's 60-write window merely to generate synthetic volume.
+  const claims = JSON.parse(Buffer.from(accessToken(people.buyer).split('.')[1], 'base64url').toString('utf8'));
+  sql(`begin; set local role authenticated; select set_config('request.jwt.claims', '${JSON.stringify(claims).replaceAll("'", "''")}', true); select set_config('request.jwt.claim.sub', '${people.buyer.id}', true); select public.fin_create_rfq(p_org=>'${ctx.buyerOrg}',p_product=>'credit',p_title=>'Volume navegador ${RUN} '||n,p_demand=>' {"amount":100000,"purpose":"capital_de_giro","term_months":24}'::jsonb) from generate_series(1,101)n; commit;`);
+  const { browserJourney } = await import('./browser-journey.mjs');
+  const emailPath = sql(`select payload->>'path' from public.transactional_email_outbox where template='finance_notification' and entity_id='${ctx.contract}' order by created_at desc limit 1`);
+  return browserJourney({ app: APP, people, ctx, password: PASSWORD, emailPath,
+    certificate: new URL('.state/cert.pem', import.meta.url) });
+});
 
 await attack('Sessão revogada: replay de cookie e JWT ainda não expirado após logout real', 'API 401; PostgREST recusado', async () => {
   const replay = { cookie: people.providerB.cookie };

@@ -1,7 +1,7 @@
-# Arandu 9.1 — contrato de integração v1.1
+# Arandu 9.1 — contrato de integração v1.2
 
 Base comum: `4f9e01b27ec33359cfe2a7b07e26af926c4fe6aa`. Coordenação: issue #334.
-Proprietário: Codex. Frontend: Claude em `claude/arandu-9-1-product`.
+Proprietário: Codex. Frontend: Claude em `claude/sweet-gates-epqu3i`.
 Este contrato documenta interfaces existentes; não declara operação comprovada.
 Mudanças incompatíveis exigem nova versão e comentário na issue antes do consumo.
 
@@ -126,3 +126,63 @@ deve fabricar uma facility para fazer um contrato de serviço aparecer nela.
 Frontend e quatro gates no SHA integrado continuam pendentes da entrega Claude.
 A matriz inicial acima permanece como baseline anterior à execução, não como
 classificação atual da evidência local.
+
+## Extensão v1.2: listas institucionais e links
+
+`GET invites` e `GET proposals` sem `rfq_id` aceitam `paged=1`, `limit`
+(1–100, padrão 25), `cursor` e `status`. Convites: invited/accepted/declined/revoked/expired;
+propostas: draft/submitted/revised/withdrawn. Rejeitam chaves desconhecidas/duplicadas.
+Resposta `{rows,page:{limit,has_more,next_cursor},consistency}` com ordem id asc,
+JWT/RLS em toda página e cursor vinculado a usuário, organização e status.
+Convites preservam o OR comprador/provedor dentro de AND com a continuação.
+Propostas exigem organização PROVIDER e retornam `current_snapshot` (null no
+rascunho sem envio), mais `coverage.history=current_snapshot_only`; não retornam
+histórico nem termos fabricados. O detalhe existente é `assignments?proposal_id=<id>`.
+Versão atual ausente/conflitante recusa `409 proposal_snapshot_conflict`.
+Sem `paged=1` contratos anteriores preservados. Leituras vivas, sem total global.
+
+Migration adicional `supabase-financial-contract-email-links.sql` altera apenas a
+função de enqueue e marker: novos avisos de contrato usam
+`contracts.html?abrir=contrato#contract-<id>`. Payloads já enfileirados não são
+reescritos; baseline histórico preservado; rollback restaura definição anterior.
+Aplicação hospedada continua dependente de autorização específica.
+
+### Consumo efetivo na interface
+
+`organizations.capabilities.operational_pagination=true` anuncia a extensão.
+A lista de RFQs evita `overview` e lê `rfqs?paged=1&context=1` por páginas de 25.
+`context=1` acrescenta somente convites/propostas (IDs, estado, versão/revisão),
+aprovação pendente e decisão da página; não transfere termos nem histórico.
+A continuação é vinculada também à opção context; contexto fora do limite recusa
+`422 rfq_context_coverage_limit`, snapshot ausente recusa 409. Mudar status, produto
+ou entidade reinicia o cursor. Busca/owner/vez/ordenação são explicitamente locais
+à página. Falha de continuação mostra erro e retry, nunca falso fim. Sessão expirada
+e acesso recusado são estados distintos. Cursors emitidos antes desta extensão
+podem exigir recarregar a primeira página após deploy (400 estruturado).
+
+`assignments?paged=1` usa o mesmo escopo e controles das propostas, com DTO existente
+de oportunidade e snapshot atual; proposta exata continua com histórico no contrato
+legado. O portal institucional consome páginas de 25, com erros e continuidade.
+O resumo inicial legado informa cobertura limitada e remete à lista paginada.
+`overview.coverage` declara os limites de suas coleções; quando alcançados, a tela
+mostra que contagens/indicadores consideram somente o recorte carregado.
+
+### Reprodução local
+
+Após preparar as dependências e a stack descartável pelos scripts existentes:
+
+```sh
+npm run pilot:local:up
+PILOT_BROWSER_JOURNEY=1 npm run pilot:local:journey
+```
+
+O passo opcional de Chromium usa a API e o backend reais, sem interceptar rotas.
+Cookies/senha sintéticos ficam em memória, sem traces ou arquivos de sessão.
+Prepara 101 RFQs pela RPC SQL autorizada do comprador para escala, separadamente
+das duas RFQs da jornada API. Confere IDs, continuidade, link da outbox renderizado,
+Contract 360, tarefas, relacionamento, isolamento e logout/login. Não é alegação de
+que todas as mutações da jornada API foram feitas por cliques no navegador.
+
+`ARANDU_DATABASE_TEST_URL=<loopback> node scripts/benchmark-institutional-snapshots.mjs`
+compara snapshots equivalentes com históricos de 10/100/1000 versões, planos e
+buffers. Não mede HTTP/RLS/Auth/Storage nem capacidade hospedada.

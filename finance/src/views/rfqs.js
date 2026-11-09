@@ -14,13 +14,14 @@ const ACTOR_TONE = { company: 'accent', institution: 'neutral', approver: 'warni
 
 export async function rfqList(ctx) {
   const entities = await loadEntities(ctx);
-  const rfqs = ctx.data.rfqs || [];
+  const paged = ctx.mode === 'real' && ctx.capabilities?.operational_pagination === true;
+  let rfqs = ctx.data.rfqs || [];
   ctx.header({
-    title: 'Solicitações', subtitle: 'Todas as concorrências de crédito e adquirência da empresa.',
+    title: 'Solicitações', subtitle: paged ? 'Solicitações da empresa; consulte as páginas para consultar todas as solicitações.' : 'Todas as concorrências de crédito e adquirência da empresa.',
     actions: ctx.can('create_rfq') ? [linkButton('Nova solicitação', ctx.href('/finance/new-rfq.html'), { variant: 'primary', iconName: 'plus' })] : []
   });
   const root = el('div', { class: 'list-page' });
-  if (!rfqs.length) {
+  if (!rfqs.length && !paged) {
     root.append(emptyState({ title: 'Nenhuma solicitação ainda', text: 'Estruture uma necessidade de crédito ou de adquirência; o Arandu organiza convites, propostas, comparação e aprovação.', iconName: 'file',
       action: ctx.can('create_rfq') ? linkButton('Criar a primeira solicitação', ctx.href('/finance/new-rfq.html'), { variant: 'primary', iconName: 'plus' }) : null }));
     return root;
@@ -32,15 +33,15 @@ export async function rfqList(ctx) {
   let activeStatus = params.get('status') || '';
   for (const [value, label] of statuses) {
     const count = value ? rfqs.filter((rfq) => rfq.status === value).length : rfqs.length;
-    const chip = el('button', { type: 'button', class: 'chip', 'aria-pressed': String(value === activeStatus), dataset: { status: value } }, [textSpan(label), el('span', { class: 'chip-count', text: String(count) })]);
-    chip.addEventListener('click', () => { activeStatus = value; for (const node of status.children) node.setAttribute('aria-pressed', String(node.dataset.status === value)); draw(); });
+    const chip = el('button', { type: 'button', class: 'chip', 'aria-pressed': String(value === activeStatus), dataset: { status: value } }, [textSpan(label), !paged ? el('span', { class: 'chip-count', text: String(count) }) : null]);
+    chip.addEventListener('click', () => { activeStatus = value; for (const node of status.children) node.setAttribute('aria-pressed', String(node.dataset.status === value)); paged ? loadPage(null) : draw(); });
     status.append(chip);
   }
   const product = el('select', { class: 'input', 'aria-label': 'Filtrar por produto' });
   product.add(new Option('Todos os produtos', ''));
   for (const id of PRODUCT_IDS) product.add(new Option(productLabel(id, { short: true }), id));
   product.value = params.get('product') || '';
-  const owners = [...new Map(rfqs.map((rfq) => [rfq.owner_id, rfq.owner_name])).entries()].filter(([id]) => id);
+  const owners = paged ? (ctx.members || []).map(m => [m.user_id, m.display_name]) : [...new Map(rfqs.map((rfq) => [rfq.owner_id, rfq.owner_name])).entries()].filter(([id]) => id);
   const owner = el('select', { class: 'input', 'aria-label': 'Filtrar por responsável' });
   owner.add(new Option('Qualquer responsável', ''));
   for (const [id, name] of owners) owner.add(new Option(name || 'Membro', id));
@@ -49,20 +50,60 @@ export async function rfqList(ctx) {
   for (const [value, label] of [['deadline', 'Prazo mais próximo'], ['recent', 'Mais recentes'], ['responses', 'Mais respostas']]) sort.add(new Option(label, value));
   sort.value = params.get('sort') || 'deadline';
   const today = todayIso();
-  const steps = new Map(rfqs.map((rfq) => [rfq.id, negotiationNextStep(rfq, today)]));
+  let steps = new Map(rfqs.map((rfq) => [rfq.id, negotiationNextStep(rfq, today)]));
   const actor = el('select', { class: 'input', 'aria-label': 'Filtrar por de quem é a vez' });
   actor.add(new Option('De quem é a vez: todos', ''));
-  for (const key of ['company', 'institution', 'approver']) actor.add(new Option(`Aguardando: ${ACTOR_LABEL[key]} (${rfqs.filter((rfq) => steps.get(rfq.id).actor === key).length})`, key));
+  for (const key of ['company', 'institution', 'approver']) actor.add(new Option(paged ? `Aguardando: ${ACTOR_LABEL[key]}` : `Aguardando: ${ACTOR_LABEL[key]} (${rfqs.filter((rfq) => steps.get(rfq.id).actor === key).length})`, key));
   actor.value = ['company', 'institution', 'approver'].includes(params.get('vez')) ? params.get('vez') : '';
   const entitySelect = entityContextSelect(entities, { label: 'Filtrar por entidade' });
   const count = el('span', { class: 'result-count', role: 'status', 'aria-live': 'polite' });
-  const clear = button('Limpar filtros', { variant: 'ghost', size: 'sm', onClick: () => { search.value = ''; product.value = ''; owner.value = ''; actor.value = ''; activeStatus = ''; for (const node of status.children) node.setAttribute('aria-pressed', String(node.dataset.status === '')); draw(); } });
+  const clear = button('Limpar filtros', { variant: 'ghost', size: 'sm', onClick: () => { search.value = ''; product.value = ''; owner.value = ''; actor.value = ''; activeStatus = ''; for (const node of status.children) node.setAttribute('aria-pressed', String(node.dataset.status === '')); paged ? loadPage(null) : draw(); } });
 
   const table = el('table', { class: 'data-table rfq-table' });
   table.append(el('thead', {}, el('tr', {}, ['Solicitação', 'Status', 'Responsável', 'Prazo', 'Respostas', 'Próxima ação'].map((label) => el('th', { scope: 'col', text: label })))));
   const body = el('tbody');
   table.append(body);
   const empty = el('div', { hidden: true }, emptyState({ title: 'Nenhuma solicitação com esses filtros', text: 'Ajuste a busca ou limpe os filtros para ver tudo.', iconName: 'search', action: clear }));
+
+  let generation = 0, currentCursor = null, nextCursor = null;
+  const previous = [];
+  const pageNotice = el('p', { class: 'muted', role: 'status', 'aria-live': 'polite' });
+  const retry = button('Tentar novamente', { onClick: () => loadPage(currentCursor, false) });
+  retry.hidden = true;
+  const back = button('Página anterior', { onClick: () => { const cursor = previous.pop() ?? null; loadPage(cursor, false); } });
+  const more = button('Próxima página', { onClick: () => { previous.push(currentCursor); loadPage(nextCursor, false); } });
+  async function loadPage(cursor, reset = true) {
+    const sequence = ++generation;
+    if (reset) previous.length = 0;
+    currentCursor = cursor;
+    retry.hidden = true; back.disabled = true; more.disabled = true;
+    pageNotice.textContent = 'Carregando solicitações…';
+    const q = new URLSearchParams({ organization_id: ctx.orgId, paged: '1', limit: '25', context: '1' });
+    if (activeStatus) q.set('status', activeStatus);
+    if (product.value) q.set('product', product.value);
+    if (entitySelect?.value && entitySelect.value !== 'all') q.set('legal_entity_id', entitySelect.value);
+    if (cursor) q.set('cursor', cursor);
+    try {
+      const result = await ctx.api(`rfqs?${q}`);
+      if (sequence !== generation) return;
+      if (!Array.isArray(result.rows) || !result.page || (result.page.has_more && !result.page.next_cursor)) throw new Error('Não foi possível confirmar a página. Tente novamente.');
+      const names = new Map((ctx.members || []).map(m => [m.user_id, m.display_name]));
+      rfqs = result.rows.map(row => ({ ...row, owner_name: names.get(row.owner_id) || null }));
+      ctx.data.rfqs = rfqs;
+      steps = new Map(rfqs.map(rfq => [rfq.id, negotiationNextStep(rfq, today)]));
+      nextCursor = result.page.next_cursor;
+      pageNotice.textContent = `${rfqs.length} solicitações nesta página. ${result.page.has_more ? 'Há mais solicitações.' : 'Fim deste recorte.'} Busca por título, responsável, vez e ordenação aplicam-se a esta página.`;
+      draw();
+      back.disabled = previous.length === 0; more.disabled = !nextCursor;
+    } catch (error) {
+      if (sequence !== generation) return;
+      // An old page must not masquerade as the result of newly selected filters.
+      rfqs = []; steps = new Map(); draw();
+      pageNotice.textContent = error.status === 401 ? 'Sua sessão expirou. Entre novamente para continuar.' : error.status === 403 ? 'Você não tem acesso a estas solicitações.' : 'Não foi possível carregar esta página. Tente novamente.';
+      retry.hidden = error.status === 401 || error.status === 403;
+      back.disabled = previous.length === 0; more.disabled = true;
+    }
+  }
 
   function draw() {
     const term = fold(search.value.trim());
@@ -95,7 +136,7 @@ export async function rfqList(ctx) {
           step.actor !== 'none' ? tag(ACTOR_LABEL[step.actor], ACTOR_TONE[step.actor]) : null, icon('chevronRight', { size: 14 })]; })())
       ]));
     }
-    count.textContent = `${visible.length} de ${rfqs.length}`;
+    count.textContent = `${visible.length} de ${rfqs.length}${paged ? ' nesta página' : ''}`;
     table.hidden = !visible.length;
     empty.hidden = Boolean(visible.length);
     const next = new URLSearchParams();
@@ -107,13 +148,14 @@ export async function rfqList(ctx) {
     if (actor.value) next.set('vez', actor.value);
     history.replaceState(null, '', `${location.pathname}${next.toString() ? `?${next}` : ''}`);
   }
-  for (const control of [search, product, owner, sort, entitySelect, actor].filter(Boolean)) control.addEventListener(control === search ? 'input' : 'change', draw);
+  for (const control of [search, product, owner, sort, entitySelect, actor].filter(Boolean)) control.addEventListener(control === search ? 'input' : 'change', () => paged && [product, entitySelect].includes(control) ? loadPage(null) : draw());
   root.append(
     el('div', { class: 'toolbar' }, [el('div', { class: 'toolbar-search' }, [icon('search'), search]), entitySelect, product, owner, actor, sort, count].filter(Boolean)),
     el('div', { class: 'toolbar-chips' }, status),
     el('div', { class: 'table-card' }, [table, empty])
   );
-  draw();
+  if (paged) { root.append(pageNotice, el('div', { class: 'toolbar' }, [back, more, retry])); await loadPage(null); }
+  else draw();
   return root;
 }
 

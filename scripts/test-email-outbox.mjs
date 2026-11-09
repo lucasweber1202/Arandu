@@ -76,7 +76,7 @@ try {
   for (const [kind, path, subject] of [
     ['mention', '/finance/rfq.html?id=00000000-0000-4000-8000-00000000cb03', /mencionado/],
     ['proposal', '/finance/rfq.html?id=00000000-0000-4000-8000-00000000cb03', /proposta/],
-    ['renewal_due', '/finance/contracts.html#contract-00000000-0000-4000-8000-00000000cb04', /renovação/]
+    ['renewal_due', '/finance/contracts.html?abrir=contrato#contract-00000000-0000-4000-8000-00000000cb04', /renovação/]
   ]) {
     const email = renderTransactionalEmail('finance_notification', await prepareFinancialEmail({ template: 'finance_notification', payload: { kind, path } }, { baseUrl: 'https://arandu.example' }));
     assert.match(email.subject, subject);
