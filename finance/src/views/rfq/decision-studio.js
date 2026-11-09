@@ -59,32 +59,41 @@ export function compareScenarioResults(scenarios) {
 
 export function decisionStudio(ctx, rfq, { calculate, getModel = () => null, approvals = [], decision = null, contract = null, initialWeights = null }) {
   const specs = criteriaFor(rfq.product);
-  if (!sessions.has(rfq.id)) sessions.set(rfq.id, [{ name: NAMES[0], weights: cleanWeights(initialWeights), result: null, sensitivity: null }]);
-  const scenarios = sessions.get(rfq.id);
+  // A sessão vale para estes dados: revisão da solicitação e versões das
+  // propostas. Se algo mudou (nova versão, nova revisão), os cenários antigos
+  // não descrevem mais o processo e a análise recomeça.
+  const dataKey = `${rfq.id}|r${rfq.revision || 1}|${(rfq.proposals || []).map((p) => `${p.id}:${p.version ?? '?'}:${p.status || ''}`).sort().join(',')}`;
+  const previous = sessions.get(rfq.id);
+  const reset = previous && previous.key !== dataKey;
+  if (!previous || reset) sessions.set(rfq.id, { key: dataKey, list: [{ name: NAMES[0], weights: cleanWeights(initialWeights), result: null, sensitivity: null, seq: 0 }] });
+  const scenarios = sessions.get(rfq.id).list;
+  const fingerprint = (weights) => JSON.stringify(Object.entries(cleanWeights(weights)).sort(([a], [b]) => a.localeCompare(b)));
 
   const list = el('div', { class: 'studio-scenarios' });
   const comparison = el('div', { class: 'studio-comparison', role: 'region', 'aria-label': 'Comparação entre cenários', 'aria-live': 'polite' });
   const add = button('Novo cenário a partir do último', { size: 'sm', iconName: 'plus', onClick: () => {
     if (scenarios.length >= MAX_SCENARIOS) return;
     const last = scenarios.at(-1);
-    scenarios.push({ name: NAMES[scenarios.length], weights: { ...last.weights }, result: null, sensitivity: null });
+    scenarios.push({ name: NAMES[scenarios.length], weights: { ...last.weights }, result: null, sensitivity: null, seq: 0 });
     draw();
     list.querySelectorAll('.studio-scenario').item(scenarios.length - 1)?.querySelector('input[type=range]')?.focus();
   } });
   const dossierButton = button('Abrir dossiê da análise', { size: 'sm', variant: 'secondary', iconName: 'file', onClick: () => openDossier(ctx, rfq, { model: getModel(), scenarios, approvals, decision, contract }) });
 
+  // Cada cálculo leva o número da execução e a impressão dos pesos usados.
+  // Resposta que chega depois de os pesos mudarem, de outro cálculo ou de o
+  // cenário ser removido é descartada: nunca vira resultado de outros pesos.
+  const current = (scenario, seq, fp) => scenarios.includes(scenario) && scenario.seq === seq && fingerprint(scenario.weights) === fp;
   async function compute(scenario, node) {
     const status = node.querySelector('.studio-status');
+    const seq = ++scenario.seq, fp = fingerprint(scenario.weights);
     status.textContent = 'Calculando com o motor de comparação…';
-    try {
-      scenario.result = await calculate(cleanWeights(scenario.weights));
-      scenario.sensitivity = null;
-      scenario.error = null;
-    } catch (error) {
-      // Falha não vira resultado: o cenário fica sem cálculo e diz o motivo.
-      scenario.result = null;
-      scenario.error = error?.message || 'Não foi possível calcular este cenário.';
-    }
+    let result = null, error = null;
+    try { result = await calculate(cleanWeights(scenario.weights)); }
+    catch (failure) { error = failure?.message || 'Não foi possível calcular este cenário.'; }
+    if (!current(scenario, seq, fp)) return;
+    // Falha não vira resultado: o cenário fica sem cálculo e diz o motivo.
+    scenario.result = result; scenario.error = error; scenario.sensitivity = null; scenario.computedFp = fp;
     draw();
   }
 
@@ -93,6 +102,7 @@ export function decisionStudio(ctx, rfq, { calculate, getModel = () => null, app
   async function sensitivity(scenario) {
     const weights = cleanWeights(scenario.weights);
     const keys = Object.keys(weights);
+    const seq = ++scenario.seq, fp = fingerprint(scenario.weights);
     scenario.sensitivity = { running: true, rows: [] };
     draw();
     const base = (scenario.result?.results || []).filter((row) => !row.low_coverage).map((row) => row.id);
@@ -104,14 +114,19 @@ export function decisionStudio(ctx, rfq, { calculate, getModel = () => null, app
       if (!Object.keys(rest).length) { rows.push({ key, label, state: 'only' }); continue; }
       try {
         const result = await calculate(rest);
+        if (!current(scenario, seq, fp)) return;
         const order = result.applied ? result.results.filter((row) => !row.low_coverage).map((row) => row.id) : [];
         const same = order.length === base.length && order.every((id, index) => id === base[index]);
         const names = new Map(result.results?.map((row) => [row.id, row.provider_name]) || []);
         rows.push({ key, label, state: !result.applied ? 'not_applied' : same ? 'same' : 'changes', order: order.map((id) => names.get(id) || 'Proposta') });
       } catch (error) {
+        if (!current(scenario, seq, fp)) return;
         rows.push({ key, label, state: 'error', message: error?.message || 'Falha ao recalcular.' });
+        // Limite de requisições: para aqui, sem novas chamadas automáticas.
+        if (error?.status === 429) { for (const rest of keys.slice(keys.indexOf(key) + 1)) rows.push({ key: rest, label: specs.find((spec) => spec.key === rest)?.label || rest, state: 'not_run' }); break; }
       }
     }
+    if (!current(scenario, seq, fp)) return;
     scenario.sensitivity = { running: false, rows };
     draw();
   }
@@ -127,8 +142,9 @@ export function decisionStudio(ctx, rfq, { calculate, getModel = () => null, app
       range.addEventListener('input', () => {
         output.textContent = range.value;
         if (Number(range.value) > 0) scenario.weights[spec.key] = Number(range.value); else delete scenario.weights[spec.key];
+        scenario.seq += 1;
         // Pesos mudaram: o resultado antigo não descreve mais este cenário.
-        if (scenario.result || scenario.sensitivity) { scenario.result = null; scenario.sensitivity = null; node.querySelector('.studio-status').textContent = 'Pesos alterados: calcule de novo.'; drawComparison(); }
+        if (scenario.result || scenario.sensitivity || node.querySelector('.studio-status').textContent) { scenario.result = null; scenario.sensitivity = null; node.querySelector('.studio-status').textContent = 'Pesos alterados: calcule de novo.'; drawComparison(); }
       });
       return el('div', { class: 'weight-row' }, [el('span', { class: 'weight-label', text: spec.label }), range, output]);
     }));
@@ -149,7 +165,7 @@ export function decisionStudio(ctx, rfq, { calculate, getModel = () => null, app
   function sensitivityNode(scenario) {
     const { running, rows } = scenario.sensitivity;
     if (running) return el('p', { class: 'muted small', role: 'status', text: 'Recalculando sem cada critério…' });
-    const text = { same: 'a ordem se mantém', only: 'é o único critério do cenário', not_applied: 'sem critério válido restante' };
+    const text = { same: 'a ordem se mantém', only: 'é o único critério do cenário', not_applied: 'sem critério válido restante', not_run: 'não recalculado: limite de consultas atingido; tente mais tarde' };
     return el('div', { class: 'studio-sensitivity' }, [
       el('h4', { text: 'Sensibilidade: o que acontece sem cada critério' }),
       el('ul', {}, rows.map((row) => el('li', { dataset: { criterion: row.key } }, [textStrong(`Sem ${row.label}: `),
@@ -192,9 +208,10 @@ export function decisionStudio(ctx, rfq, { calculate, getModel = () => null, app
     subtitle: 'Compare cenários de pesos sobre o mesmo motor de comparação e veja o quanto a ordem depende de cada critério.',
     actions: [dossierButton],
     body: [
+      reset ? el('p', { class: 'callout callout-warning compact', role: 'note', id: 'studio-reset' }, [icon('alert', { size: 14 }), textSpan('A solicitação ou as propostas mudaram desde a análise anterior: os cenários foram reiniciados para não descrever dados antigos.')]) : null,
       el('p', { class: 'callout callout-info compact', role: 'note' }, [icon('info', { size: 14 }), textSpan('Cenários são análises desta aba: não são salvos na empresa, não registram decisão nem aprovação e se perdem ao recarregar. Para guardar, baixe o dossiê.')]),
       list, add, comparison
-    ] });
+    ].filter(Boolean) });
 }
 
 // ---------------------------------------------------------------- dossiê

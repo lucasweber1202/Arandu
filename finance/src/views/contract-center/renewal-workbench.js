@@ -85,9 +85,12 @@ export function renewalWorkbench(ctx, contracts, { coverage = { state: 'complete
   }
 
   function taskCount(contract) {
-    const n = (openTasks.get(contract.id) || 0) + (created.get(contract.id) || 0);
+    // Encontradas na leitura da visão geral + confirmadas agora pelo servidor.
+    // Sem nenhuma: "não encontrada" só quando a leitura cobre todas as abertas.
+    const found = openTasks.get(contract.id) || 0, fresh = created.get(contract.id) || 0, n = found + fresh;
     return el('a', { class: 'renewal-tasks small', href: ctx.href(`/finance/tasks.html?contrato=${encodeURIComponent(contract.id)}`),
-      text: n ? plural(n, 'tarefa aberta', 'tarefas abertas') : tasksPartial ? 'Tarefas do contrato' : 'Nenhuma tarefa aberta' });
+      text: n ? `${plural(n, 'tarefa aberta', 'tarefas abertas')}${fresh ? ` (${fresh} registrada${fresh > 1 ? 's' : ''} agora)` : ''}${tasksPartial ? ' · pode haver mais' : ''}`
+        : tasksPartial ? 'Tarefas do contrato (leitura parcial)' : 'Nenhuma tarefa aberta encontrada' });
   }
 
   function row(contract) {

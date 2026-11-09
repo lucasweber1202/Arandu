@@ -1738,3 +1738,57 @@ test('intenção "Renovar ou renegociar" abre o plano de renovações já aberto
   await link.click();
   await expect(page.locator('#plano-renovacoes [data-contract="00000000-0000-4000-8000-00000000c7a1"]')).toBeVisible();
 });
+
+// Estúdio sob concorrência: resposta fora de ordem, limite de consultas e exportação segura.
+test('estúdio: resposta atrasada de pesos antigos não vira resultado dos pesos novos', async ({ page }) => {
+  const studio = await openStudio(page);
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  await page.route('**/api/finance/comparison', async (route) => {
+    const body = route.request().postDataJSON();
+    if (body.weights?.offered_amount === 50) await gate; // primeira conta (pesos antigos) atrasa
+    return route.fallback();
+  });
+  await setWeight(studio, 'Cenário A', 'Valor ofertado (R$)', 50);
+  await studio.getByRole('button', { name: 'Calcular Cenário A' }).click();
+  await expect(studio.getByText('Calculando com o motor de comparação…')).toBeVisible();
+  await studio.getByLabel('Cenário A: peso de Taxa (% a.m.)').press('End');
+  await expect(studio.getByText('Pesos alterados: calcule de novo.')).toBeVisible();
+  release();
+  await page.waitForTimeout(300);
+  await expect(studio.getByText(/Calculado\./)).toHaveCount(0);
+  await expect(studio.getByText('Pesos alterados: calcule de novo.')).toBeVisible();
+  await studio.getByRole('button', { name: 'Calcular Cenário A' }).click();
+  await expect(studio.getByText(/Calculado\. Pesos: Valor ofertado \(R\$\) 33% · Taxa \(% a\.m\.\) 67%/)).toBeVisible();
+});
+
+test('estúdio: sensibilidade para no limite de consultas e não insiste sozinha', async ({ page }) => {
+  const data = overview();
+  await openStudio(page, data);
+  const studio = page.locator('#estudio-decisao');
+  for (const [label, value] of [['Valor ofertado (R$)', 40], ['Taxa (% a.m.)', 30], ['Prazo (meses)', 30]]) await setWeight(studio, 'Cenário A', label, value);
+  await studio.getByRole('button', { name: 'Calcular Cenário A' }).click();
+  await expect(studio.getByText(/Calculado\./)).toBeVisible();
+  let after = 0;
+  await page.route('**/api/finance/comparison', (route) => { after += 1; return route.fulfill({ status: 429, headers: { 'Retry-After': '60' }, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'limite' }) }); });
+  await studio.getByRole('button', { name: 'Analisar sensibilidade' }).click();
+  const sens = studio.locator('.studio-sensitivity');
+  await expect(sens.locator('[data-criterion="interest_rate_month"]')).toContainText('limite de consultas atingido');
+  await expect(sens.locator('[data-criterion="term_months"]')).toContainText('limite de consultas atingido');
+  await page.waitForTimeout(300);
+  expect(after).toBe(1);
+});
+
+test('estúdio: dossiê baixado trata título como texto, sem marcação executável', async ({ page }) => {
+  const data = overview();
+  data.rfqs[0].title = 'Giro <img src=x onerror="alert(1)"><script>alert(2)</script>';
+  const studio = await openStudio(page, data);
+  await studio.getByRole('button', { name: 'Abrir dossiê da análise' }).click();
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Baixar dossiê (HTML)' }).click();
+  const file = await (await download).path();
+  const html = (await import('node:fs')).readFileSync(file, 'utf8');
+  expect(html).not.toMatch(/<script>|<img /i);
+  expect(html).toContain('&lt;script&gt;');
+  expect(html).toContain('Não é recomendação do Arandu');
+});

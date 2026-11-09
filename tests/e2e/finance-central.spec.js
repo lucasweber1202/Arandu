@@ -291,7 +291,7 @@ test('plano de renovações registra tarefa de preparação; resposta incerta re
   await page.getByRole('dialog').getByRole('button', { name: 'Registrar tarefa' }).click();
   await expect(row.getByRole('button', { name: 'Conferir registro' })).toBeVisible();
   await row.getByRole('button', { name: 'Conferir registro' }).click();
-  await expect(row).toContainText('1 tarefa aberta');
+  await expect(row).toContainText('1 tarefa aberta (1 registrada agora)');
   expect(posts).toHaveLength(2);
   expect(posts[1].idempotency_key).toBe(posts[0].idempotency_key);
   expect(posts[0]).toMatchObject({ related_type: 'contract', related_id: RW(1), organization_id: ORG });
@@ -305,4 +305,14 @@ test('plano de renovações: leitor vê o plano sem ações de escrita', async (
   const plan = page.locator('#plano-renovacoes');
   await expect(plan.locator('[data-contract]').first()).toBeVisible();
   await expect(plan.getByRole('button', { name: /Registrar tarefa|Iniciar nova concorrência|Abrir concorrência/ })).toHaveCount(0);
+});
+
+test('plano de renovações: com 100 tarefas abertas na leitura, não afirma ausência de tarefas', async ({ page }) => {
+  const tasks = Array.from({ length: 100 }, (_, i) => ({ id: `00000000-0000-4000-8000-0000000090${String(i).padStart(2, '0')}`, title: `T${i}`, status: 'open', related_type: 'contract', related_id: RW(5), assignee_id: null, due_on: null }));
+  await setup(page, { overview: { ...OVERVIEW, contracts: RENEWALS, tasks } });
+  await page.goto('/finance/contracts.html?plano=renovacoes');
+  const row = page.locator(`#plano-renovacoes [data-contract="${RW(1)}"]`);
+  await expect(row).toContainText('Tarefas do contrato (leitura parcial)');
+  await expect(row).not.toContainText('Nenhuma tarefa aberta');
+  await expect(page.locator('#plano-renovacoes')).toContainText('Contagem de tarefas a partir das 100 tarefas abertas');
 });
