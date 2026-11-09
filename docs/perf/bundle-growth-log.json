@@ -31,9 +31,9 @@
     },
     {
       "date": "2026-11-09",
-      "accepted": 842871,
+      "accepted": 842886,
       "previous": 812814,
-      "reason": "Enterprise Financial Productivity (PR #338): Decision Studio (chunk sob demanda decision-studio 14.963 B, só ao abrir a aba Comparação), plano de renovações (chunk sob demanda renewal-workbench 5.975 B, só ao abrir o plano), prontidão da demanda no assistente, ações na fila do Painel e navegação comparação↔proposta (+30.057 B no build regular). Sete jornadas frias/quentes medidas em Chromium e aprovadas sem alterar baseline; maior rota regular 159.073 B e apresentação 164.316 B, abaixo de 250.000. Build de apresentação: produto 812.689 B, sandbox 382.286 B abaixo do hard limit congelado de 382.400. Nenhum hard limit alterado.",
+      "reason": "Enterprise Financial Productivity (PR #338): Decision Studio (chunk sob demanda decision-studio 14.963 B, só ao abrir a aba Comparação), plano de renovações (chunk sob demanda renewal-workbench 5.975 B, só ao abrir o plano), prontidão da demanda no assistente, ações na fila do Painel e navegação comparação↔proposta e coluna encolhível na aba de comparação para não estourar 320 px (+30.072 B no build regular). Sete jornadas frias/quentes medidas em Chromium e aprovadas sem alterar baseline; maior rota regular 159.073 B e apresentação 164.316 B, abaixo de 250.000. Build de apresentação: produto 812.704 B, sandbox 382.286 B abaixo do hard limit congelado de 382.400. Nenhum hard limit alterado.",
       "journeyBaseline": "2026-11-05"
     }
   ]

@@ -10,7 +10,7 @@ import { buildComparison, applyUserWeights } from '../../../../lib/finance/compa
 
 export function comparisonTab(ctx, rfq, decision = null, { approvals = [], contract = null } = {}) {
   const proposals = rfq.proposals || [];
-  const wrap = el('div', { class: 'stack' });
+  const wrap = el('div', { class: 'stack comparison-tab' });
   const matrix = el('div', {}, loading('Carregando comparação…'));
   const weightsSlot = el('div');
   const studioSlot = el('div');
