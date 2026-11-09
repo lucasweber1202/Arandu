@@ -270,6 +270,26 @@ await rejects('GET', 'rfqs', { url: `/api/finance/rfqs?organization_id=${OTHER_O
   await rejects('GET', 'proposals', { url: `/api/finance/proposals?organization_id=${PROVIDER_ORG}&paged=1` }, 409);
 }
 
+// Maximum institutional page and large revisions keep upstream URLs bounded.
+{
+  const rows=Array.from({length:100},(_,i)=>({id:`00000000-0000-4000-8000-${String(i+1).padStart(12,'0')}`,current_version:2147483647}));
+  let batches=0;
+  reset(entry=>{
+    if(entry.url.includes('fin_organizations'))return orgRow(PROVIDER_ORG,'PROVIDER');
+    if(entry.url.includes('fin_proposals?'))return rows;
+    if(entry.url.includes('fin_proposal_versions?')){
+      assert(entry.url.length<5000,'upstream URL must remain below 8 KiB');
+      assert.equal(new URL(entry.url).searchParams.get('limit'),'51');
+      return rows.slice(batches++*50,batches*50).map(row=>({proposal_id:row.id,version:row.current_version,terms:{offered_amount:1000}}));
+    }
+    return [];
+  });
+  const result=(await call('GET','proposals',{url:`/api/finance/proposals?organization_id=${PROVIDER_ORG}&paged=1&limit=100`})).payload;
+  assert.equal(result.rows.length,100);
+  assert.equal(batches,2);
+  assert(result.rows.every(row=>row.current_snapshot.version===2147483647));
+}
+
 // Paged assignments reuse current snapshots and enrich only their RFQs/drafts.
 {
   reset(entry => {
@@ -1333,4 +1353,55 @@ console.log('Lifecycle adversarial: provider cannot read decision, invite scope 
  }
  reset(e=>e.url.includes('fin_organizations')?orgRow(BUYER,'BUYER'):[]);
  await rejects('GET','provider-creation-result',{url:`/api/finance/provider-creation-result?organization_id=${BUYER}&request_key=bad`},400);
+}
+
+// Read-side approval freshness matches the SQL version/RFQ snapshot guard.
+// UI consumers already use stale; it must come from persisted caller-RLS data.
+{
+  let stamp = '2026-11-01T10:00:00.123456Z', version = 2, expires = null;
+  let sourceVisible = true, sourceStatus = 'submitted', requestStatus = 'pending', rfqStatus = 'comparing';
+  let external = false, documentAvailable = true;
+  reset(entry => {
+    if (entry.url.includes('fin_organizations')) return orgRow(BUYER, 'BUYER');
+    if (entry.url.includes('fin_approval_requests?')) return [{ id: DECISION_ID, rfq_id: RFQ, status: requestStatus, proposal_id: external ? null : PROPOSAL,
+      external_proposal_id: external ? PROPOSAL : null, proposal_version: 2, rfq_updated_at: '2026-11-01T07:00:00.123456-03:00', requested_by: OTHER_ORG, expires_at: expires }];
+    if (entry.url.includes('fin_approval_steps?')) return [{ id: ACTOR, request_id: DECISION_ID, position: 1, approver_id: ACTOR, status: 'pending' }];
+    if (entry.url.includes('fin_rfqs?')) return [{ id: RFQ, organization_id: BUYER, status: rfqStatus, updated_at: stamp, product: 'credit', demand: {} }];
+    if (entry.url.includes('fin_proposals?')) return sourceVisible && !external ? [{ id: PROPOSAL, rfq_id: RFQ, current_version: version, status: sourceStatus, provider_id: PROVIDER_ORG }] : [];
+    if (entry.url.includes('fin_external_proposal_current?')) return sourceVisible && external ? [{ id: PROPOSAL, rfq_id: RFQ, current_version: version, state: 'reviewed', rfq_revision_matches: true, document_id: RFQ, document_available: documentAvailable }] : [];
+    if (entry.url.includes('fin_proposal_versions?')) return [{ proposal_id: PROPOSAL, version, terms: {}, rfq_revision: 1 }];
+    return [];
+  });
+  const inbox = async () => (await call('GET', 'approvals', { url: `/api/finance/approvals?organization_id=${BUYER}` })).payload.rows[0];
+  const indicators = async expected => {
+    const page = (await call('GET', 'rfqs', { url: `/api/finance/rfqs?organization_id=${BUYER}&paged=1&context=1` })).payload;
+    assert.equal(page.rows[0].pending_approval, expected);
+    const overview = (await call('GET', 'overview', { url: `/api/finance/overview?organization_id=${BUYER}` })).payload;
+    assert.equal(overview.rfqs[0].pending_approval, expected);
+  };
+  let row = await inbox();
+  assert.equal(row.stale, false, 'same instant in different offsets is current');
+  assert.equal(row.viewer_can_act, true);
+  await indicators(true);
+  version = 3;
+  row = await inbox(); assert.equal(row.stale_reason, 'proposal_changed'); assert.equal(row.viewer_can_act, false);
+  await indicators(false);
+  version = 2; stamp = '2026-11-01T10:00:00.123457Z';
+  row = await inbox(); assert.equal(row.stale_reason, 'rfq_changed', 'one microsecond must invalidate the read snapshot');
+  await indicators(false);
+  stamp = '2026-11-01T10:00:00.123456Z'; expires = new Date(Date.now()-1000).toISOString();
+  row = await inbox(); assert.equal(row.expired, true); assert.equal(row.viewer_can_act, false);
+  await indicators(false);
+  expires = null; sourceVisible = false;
+  row = await inbox(); assert.equal(row.stale_reason, 'context_unavailable'); assert.equal(row.viewer_can_act, false);
+  await indicators(false);
+  sourceVisible = true; sourceStatus = 'withdrawn';
+  row = await inbox(); assert.equal(row.stale_reason, 'source_ineligible'); assert.equal(row.viewer_can_act, false);
+  sourceStatus = 'submitted'; external = true;
+  row = await inbox(); assert.equal(row.stale, false); assert.equal(row.viewer_can_act, true);
+  documentAvailable = false;
+  row = await inbox(); assert.equal(row.stale_reason, 'source_ineligible'); assert.equal(row.viewer_can_act, false);
+  external = false; requestStatus = 'approved'; rfqStatus = 'contracted'; stamp = '2026-11-02T10:00:00Z';
+  row = await inbox(); assert.equal(row.freshness, 'historical'); assert.equal(row.stale, false); assert.equal(row.viewer_can_act, false);
+  console.log('Approval read context: live caller JWT, microsecond/offset equality, revision/version/expiry/source conflicts, consistent page/overview indicators and immutable historical approval passed.');
 }

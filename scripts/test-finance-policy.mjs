@@ -175,7 +175,9 @@ assert.equal(rpcCalls().length, 0);
 const now = Date.now();
 reset((entry) => {
   if (buyer(entry)) return buyer(entry);
-  if (entry.url.includes('fin_approval_requests?')) return [{ id: REQUEST, rfq_id: RFQ, requested_by: OTHER, status: 'pending', policy_snapshot: { engine: 'policy' } }];
+  if (entry.url.includes('fin_approval_requests?')) return [{ id: REQUEST, rfq_id: RFQ, proposal_id: PROPOSAL, proposal_version: 1, rfq_updated_at: '2026-11-01T10:00:00Z', requested_by: OTHER, status: 'pending', policy_snapshot: { engine: 'policy' } }];
+  if (entry.url.includes('fin_rfqs?')) return [{ id: RFQ, status: 'comparing', updated_at: '2026-11-01T10:00:00Z' }];
+  if (entry.url.includes('fin_proposals?')) return [{ id: PROPOSAL, rfq_id: RFQ, status: 'submitted', current_version: 1 }];
   if (entry.url.includes('fin_approval_steps?')) return [{ id: 's1', request_id: REQUEST, position: 1, approver_id: DELEGATOR, status: 'pending', stage_id: 'st1' }];
   if (entry.url.includes('fin_approval_stages?')) return [{ id: 'st1', request_id: REQUEST, status: 'active', allow_delegation: true }];
   if (entry.url.includes('fin_policy_exceptions?')) return [];

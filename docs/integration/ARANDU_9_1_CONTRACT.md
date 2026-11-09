@@ -206,3 +206,14 @@ Contexto acrescenta owner_name/invites_count e continua sem termos/histórico;
 nomes ausentes são null. Filtros inválidos/duplicados e modo paged diferente de 1
 são recusados. Interface usa deadline_asc/created_desc no servidor, inclusive na
 continuação; ordenação por quantidade de respostas continua local às carregadas.
+
+## Extensão v1.4 — atualidade de aprovações
+
+`GET approvals` informa `stale`, `stale_reason`, `expired` e `freshness` a partir
+da RFQ e da proposta atual visíveis ao usuário, usando seu JWT e precisão de
+microssegundos para a data da RFQ. Contexto ausente ou inelegível fecha a leitura
+como desatualizada; aprovações históricas mantêm seu registro. `viewer_can_act`
+fica falso quando desatualizada ou expirada, assim como o indicador pendente nas
+páginas de RFQ e no resumo. Esses indicadores são diagnósticos de leitura: as
+travas e validações transacionais do banco continuam sendo a autoridade na escrita.
+Snapshots institucionais são buscados em lotes de até 50 IDs.
