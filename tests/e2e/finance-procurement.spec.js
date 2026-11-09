@@ -1728,3 +1728,13 @@ test('estúdio: dossiê factual traz versões, pendências, cenários, aprovaç�
   await page.getByRole('button', { name: 'Baixar dossiê (HTML)' }).click();
   expect((await download).suggestedFilename()).toMatch(/^arandu-dossie-[0-9a-f-]{8}\.html$/);
 });
+
+test('intenção "Renovar ou renegociar" abre o plano de renovações já aberto', async ({ page }) => {
+  await mockSession(page, { data: overview({ contracts: [{ id: '00000000-0000-4000-8000-00000000c7a1', provider_id: 'x1', provider_name: 'Banco Um', status: 'active', product: 'credit', starts_on: '2026-01-01', ends_on: new Date(Date.now() + 40 * 86400000).toISOString().slice(0, 10), renewal_notice_days: 30, owner_id: 'u1', current_version: 1 }] }) });
+  await page.goto('/finance/dashboard.html');
+  await page.getByRole('button', { name: 'Começar' }).click();
+  const link = page.getByRole('dialog', { name: 'O que você precisa fazer?' }).getByRole('link', { name: /Renovar ou renegociar/ });
+  await expect(link).toHaveAttribute('href', '/finance/contracts.html?plano=renovacoes');
+  await link.click();
+  await expect(page.locator('#plano-renovacoes [data-contract="00000000-0000-4000-8000-00000000c7a1"]')).toBeVisible();
+});

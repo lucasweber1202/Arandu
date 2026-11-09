@@ -305,3 +305,79 @@ test('Graph mantém filtro da entidade e mostra estado vazio factual', async ({p
   expect(queries[0].legal_entity_id).toBe(A);
   await noOverflow(page,'Graph entity');
 });
+
+// Enterprise Intake: prontidão da demanda e sugestões do Passport recusáveis.
+// API SIMULADA (mesma criação canônica POST rfqs do teste anterior).
+async function fillCreditNeed(page) {
+  const form = page.locator('#rfq-form');
+  await form.getByLabel('Valor desejado (R$)').fill('500000');
+  await form.getByLabel('Finalidade').selectOption('capital_de_giro');
+  await form.getByLabel('Prazo desejado (meses)').fill('24');
+}
+
+test('intake: prontidão separa obrigatórios, origem a confirmar, divergência e opcionais, sem virar nota', async ({ page }) => {
+  const state = await mockPassport(page);
+  state.rows[0].updated_at = daysAgo(400); // faturamento: revisão do Passport vencida
+  await page.goto('/finance/new-rfq.html?product=credit');
+  const form = page.locator('#rfq-form');
+  await form.getByLabel('Título da solicitação').fill('Capital de giro planejado');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await fillCreditNeed(page);
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await form.getByLabel('Garantias disponíveis').fill('Somente recebíveis de cartão');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  const ready = page.locator('#rfq-readiness');
+  await expect(ready).toHaveAttribute('data-readiness', 'confirm');
+  await expect(ready).toContainText('Pronta para revisão, com dados a confirmar');
+  await expect(ready).toContainText(/Obrigatórios preenchidos: (\d+) de \1\./);
+  await expect(ready).toContainText('Confirmar origem: Faturamento anual (R$) (desatualizado no Passport)');
+  await expect(ready).toContainText('Divergente do Passport — Garantias disponíveis: você informou Somente recebíveis de cartão; o Passport tem Recebíveis de cartão e duplicatas. Vale o que você informou.');
+  await expect(ready).toContainText('Não é aprovação, conformidade nem análise de crédito');
+  await expect(ready).not.toContainText(/%|nota|score/i);
+  await page.getByRole('button', { name: 'Criar solicitação' }).click();
+  await expect.poll(() => state.creates.length).toBe(1);
+});
+
+test('intake: sugestão recusada do Passport não volta ao redesenhar e pode ser aceita de novo', async ({ page }) => {
+  const state = await mockPassport(page);
+  await page.goto('/finance/new-rfq.html?product=credit');
+  const form = page.locator('#rfq-form');
+  await form.getByLabel('Título da solicitação').fill('Capital de giro sem setor');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await fillCreditNeed(page);
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await expect(form.getByLabel('Setor')).toHaveValue('Alimentos');
+  await form.locator('[data-passport-decline="sector"]').click();
+  await expect(form.getByLabel('Setor')).toHaveValue('');
+  // Redesenho da tela (troca de produto ida e volta) não reaplica a sugestão recusada.
+  await page.getByRole('button', { name: 'Voltar' }).click();
+  await page.getByRole('button', { name: 'Voltar' }).click();
+  await page.locator('label[for="product-acquiring"]').click();
+  await page.locator('label[for="product-credit"]').click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await fillCreditNeed(page);
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await expect(form.getByLabel('Setor')).toHaveValue('');
+  await expect(form.locator('[data-passport-accept="sector"]')).toBeVisible();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await expect(page.locator('#rfq-readiness')).toContainText('Sugestões do Passport não usadas: Setor.');
+  await page.getByRole('button', { name: 'Criar solicitação' }).click();
+  await expect.poll(() => state.creates.length).toBe(1);
+  expect(state.creates[0].demand.sector).toBeUndefined();
+  expect(state.creates[0].passport_fields.map((f) => f.demand_key)).not.toContain('sector');
+});
+
+test('intake: aceitar de novo a sugestão recusada volta o valor e a origem', async ({ page }) => {
+  await mockPassport(page);
+  await page.goto('/finance/new-rfq.html?product=credit');
+  const form = page.locator('#rfq-form');
+  await form.getByLabel('Título da solicitação').fill('Capital de giro');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await fillCreditNeed(page);
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await form.locator('[data-passport-decline="annual_revenue"]').click();
+  await expect(form.getByLabel('Faturamento anual (R$)')).toHaveValue('');
+  await form.locator('[data-passport-accept="annual_revenue"]').click();
+  await expect(form.getByLabel('Faturamento anual (R$)')).toHaveValue('182000000');
+  await expect(form.locator('.field-passport').filter({ hasText: 'Faturamento anual' })).toContainText('Do Financial Passport');
+});

@@ -271,7 +271,7 @@ function portfolioControlTower(ctx, ordered, { card, focusId, coverage = { state
       .catch((error) => { planLoaded = false; planSlot.replaceChildren(errorState({ error, onRetry: loadPlan })); });
   };
   plan.addEventListener('toggle', () => { if (plan.open) loadPlan(); });
-  if (location.hash === '#plano-renovacoes') { plan.open = true; loadPlan(); }
+  if (location.hash === '#plano-renovacoes' || new URLSearchParams(location.search).get('plano') === 'renovacoes') { plan.open = true; loadPlan(); }
   const root = el('div', { class: 'stack contracts-tower' }, [coverageNote(coverage), plan,
     el('div', { class: 'toolbar' }, [el('div', { class: 'toolbar-search' }, [icon('search'), search]), ...Object.values(controls), count]),
     el('div', { class: 'toolbar-chips' }, chips), summary, list].filter(Boolean));
