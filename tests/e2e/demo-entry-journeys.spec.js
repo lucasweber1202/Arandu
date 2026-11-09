@@ -89,7 +89,35 @@ test('visitante entra pela página pública, escreve no próprio workspace, troc
   await page.goto('/provider/rfqs.html');
   await page.locator('.opportunity-title a').first().click();
   await expect(page.locator('.meta-buyer')).toContainText('Solicitado por Vitta Foods');
-  await expect(page.locator('main')).not.toContainText(/Atlas Bank|Orbe Capital|Lumina Pay/);
+  // A descricao da demanda foi redigida pela compradora e compartilhada com
+  // as instituicoes convidadas. Ela cita legitimamente o banco do contrato
+  // anterior (Atlas): nomes no texto do comprador NAO sao vazamento de proposta.
+  // Verificamos o isolamento dos objetos privados no servidor, por ID e versao,
+  // em vez de proibir nomes de instituicoes em todo o <main>.
+  const proposalId = new URL(page.url()).searchParams.get('proposal');
+  expect(proposalId).toBeTruthy();
+  const ownAssignment = await page.evaluate(async (id) => {
+    const orgResponse = await fetch('/api/finance/organizations', { credentials: 'same-origin' });
+    const orgData = await orgResponse.json();
+    const provider = (orgData.rows || []).find((row) => row.kind === 'PROVIDER');
+    if (!provider) return { status: orgResponse.status, rows: null };
+    const response = await fetch(
+      `/api/finance/assignments?organization_id=${encodeURIComponent(provider.id)}&proposal_id=${encodeURIComponent(id)}`,
+      { credentials: 'same-origin' }
+    );
+    const body = await response.json();
+    return { status: response.status, rows: body.rows };
+  }, proposalId);
+  expect(ownAssignment.status).toBe(200);
+  expect(ownAssignment.rows, 'a instituicao recebe somente sua atribuicao identificada').toHaveLength(1);
+  expect(ownAssignment.rows[0].proposal_id).toBe(proposalId);
+  expect(ownAssignment.rows[0].version, 'a Meridian nao enviou proposta neste cenario').toBe(0);
+  expect(ownAssignment.rows[0].history, 'nenhuma versao de concorrente').toEqual([]);
+  expect(ownAssignment.rows[0].terms, 'nenhuma condicao de concorrente').toEqual({});
+  for (const confidential of ['comparison', 'other_proposals', 'internal_notes']) {
+    expect(ownAssignment.rows[0]).not.toHaveProperty(confidential);
+  }
+  await expect(page.locator('.provider-proposal .version-history'), 'historico de concorrentes nao renderizado').toHaveCount(0);
 
   // 6. Segundo visitante, ao mesmo tempo: outro workspace, nada do primeiro.
   const other = await browser.newContext({ ignoreHTTPSErrors: true, locale: 'pt-BR' });
