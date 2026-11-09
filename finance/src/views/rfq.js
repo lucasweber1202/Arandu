@@ -168,14 +168,38 @@ export async function rfqDetail(ctx) {
   const tabset = tabs([
     { id: 'visao-geral', label: 'Visão geral', render: () => overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract, policy, governanceGap }) },
     { id: 'propostas', label: 'Propostas', count: proposals.length+(rfq.external_proposal_count||0), render: () => proposalsTab(ctx, rfq) },
-    { id: 'comparacao', label: 'Comparação', render: () => import('./rfq/comparison-tab.js').then((m) => m.comparisonTab(ctx, rfq, decision)) },
+    { id: 'comparacao', label: 'Comparação', render: () => import('./rfq/comparison-tab.js').then((m) => m.comparisonTab(ctx, rfq, decision, { approvals, contract })) },
     { id: 'aprovacoes', label: 'Aprovações', count: pending ? 1 : null, render: () => governanceGap ? governanceGapTab() : import('./rfq/approvals-tab.js').then((m) => m.approvalsTab(ctx, rfq, approvals, { manage })) },
     { id: 'decisao', label: 'Decisão', render: () => governanceGap ? governanceGapTab() : import('./rfq/decision-tab.js').then((m) => m.decisionTab(ctx, rfq, { decision, contract, policy, approvals, manage, externalUi })) },
     { id: 'atividade', label: 'Atividade', render: () => activityTab(ctx, rfq) }
-  ], { label: 'Seções da solicitação' });
+  ], { label: 'Seções da solicitação', initial: PROPOSAL_HASH.test(location.hash) ? 'propostas' : null });
+  // Link de uma proposta (#proposal-<id>, vindo da comparação, de busca ou de
+  // aviso) abre a aba de propostas e leva até o cartão; voltar (#comparacao)
+  // reabre a comparação com a leitura guardada no endereço.
+  const showProposal = () => {
+    if (!PROPOSAL_HASH.test(location.hash)) return;
+    tabset.select('propostas', { push: false });
+    let tries = 0;
+    const reach = () => {
+      const card = document.getElementById(location.hash.slice(1));
+      if (!card) { if (++tries < 20) setTimeout(reach, 100); return; }
+      card.classList.add('highlighted');
+      if (!card.hasAttribute('tabindex')) card.setAttribute('tabindex', '-1');
+      card.scrollIntoView({ block: 'start' });
+      card.focus({ preventScroll: true });
+    };
+    reach();
+  };
+  if (proposalHashListener) window.removeEventListener('hashchange', proposalHashListener);
+  proposalHashListener = showProposal;
+  window.addEventListener('hashchange', showProposal);
+  queueMicrotask(showProposal);
   root.append(tabset.node);
   return root;
 }
+
+const PROPOSAL_HASH = /^#proposal-[A-Za-z0-9-]{1,64}$/;
+let proposalHashListener = null;
 
 function governanceGapNotice(ctx, gaps) {
   const list = gaps.length > 1 ? `${gaps.slice(0, -1).join(', ')} e ${gaps.at(-1)}` : gaps[0];
@@ -402,7 +426,8 @@ function proposalsTab(ctx, rfq) {
         proposal.terms?.valid_until ? el('span', { class: `muted small${daysUntil(proposal.terms.valid_until) < 5 ? ' warn-text' : ''}`, text: `Válida até ${formatDate(proposal.terms.valid_until)}` }) : null]),
       proposal.note ? el('p', { class: 'proposal-note' }, [icon('message', { size: 14 }), textSpan(proposal.note)]) : null,
       details,
-      lazyDocuments(ctx, 'proposal', proposal.id, 'Documentos enviados pelo provedor')
+      lazyDocuments(ctx, 'proposal', proposal.id, 'Documentos enviados pelo provedor'),
+      proposals.length > 1 ? el('p', { class: 'small' }, el('a', { href: '#comparacao', text: 'Ver esta proposta na comparação' })) : null
     ]));
   }
   // Convite recusado, revogado ou expirado não está "aguardando".

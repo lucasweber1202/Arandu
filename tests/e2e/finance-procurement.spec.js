@@ -1514,3 +1514,307 @@ test('escala: trocar o produto enquanto a página anterior carrega não mistura 
   await expect(page.getByLabel('Filtrar por produto')).toHaveValue('acquiring');
   await expect(page.locator('[data-status="comparing"]')).toHaveAttribute('aria-pressed', 'true');
 });
+
+// Busca → registro: a busca do servidor devolve a página da lista para contratos,
+// instituições e tarefas; a interface abre o próprio registro pelo id da linha.
+// API SIMULADA com o formato de fin_search (kind, id, title, detail, href).
+const SEARCH_CONTRACT = '00000000-0000-4000-8000-00000000c0c1';
+const SEARCH_PROVIDER = '00000000-0000-4000-8000-00000000b0b1';
+const SEARCH_TASK = '00000000-0000-4000-8000-00000000d0d1';
+async function openSearch(page, rows, hasMore = false) {
+  await page.route('**/api/finance/search?*', (route) => route.fulfill({ json: { ok: true, rows, has_more: hasMore } }));
+  await page.goto('/finance/dashboard.html');
+  await expect(page.getByRole('button', { name: /Buscar/ })).toBeVisible();
+  await page.keyboard.press('Control+k');
+  return page.getByRole('dialog', { name: 'Buscar no espaço da empresa' });
+}
+
+test('busca abre o contrato, a instituição e a tarefa encontrados, não a lista do tipo', async ({ page }) => {
+  await mockSession(page);
+  const dialog = await openSearch(page, [
+    { kind: 'contract', id: SEARCH_CONTRACT, title: 'Atlas Bank', detail: '2027-05-01', href: '/finance/contracts.html' },
+    { kind: 'provider', id: SEARCH_PROVIDER, title: 'Atlas Bank', detail: 'Sudeste', href: '/finance/providers.html' },
+    { kind: 'task', id: SEARCH_TASK, title: 'Atlas: renovar garantia', detail: '', href: '/finance/dashboard.html' },
+    { kind: 'proposal', id: 'p9', title: 'Atlas Bank', detail: 'Crédito expansão', href: `/finance/rfq.html?id=${RFQ}` }
+  ]);
+  await dialog.getByRole('combobox').fill('atlas');
+  await expect(dialog.getByRole('option', { name: /Atlas: renovar garantia/ })).toBeVisible();
+  const hrefs = await dialog.locator('[role=option]').evaluateAll((nodes) => nodes.map((node) => node.dataset.href));
+  expect(hrefs).toEqual(expect.arrayContaining([
+    `/finance/contracts.html?abrir=contrato#contract-${SEARCH_CONTRACT}`,
+    `/finance/providers.html?provider_id=${SEARCH_PROVIDER}`,
+    `/finance/tasks.html#task-${SEARCH_TASK}`,
+    `/finance/rfq.html?id=${RFQ}#propostas`
+  ]));
+  expect(hrefs).not.toContain('/finance/dashboard.html');
+  await page.route('**/api/finance/search?*', (route) => route.fulfill({ json: { ok: true, rows: [{ kind: 'contract', id: SEARCH_CONTRACT, title: 'Atlas Bank', detail: '', href: '/finance/contracts.html' }], has_more: false } }));
+  await dialog.getByRole('combobox').fill('atlas bank');
+  await expect(dialog.getByRole('option', { name: /Atlas Bank/ })).toHaveCount(1);
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(new RegExp(`contracts\\.html\\?abrir=contrato#contract-${SEARCH_CONTRACT}$`));
+});
+
+test('busca com mais resultados no servidor avisa que a lista não é exaustiva', async ({ page }) => {
+  await mockSession(page);
+  const rows = Array.from({ length: 20 }, (_, i) => ({ kind: 'rfq', id: `00000000-0000-4000-8000-${String(5000 + i).padStart(12, '0')}`, title: `Capital ${i}`, detail: 'open', href: `/finance/rfq.html?id=x${i}` }));
+  const dialog = await openSearch(page, rows, true);
+  await dialog.getByRole('combobox').fill('capital');
+  await expect(dialog.getByRole('status')).toHaveText('20 resultados exibidos; há outros para este termo. Refine a busca para encontrá-los.');
+});
+
+test('busca com uma letra sem resultado local não afirma que nada existe na organização', async ({ page }) => {
+  await mockSession(page);
+  const dialog = await openSearch(page, []);
+  await dialog.getByRole('combobox').fill('z');
+  await expect(dialog.getByRole('status')).toHaveText('Digite ao menos 2 letras para buscar em toda a organização.');
+  await expect(dialog.getByText('Nenhum resultado nesta organização')).toHaveCount(0);
+});
+
+// Retomar a análise: a leitura da comparação volta igual depois de recarregar
+// ou de ir à aprovação e voltar. Só opções de tela e ids de proposta vão ao endereço.
+test('comparação retoma foco, detalhe e versão anterior consultada depois de recarregar', async ({ page }) => {
+  const data = overview();
+  const [first] = data.rfqs[0].proposals;
+  first.version = 2;
+  first.previous_version = { version: 1, submitted_at: '2026-08-01T10:00:00Z', terms: { ...first.terms, interest_rate_month: 2.5 } };
+  await mockSession(page, { data });
+  await page.goto(`/finance/rfq.html?id=${RFQ}#comparacao`);
+  await page.getByRole('tab', { name: 'Comparação' }).click();
+  await page.getByLabel('Foco da comparação').selectOption('changed');
+  await page.getByLabel('Detalhamento da comparação').selectOption('summary');
+  await page.getByLabel('Versão de Banco Um').selectOption('previous');
+  await expect(page).toHaveURL(/foco=changed/);
+  await expect(page).toHaveURL(/detalhe=resumo/);
+  await expect(page).toHaveURL(/anterior=p1/);
+  expect(new URL(page.url()).searchParams.get('id')).toBe(RFQ);
+  expect(page.url()).not.toMatch(/interest|500000|2\.5/);
+  await page.getByRole('tab', { name: /Aprovações/ }).click();
+  await page.reload();
+  await page.getByRole('tab', { name: 'Comparação' }).click();
+  await expect(page.getByLabel('Foco da comparação')).toHaveValue('changed');
+  await expect(page.getByLabel('Detalhamento da comparação')).toHaveValue('summary');
+  await expect(page.getByLabel('Versão de Banco Um')).toHaveValue('previous');
+  await page.getByLabel('Foco da comparação').selectOption('all');
+  await page.getByLabel('Versão de Banco Um').selectOption('current');
+  await expect(page).not.toHaveURL(/foco=|anterior=/);
+});
+
+test('comparação indisponível mantém a causa informada pelo servidor', async ({ page }) => {
+  await mockSession(page);
+  await page.route('**/api/finance/comparison', (route) => route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ ok: false, code: 'forbidden', error: 'Sua função não pode consultar a comparação desta entidade.' }) }));
+  await page.goto(`/finance/rfq.html?id=${RFQ}`);
+  await page.getByRole('tab', { name: 'Comparação' }).click();
+  await expect(page.getByText('Sua função não pode consultar a comparação desta entidade.')).toBeVisible();
+  await expect(page.getByText('As condições não puderam ser consultadas')).toHaveCount(0);
+});
+
+test('comparação → proposta completa → volta à comparação com a mesma leitura', async ({ page }) => {
+  await mockSession(page);
+  await page.goto(`/finance/rfq.html?id=${RFQ}#comparacao`);
+  await page.getByRole('tab', { name: 'Comparação' }).click();
+  await page.getByLabel('Foco da comparação').selectOption('differences');
+  const toProposal = page.getByRole('link', { name: /Ver proposta (e documentos|de Banco Um)/ }).filter({ visible: true }).first();
+  await toProposal.click();
+  await expect(page.getByRole('tab', { name: /Propostas/ })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#proposal-p1')).toBeFocused();
+  await expect(page).toHaveURL(/foco=differences.*#proposal-p1$/);
+  await page.locator('#proposal-p1').getByRole('link', { name: 'Ver esta proposta na comparação' }).click();
+  await expect(page.getByRole('tab', { name: 'Comparação' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByLabel('Foco da comparação')).toHaveValue('differences');
+  await page.goBack();
+  await expect(page.getByRole('tab', { name: /Propostas/ })).toHaveAttribute('aria-selected', 'true');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test('link direto para uma proposta abre a aba de propostas e o cartão dela', async ({ page }) => {
+  await mockSession(page);
+  await page.goto(`/finance/rfq.html?id=${RFQ}#proposal-p2`);
+  await expect(page.getByRole('tab', { name: /Propostas/ })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#proposal-p2')).toBeFocused();
+});
+
+// Estúdio de decisão: cenários de pesos sobre o MESMO motor (POST comparison com
+// pesos → applyUserWeights no mock). API SIMULADA; não prova o servidor real.
+async function openStudio(page, data = overview(), approvals = null) {
+  await mockSession(page, { data });
+  if (approvals) await page.route('**/api/finance/approvals?*', (route) => route.fulfill({ json: { ok: true, rows: approvals } }));
+  await page.goto(`/finance/rfq.html?id=${RFQ}#comparacao`);
+  await page.getByRole('tab', { name: 'Comparação' }).click();
+  const studio = page.locator('#estudio-decisao');
+  await expect(studio).toBeVisible();
+  return studio;
+}
+async function setWeight(studio, scenario, label, value) {
+  await studio.getByLabel(`${scenario}: peso de ${label}`).fill(String(value));
+}
+
+test('estúdio: dois cenários pelo mesmo motor mostram que a primeira posição depende dos pesos', async ({ page }) => {
+  const studio = await openStudio(page);
+  await expect(studio).toContainText('não são salvos na empresa, não registram decisão');
+  await setWeight(studio, 'Cenário A', 'Valor ofertado (R$)', 70);
+  await setWeight(studio, 'Cenário A', 'Taxa (% a.m.)', 30);
+  await studio.getByRole('button', { name: 'Calcular Cenário A' }).click();
+  await expect(studio.getByText(/Calculado\. Pesos: Valor ofertado \(R\$\) 70% · Taxa \(% a\.m\.\) 30%/)).toBeVisible();
+  await studio.getByRole('button', { name: 'Novo cenário a partir do último' }).click();
+  // Teclado no controle deslizante (Home = 0), como faria quem usa o teclado.
+  await studio.getByLabel('Cenário B: peso de Valor ofertado (R$)').press('Home');
+  await expect(studio.getByLabel('Cenário B: peso de Valor ofertado (R$)')).toHaveValue('0');
+  await studio.getByRole('button', { name: 'Calcular Cenário B' }).click();
+  const table = studio.getByRole('region', { name: 'Tabela de cenários' });
+  await expect(table.locator('tr[data-proposal="p1"]')).toContainText('1º');
+  await expect(table.locator('tr[data-proposal="p1"]')).toContainText('2º');
+  await expect(table.locator('tr[data-proposal="p1"]')).toContainText('Posição muda');
+  await expect(studio.getByText('A primeira posição muda conforme os pesos')).toBeVisible();
+  // Sensibilidade: sem "valor", a ordem do cenário A se inverte; sem "taxa", se mantém.
+  await studio.getByRole('button', { name: 'Analisar sensibilidade' }).click();
+  const sens = studio.locator('.studio-sensitivity');
+  await expect(sens.locator('[data-criterion="offered_amount"]')).toContainText('a ordem muda para Banco Dois → Banco Um');
+  await expect(sens.locator('[data-criterion="interest_rate_month"]')).toContainText('a ordem se mantém');
+  await expect(studio).not.toContainText(/recomend|melhor proposta/i);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test('estúdio: cenários continuam ao ir à proposta e voltar; pesos alterados invalidam o resultado', async ({ page }) => {
+  const studio = await openStudio(page);
+  await setWeight(studio, 'Cenário A', 'Taxa (% a.m.)', 50);
+  await studio.getByRole('button', { name: 'Calcular Cenário A' }).click();
+  await expect(studio.getByText(/Calculado\./)).toBeVisible();
+  await studio.getByRole('button', { name: 'Novo cenário a partir do último' }).click();
+  await studio.getByRole('button', { name: 'Calcular Cenário B' }).click();
+  await studio.getByRole('region', { name: 'Tabela de cenários' }).getByRole('link', { name: 'Banco Dois' }).click();
+  await expect(page.locator('#proposal-p2')).toBeFocused();
+  await page.locator('#proposal-p2').getByRole('link', { name: 'Ver esta proposta na comparação' }).click();
+  const back = page.locator('#estudio-decisao');
+  await expect(back.getByRole('region', { name: 'Tabela de cenários' })).toBeVisible();
+  await expect(back.getByLabel('Cenário B: peso de Taxa (% a.m.)')).toHaveValue('50');
+  await back.getByLabel('Cenário B: peso de Taxa (% a.m.)').press('End');
+  await expect(back.getByText('Pesos alterados: calcule de novo.')).toBeVisible();
+  await expect(back.getByText('Calcule um segundo cenário para comparar')).toBeVisible();
+});
+
+test('estúdio: falha do cálculo não vira resultado e mantém a causa do servidor', async ({ page }) => {
+  const studio = await openStudio(page);
+  await page.route('**/api/finance/comparison', (route) => {
+    const body = route.request().postDataJSON();
+    if (body.weights && Object.keys(body.weights).length) return route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ ok: false, code: 'forbidden', error: 'Sua função não pode calcular pesos nesta entidade.' }) });
+    return route.fallback();
+  });
+  await setWeight(studio, 'Cenário A', 'Taxa (% a.m.)', 50);
+  await studio.getByRole('button', { name: 'Calcular Cenário A' }).click();
+  await expect(studio.getByText('Sua função não pode calcular pesos nesta entidade.')).toBeVisible();
+  await expect(studio.getByRole('button', { name: 'Analisar sensibilidade' })).toHaveCount(0);
+});
+
+test('estúdio: dossiê factual traz versões, pendências, cenários, aprovação e decisão sem recomendação', async ({ page }) => {
+  const data = overview();
+  data.rfqs[0].proposals[0].version = 2;
+  data.rfqs[0].proposals[0].previous_version = { version: 1, submitted_at: '2026-08-01T10:00:00Z', terms: { ...data.rfqs[0].proposals[0].terms, interest_rate_month: 2.5 } };
+  const studio = await openStudio(page, data, [{ id: 'ap1', rfq_id: RFQ, proposal_id: 'p1', proposal_version: 1, status: 'pending', requested_at: '2026-10-20T10:00:00Z', rationale: 'Prazo maior', steps: [] }]);
+  await setWeight(studio, 'Cenário A', 'Taxa (% a.m.)', 50);
+  await studio.getByRole('button', { name: 'Calcular Cenário A' }).click();
+  await expect(studio.getByText(/Calculado\./)).toBeVisible();
+  await studio.getByRole('button', { name: 'Abrir dossiê da análise' }).click();
+  const dossier = page.locator('#dossie');
+  await expect(dossier).toContainText('Não é recomendação do Arandu');
+  await expect(dossier).toContainText('Banco Um: versão 2');
+  await expect(dossier).toContainText('condição(ões) alterada(s)');
+  await expect(dossier).toContainText(/Condições com informação pendente: .*CET informado/);
+  await expect(dossier).toContainText('Cenário A — pesos: Taxa (% a.m.) 100%');
+  // Aprovação da v1 com proposta já na v2: aparece desatualizada (regra conservadora da 9.1).
+  await expect(dossier).toContainText('Desatualizada');
+  await expect(dossier).toContainText('Nenhuma decisão registrada.');
+  await expect(dossier).not.toContainText(/recomendad|melhor opção/i);
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Baixar dossiê (HTML)' }).click();
+  expect((await download).suggestedFilename()).toMatch(/^arandu-dossie-[0-9a-f-]{8}\.html$/);
+});
+
+test('intenção "Renovar ou renegociar" abre o plano de renovações já aberto', async ({ page }) => {
+  await mockSession(page, { data: overview({ contracts: [{ id: '00000000-0000-4000-8000-00000000c7a1', provider_id: 'x1', provider_name: 'Banco Um', status: 'active', product: 'credit', starts_on: '2026-01-01', ends_on: new Date(Date.now() + 40 * 86400000).toISOString().slice(0, 10), renewal_notice_days: 30, owner_id: 'u1', current_version: 1 }] }) });
+  await page.goto('/finance/dashboard.html');
+  await page.getByRole('button', { name: 'Começar' }).click();
+  const link = page.getByRole('dialog', { name: 'O que você precisa fazer?' }).getByRole('link', { name: /Renovar ou renegociar/ });
+  await expect(link).toHaveAttribute('href', '/finance/contracts.html?plano=renovacoes');
+  await link.click();
+  await expect(page.locator('#plano-renovacoes [data-contract="00000000-0000-4000-8000-00000000c7a1"]')).toBeVisible();
+});
+
+// Estúdio sob concorrência: resposta fora de ordem, limite de consultas e exportação segura.
+test('estúdio: resposta atrasada de pesos antigos não vira resultado dos pesos novos', async ({ page }) => {
+  const studio = await openStudio(page);
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  await page.route('**/api/finance/comparison', async (route) => {
+    const body = route.request().postDataJSON();
+    if (body.weights?.offered_amount === 50) await gate; // primeira conta (pesos antigos) atrasa
+    return route.fallback();
+  });
+  await setWeight(studio, 'Cenário A', 'Valor ofertado (R$)', 50);
+  await studio.getByRole('button', { name: 'Calcular Cenário A' }).click();
+  await expect(studio.getByText('Calculando com o motor de comparação…')).toBeVisible();
+  await studio.getByLabel('Cenário A: peso de Taxa (% a.m.)').press('End');
+  await expect(studio.getByText('Pesos alterados: calcule de novo.')).toBeVisible();
+  release();
+  await page.waitForTimeout(300);
+  await expect(studio.getByText(/Calculado\./)).toHaveCount(0);
+  await expect(studio.getByText('Pesos alterados: calcule de novo.')).toBeVisible();
+  await studio.getByRole('button', { name: 'Calcular Cenário A' }).click();
+  await expect(studio.getByText(/Calculado\. Pesos: Valor ofertado \(R\$\) 33% · Taxa \(% a\.m\.\) 67%/)).toBeVisible();
+});
+
+test('estúdio: sensibilidade para no limite de consultas e não insiste sozinha', async ({ page }) => {
+  const data = overview();
+  await openStudio(page, data);
+  const studio = page.locator('#estudio-decisao');
+  for (const [label, value] of [['Valor ofertado (R$)', 40], ['Taxa (% a.m.)', 30], ['Prazo (meses)', 30]]) await setWeight(studio, 'Cenário A', label, value);
+  await studio.getByRole('button', { name: 'Calcular Cenário A' }).click();
+  await expect(studio.getByText(/Calculado\./)).toBeVisible();
+  let after = 0;
+  await page.route('**/api/finance/comparison', (route) => { after += 1; return route.fulfill({ status: 429, headers: { 'Retry-After': '60' }, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'limite' }) }); });
+  await studio.getByRole('button', { name: 'Analisar sensibilidade' }).click();
+  const sens = studio.locator('.studio-sensitivity');
+  await expect(sens.locator('[data-criterion="interest_rate_month"]')).toContainText('limite de consultas atingido');
+  await expect(sens.locator('[data-criterion="term_months"]')).toContainText('limite de consultas atingido');
+  await page.waitForTimeout(300);
+  expect(after).toBe(1);
+});
+
+test('estúdio: dossiê baixado trata título como texto, sem marcação executável', async ({ page }) => {
+  const data = overview();
+  data.rfqs[0].title = 'Giro <img src=x onerror="alert(1)"><script>alert(2)</script>';
+  const studio = await openStudio(page, data);
+  await studio.getByRole('button', { name: 'Abrir dossiê da análise' }).click();
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Baixar dossiê (HTML)' }).click();
+  const file = await (await download).path();
+  const html = (await import('node:fs')).readFileSync(file, 'utf8');
+  expect(html).not.toMatch(/<script>|<img /i);
+  expect(html).toContain('&lt;script&gt;');
+  expect(html).toContain('Não é recomendação do Arandu');
+});
+
+// Jornada conectada (API SIMULADA; não é validação hospedada): central de ações →
+// comparação → Estúdio → proposta → volta com o cenário → dossiê → aprovações,
+// sempre a mesma solicitação (id canônico na URL).
+test('jornada conectada: do Painel ao Estúdio, à proposta e de volta, sem perder o processo', async ({ page }) => {
+  await mockSession(page);
+  await page.goto('/finance/dashboard.html');
+  await page.locator('#precisa-de-voce').getByRole('link', { name: /Avaliar propostas: Crédito expansão/ }).click();
+  await expect(page).toHaveURL(new RegExp(`rfq\\.html\\?id=${RFQ}#comparacao$`));
+  const studio = page.locator('#estudio-decisao');
+  await setWeight(studio, 'Cenário A', 'Taxa (% a.m.)', 60);
+  await studio.getByRole('button', { name: 'Calcular Cenário A' }).click();
+  await expect(studio.getByText(/Calculado\./)).toBeVisible();
+  await page.getByRole('link', { name: /Ver proposta (e documentos|de Banco Dois)/ }).filter({ visible: true }).last().click();
+  await expect(page.getByRole('tab', { name: /Propostas/ })).toHaveAttribute('aria-selected', 'true');
+  expect(new URL(page.url()).searchParams.get('id')).toBe(RFQ);
+  await page.goBack();
+  await expect(page.getByRole('tab', { name: 'Comparação' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#estudio-decisao').getByText(/Calculado\. Pesos: Taxa \(% a\.m\.\) 100%/)).toBeVisible();
+  await page.locator('#estudio-decisao').getByRole('button', { name: 'Abrir dossiê da análise' }).click();
+  await expect(page.locator('#dossie')).toContainText('Cenário A — pesos: Taxa (% a.m.) 100%');
+  await page.keyboard.press('Escape');
+  await page.getByRole('tab', { name: /Aprovações/ }).click();
+  await expect(page).toHaveURL(new RegExp(`id=${RFQ}#aprovacoes$`));
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+});

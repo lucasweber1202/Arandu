@@ -82,10 +82,10 @@ export function actionItems(ctx, approvals) {
       const stage = renewalStage(contract);
       if (stage.stage === 'window' && contract.status === 'active') {
         items.push({ rank: stage.daysToDeadline <= 7 ? 1 : 2, due: stage.daysToDeadline, tone: 'warning', icon: 'repeat', kind: 'Renovação', title: `Decidir renovação: ${contract.provider_name}`,
-          detail: `${productLabel(contract.product, { short: true })} · aviso prévio ${relativeDays(stage.deadline)} (${formatDate(stage.deadline)}) · vence ${formatDate(contract.ends_on)}`, cta: 'Decidir', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${contract.id}`) });
+          detail: `${productLabel(contract.product, { short: true })} · aviso prévio ${relativeDays(stage.deadline)} (${formatDate(stage.deadline)}) · vence ${formatDate(contract.ends_on)}`, cta: 'Decidir', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${contract.id}`), secondary: { label: 'Plano de renovações', href: ctx.href('/finance/contracts.html?plano=renovacoes') } });
       } else if (stage.stage === 'past_notice') {
         items.push({ rank: 1, due: stage.daysToDeadline, tone: 'danger', icon: 'alert', kind: 'Renovação', title: `Aviso prévio vencido: ${contract.provider_name}`,
-          detail: `Vence ${relativeDays(contract.ends_on)} (${formatDate(contract.ends_on)}). Negocie ou prepare a substituição.`, cta: 'Ver', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${contract.id}`) });
+          detail: `Vence ${relativeDays(contract.ends_on)} (${formatDate(contract.ends_on)}). Negocie ou prepare a substituição.`, cta: 'Ver', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${contract.id}`), secondary: { label: 'Plano de renovações', href: ctx.href('/finance/contracts.html?plano=renovacoes') } });
       } else if (stage.stage === 'window' && contract.status === 'renewing') {
         items.push({ rank: 3, tone: 'accent', icon: 'repeat', kind: 'Renovação', title: `Renovação em andamento: ${contract.provider_name}`,
           detail: `Compare as propostas antes de ${formatDate(stage.deadline)}.`, cta: 'Acompanhar', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${contract.id}`) });
@@ -106,8 +106,19 @@ export function actionItems(ctx, approvals) {
     const about = contract ? `${contract.provider_name || 'Contrato'} · ${productLabel(contract.product, { short: true })} · ` : '';
     // Tarefa sem responsável aparece para a equipe, mas não como se fosse de quem lê.
     const owner = task.assignee_id === viewer ? 'Com você · ' : 'Sem responsável · ';
-    if (days !== null && days <= 2) items.push({ rank: days < 0 ? 1 : 3, due: days, taskId: task.id, tone: days < 0 ? 'danger' : 'neutral', icon: 'tasks', kind: 'Tarefa', title: task.title,
+    if (days !== null && days <= 2) items.push({ rank: days < 0 ? 1 : 3, due: days, taskId: task.id, canComplete: worksTasks, tone: days < 0 ? 'danger' : 'neutral', icon: 'tasks', kind: 'Tarefa', title: task.title,
       detail: `${owner}${about}${days < 0 ? `Vencida ${relativeDays(task.due_on)}` : `Prazo ${relativeDays(task.due_on)}`}`, cta: 'Ver', href: ctx.href(`/finance/tasks.html#task-${task.id}`) });
+  }
+  // Tarefas abertas sem responsável (qualquer prazo, inclusive sem prazo): um
+  // item de triagem que leva ao filtro existente da Caixa de Trabalho. A visão
+  // geral traz até 100 tarefas abertas; além disso a contagem é parcial e diz isso.
+  if (worksTasks) {
+    const open = data.tasks || [];
+    // As que vencem em até 2 dias já aparecem uma a uma acima: não conta duas vezes.
+    const unassigned = open.filter((task) => !task.assignee_id && !(daysUntil(task.due_on) !== null && daysUntil(task.due_on) <= 2)).length;
+    if (unassigned) items.push({ rank: 2, tone: 'warning', icon: 'tasks', kind: 'Atribuição', source: 'task',
+      title: `${plural(unassigned, 'tarefa aberta sem responsável', 'tarefas abertas sem responsável')}${open.length >= 100 ? ' (entre as 100 mais próximas)' : ''}`,
+      detail: 'Sem responsável, ninguém responde pelo prazo. Atribua na Caixa de Trabalho.', cta: 'Atribuir', href: ctx.href('/finance/tasks.html?filtro=sem-responsavel') });
   }
   // Mesmo nível de prioridade: o que vence antes vem primeiro.
   const due = (item) => (Number.isFinite(item.due) ? item.due : 9999);
@@ -143,17 +154,41 @@ export async function crossModuleSignals(ctx, { today = todayIso() } = {}) {
   return result;
 }
 
-function actionRow(item) {
-  return el('li', { class: `action-row tone-${item.tone}`, dataset: { source: sourceOf(item) } }, [
+function actionRow(item, ctx = null) {
+  const status = el('span', { class: 'action-status small', role: 'status', 'aria-live': 'polite' });
+  // Ação no próprio item (tarefa urgente): mesma rota da Caixa de Trabalho
+  // (PATCH tasks) e só aparece como concluída depois de a leitura do servidor confirmar.
+  const complete = ctx && item.taskId && item.canComplete ? button('Concluir', { size: 'sm', variant: 'secondary', attrs: { 'aria-label': `Concluir tarefa: ${item.title}` }, onClick: async () => {
+    complete.disabled = true;
+    status.textContent = 'Conferindo no servidor…';
+    try {
+      await ctx.send('tasks', { organization_id: ctx.organization.id, task_id: item.taskId, status: 'done' }, 'PATCH');
+      const check = await ctx.api(`tasks?organization_id=${ctx.orgId}&task_id=${encodeURIComponent(item.taskId)}`);
+      if (check.rows?.find((row) => row.id === item.taskId)?.status !== 'done') throw Object.assign(new Error('Não confirmamos a conclusão. Abra a tarefa antes de tentar de novo.'), { unknown: true });
+      row.classList.add('action-done');
+      status.textContent = 'Concluída · confirmada pelo servidor.';
+      complete.remove();
+    } catch (error) {
+      const unknown = error.unknown || !error.status || error.status >= 500;
+      status.textContent = unknown ? 'Não confirmamos a conclusão. Abra a tarefa para ver o estado registrado antes de tentar de novo.' : (error.message || 'A tarefa não foi concluída.');
+      complete.disabled = unknown;
+    }
+  } }) : null;
+  complete?.classList.add('action-inline');
+  const row = el('li', { class: `action-row tone-${item.tone}`, dataset: { source: sourceOf(item) } }, [
     el('span', { class: 'action-icon' }, icon(item.icon, { size: 16 })),
     el('div', { class: 'action-text' }, [
       el('span', { class: 'action-kind', text: item.kind }),
       el('a', { class: 'action-title stretched', href: item.href, text: item.title }),
-      el('span', { class: 'action-detail', text: item.detail })
-    ]),
+      el('span', { class: 'action-detail', text: item.detail }),
+      item.secondary ? el('a', { class: 'action-secondary small', href: item.secondary.href, text: item.secondary.label }) : null,
+      status
+    ].filter(Boolean)),
     item.when ? el('span', { class: 'action-when', text: item.when }) : null,
+    complete,
     el('span', { class: 'action-cta', 'aria-hidden': 'true' }, [textSpan(item.cta), icon('chevronRight', { size: 14 })])
-  ]);
+  ].filter(Boolean));
+  return row;
 }
 
 export async function dashboard(ctx) {
@@ -202,10 +237,11 @@ export async function dashboard(ctx) {
     shown.push(item);
   }
   const hidden = items.filter((item) => !shown.includes(item));
-  const list = el('ul', { class: 'action-list', role: 'list' }, shown.map(actionRow));
+  const rowOf = (item) => actionRow(item, ctx);
+  const list = el('ul', { class: 'action-list', role: 'list' }, shown.map(rowOf));
   const rest = hidden.length ? el('details', { class: 'action-more' }, [
     el('summary', { text: `Mostrar mais ${plural(hidden.length, 'pendência', 'pendências')}` }),
-    el('ul', { class: 'action-list', role: 'list' }, hidden.map(actionRow))]) : null;
+    el('ul', { class: 'action-list', role: 'list' }, hidden.map(rowOf))]) : null;
   // Filtro por origem: com mais de uma origem, a pessoa isola o que é dela
   // (ex.: só Relacionamentos) sem sair do Painel. "Todas" volta à fila priorizada.
   const counts = S ? S.sourceCounts(items) : [];
@@ -215,7 +251,7 @@ export async function dashboard(ctx) {
     for (const chip of chips.children) chip.setAttribute('aria-pressed', String(chip.dataset.source === key));
     const all = key === 'all';
     list.hidden = !all; if (rest) rest.hidden = !all; filtered.hidden = all;
-    filtered.replaceChildren(...(all ? [] : items.filter((item) => sourceOf(item) === key).map(actionRow)));
+    filtered.replaceChildren(...(all ? [] : items.filter((item) => sourceOf(item) === key).map(rowOf)));
   };
   if (chips) for (const { key, label, count } of [{ key: 'all', label: 'Todas', count: items.length }, ...counts]) {
     const chip = el('button', { type: 'button', class: 'chip', 'aria-pressed': String(key === 'all'), dataset: { source: key } }, [label, el('span', { class: 'chip-count', text: String(count) })]);

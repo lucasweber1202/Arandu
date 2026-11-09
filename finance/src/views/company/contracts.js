@@ -2,7 +2,7 @@
 // Extraído de company.js (v7.0): uma capability por módulo e rota.
 
 import { el, icon, formatDate, relativeDays, daysUntil, plural, productLabel, CONTRACT_STATUS, todayIso, renewalStage, textSpan } from '../../core.js';
-import { pill, tag, button, emptyState, toast, confirmDialog, mutedText, toastError } from '../../ui.js';
+import { pill, tag, button, emptyState, toast, confirmDialog, mutedText, toastError, errorState } from '../../ui.js';
 import { memberName } from '../shared/people.js';
 import { lazyDocuments } from '../shared/documents.js';
 import { CONTRACT_CATEGORIES } from '../../../../lib/finance/contract-terms.mjs';
@@ -256,7 +256,23 @@ function portfolioControlTower(ctx, ordered, { card, focusId, coverage = { state
     const next = `${location.pathname}${query ? `?${query}` : ''}${location.hash}`;
     if (next !== `${location.pathname}${location.search}${location.hash}`) history.replaceState(history.state, '', next);
   }
-  const root = el('div', { class: 'stack contracts-tower' }, [coverageNote(coverage),
+  // Plano de renovações: carregado sob demanda, sobre os mesmos contratos do recorte.
+  // O módulo só carrega quando a pessoa abre o plano (ou chega por #plano-renovacoes):
+  // a tela de contratos não paga esse JavaScript na abertura.
+  const planSlot = el('div', { class: 'card-body' }, mutedText('Abra para ver os contratos vigentes pelo prazo do aviso prévio.'));
+  const plan = el('details', { class: 'card renewal-plan-toggle', id: 'plano-renovacoes-toggle' }, [
+    el('summary', { class: 'card-head' }, [el('span', { class: 'card-title', text: 'Plano de renovações' }), el('span', { class: 'muted small', text: ' · contratos vigentes pelo prazo do aviso prévio, com tarefas e ações' })]), planSlot]);
+  let planLoaded = false;
+  const loadPlan = () => {
+    if (planLoaded) return;
+    planLoaded = true;
+    planSlot.replaceChildren(mutedText('Carregando plano…'));
+    import('../contract-center/renewal-workbench.js').then((m) => planSlot.replaceChildren(m.renewalWorkbench(ctx, ordered, { coverage })))
+      .catch((error) => { planLoaded = false; planSlot.replaceChildren(errorState({ error, onRetry: loadPlan })); });
+  };
+  plan.addEventListener('toggle', () => { if (plan.open) loadPlan(); });
+  if (location.hash === '#plano-renovacoes' || new URLSearchParams(location.search).get('plano') === 'renovacoes') { plan.open = true; loadPlan(); }
+  const root = el('div', { class: 'stack contracts-tower' }, [coverageNote(coverage), plan,
     el('div', { class: 'toolbar' }, [el('div', { class: 'toolbar-search' }, [icon('search'), search]), ...Object.values(controls), count]),
     el('div', { class: 'toolbar-chips' }, chips), summary, list].filter(Boolean));
   draw();

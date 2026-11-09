@@ -1465,3 +1465,23 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 .contract-exceptions{display:flex;flex-wrap:wrap;gap:6px;list-style:none;margin:var(--s2) 0 0;padding:0}
 .portfolio-institutions{padding:var(--s4) var(--s5)}
 .portfolio-institutions .mini-row.selected{background:var(--surface-sunken);border-radius:8px}
+.renewal-workbench .card-head{display:flex;flex-wrap:wrap;gap:var(--s3);align-items:center;justify-content:space-between}
+.renewal-group-title{display:flex;gap:var(--s2);align-items:center;font-size:var(--fs-md)}
+.renewal-list{display:flex;flex-direction:column;gap:var(--s2);padding:0;margin:0}
+.renewal-row{display:flex;flex-wrap:wrap;gap:var(--s3);justify-content:space-between;align-items:flex-start;padding:var(--s3);border:1px solid var(--border);border-radius:var(--r-md)}
+.renewal-main{display:flex;flex-direction:column;gap:var(--s1);min-width:0;flex:1 1 280px}
+.renewal-title{font-weight:600;overflow-wrap:anywhere}
+.renewal-meta,.renewal-actions{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center}
+.studio-scenarios{display:grid;gap:var(--s3);grid-template-columns:minmax(0,1fr)}
+@media (min-width:1100px){.studio-scenarios{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}}
+.studio-sensitivity ul{margin:var(--s2) 0;padding-left:var(--s4)}
+.action-secondary,.action-inline{position:relative;z-index:1}
+.action-row.action-done .action-title{text-decoration:line-through;color:var(--text-muted)}
+#estudio-decisao,#estudio-decisao .card-head,#estudio-decisao .card-body,.studio-scenarios>*{min-width:0;max-width:100%}
+#estudio-decisao .card-head{flex-wrap:wrap}
+#estudio-decisao .btn{white-space:normal;max-width:100%;text-align:left}
+#estudio-decisao .card-actions{flex:1 1 auto;min-width:0}
+.studio-scenario,.studio-scenario .weights-form,.studio-scenario .weight-row{min-width:0}
+.studio-scenario input[type=range]{min-width:0;box-sizing:border-box}
+.weight-row input[type=range]{margin-inline:0}
+.comparison-tab{grid-template-columns:minmax(0,1fr)}
