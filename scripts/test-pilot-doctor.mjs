@@ -2,7 +2,7 @@
 // na saída. Supabase e app simulados; nada de rede.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { runDoctor, formatDoctor, EXPECTED_SCHEMA_VERSION, REQUIRED_TABLES, REQUIRED_RPCS } from '../lib/finance/pilot-doctor.mjs';
+import { runDoctor, formatDoctor, demoCapacityStatus, EXPECTED_SCHEMA_VERSION, REQUIRED_TABLES, REQUIRED_RPCS } from '../lib/finance/pilot-doctor.mjs';
 import { releaseIdentity } from '../lib/runtime-mode.mjs';
 import { DOCUMENT_MIME_TYPES } from '../lib/finance/document-storage.mjs';
 
@@ -12,7 +12,7 @@ const ANON = jwt('anon');
 const SERVICE = jwt('service_role');
 const CRON = 'c'.repeat(24) + 'segredo-do-cron-0123456789abcdef';
 const baseEnv = {
-  ARANDU_ENV: 'pilot', ARANDU_SITE_URL: 'https://piloto.example.com', SUPABASE_URL: 'https://proj.supabase.co',
+  ARANDU_ENV: 'pilot', ARANDU_SITE_URL: 'https://piloto.example.com', SUPABASE_URL: 'https://offgpyysgdhfemjlchod.supabase.co',
   SUPABASE_ANON_KEY: ANON, SUPABASE_SERVICE_ROLE_KEY: SERVICE, CRON_SECRET: CRON
 };
 const vercelConfig = { crons: [{ path: '/api/jobs/renewals', schedule: '15 9 * * *' }] };
@@ -101,6 +101,55 @@ async function doctor(env, overrides) {
 }
 const levelOf = (report, name) => report.checks.find((check) => check.name === name)?.level;
 
+// Uma URL Pilot desconhecida ou um domínio próprio não provam a identidade do
+// projeto hospedado. Chaves opacas ou JWTs sem ref também não provam vínculo.
+const unknownPilot = await doctor({ ...baseEnv, SUPABASE_URL: 'https://proj.supabase.co' });
+assert.equal(levelOf(unknownPilot, 'projeto Supabase do ambiente'), 'ERROR');
+assert.equal(levelOf(unknownPilot, 'chaves do mesmo projeto'), 'WARN');
+assert.equal(unknownPilot.result, 'NO-GO');
+const customPilot = await doctor({ ...baseEnv, SUPABASE_URL: 'https://banco.example.com' });
+assert.equal(levelOf(customPilot, 'projeto Supabase do ambiente'), 'ERROR');
+assert.equal(customPilot.result, 'NO-GO');
+const localPilot = await doctor({ ...baseEnv, SUPABASE_URL: 'https://localhost:8443' });
+assert.equal(levelOf(localPilot, 'projeto Supabase do ambiente'), 'WARN');
+assert.equal(localPilot.checks.find((check) => check.name === 'projeto Supabase do ambiente').outcome, 'INCONCLUSIVE');
+const opaqueKeys = await doctor({ ...baseEnv, SUPABASE_URL: 'https://offgpyysgdhfemjlchod.supabase.co', SUPABASE_ANON_KEY: 'sb_publishable_exemplo', SUPABASE_SERVICE_ROLE_KEY: 'sb_secret_exemplo' });
+assert.equal(levelOf(opaqueKeys, 'projeto Supabase do ambiente'), 'OK');
+assert.equal(levelOf(opaqueKeys, 'chaves do mesmo projeto'), 'WARN');
+assert.equal(opaqueKeys.checks.find((check) => check.name === 'chaves do mesmo projeto').outcome, 'INCONCLUSIVE');
+for (const url of ['https://proj.supabase.co', 'https://banco.example.com', 'https://igacnfjeuqhxcmfyepgj.supabase.co']) {
+  const fake = fakeSupabase();
+  const contacted = [];
+  await runDoctor({ env: { ...baseEnv, SUPABASE_URL: url }, vercelConfig, now, fetchImpl: (target, init) => {
+    if (String(target).startsWith(url + '/')) contacted.push(init);
+    return fake.fetchImpl(target, init);
+  } });
+  assert.equal(contacted.length, 0, 'doctor não envia chaves a destino Pilot não aprovado');
+}
+for (const env of [
+  { ...baseEnv, ARANDU_ENV: 'production' },
+  { ...baseEnv, ARANDU_ENV: 'demo' },
+  { ...baseEnv, SUPABASE_ANON_KEY: jwtRef('anon', 'outroprojeto') }
+]) {
+  const fake = fakeSupabase();
+  const contacted = [];
+  await runDoctor({ env, vercelConfig, now, fetchImpl: (target, init) => {
+    if (String(target).startsWith(env.SUPABASE_URL + '/')) contacted.push(init);
+    return fake.fetchImpl(target, init);
+  } });
+  assert.equal(contacted.length, 0, 'não consultar banco entre ambientes ou com chaves de projetos diferentes');
+}
+{
+  const fake = fakeSupabase();
+  const requests = [];
+  await runDoctor({ env: baseEnv, vercelConfig, now, fetchImpl: (target, init) => {
+    if (String(target).startsWith(baseEnv.SUPABASE_URL + '/')) requests.push(init);
+    return fake.fetchImpl(target, init);
+  } });
+  assert.ok(requests.length > 0, 'destino autorizado é consultado');
+  assert.ok(requests.every((init) => init.redirect === 'error'), 'não seguir redirecionamentos com credenciais Supabase');
+}
+
 // Ambiente completo → GO (exit 0). E-mail desligado sem provedor é aviso, não bloqueio.
 const complete = await doctor(baseEnv);
 assert.equal(complete.result, 'GO', formatDoctor(complete));
@@ -157,21 +206,19 @@ for (const table of ['fin_implementation_plans', 'fin_implementation_milestones'
 
 assert.equal((await doctor(baseEnv, { productsStatus: 503 })).exit_code, 1, 'API financeira em 503 bloqueia');
 assert.equal((await doctor(baseEnv, { renewalsStatus: 404 })).exit_code, 1, 'rota do cron sem chegar à função bloqueia');
-assert.equal((await doctor({ ...baseEnv, ARANDU_ENV: 'staging' })).exit_code, 1, 'ambiente desconhecido');
+assert.equal((await doctor({ ...baseEnv, ARANDU_ENV: 'staging', SUPABASE_URL: 'https://proj.supabase.co' })).exit_code, 1, 'ambiente desconhecido');
 assert.equal((await doctor({ ...baseEnv, ARANDU_ENV: 'production' })).exit_code, 2, 'ref desconhecido não comprova banco de produção aprovado');
 const prodOnPilot = await doctor({ ...baseEnv, ARANDU_ENV: 'production', SUPABASE_URL: 'https://offgpyysgdhfemjlchod.supabase.co' });
 assert.equal(prodOnPilot.exit_code, 2, 'produção no banco do piloto');
 assert.equal(levelOf(prodOnPilot, 'projeto Supabase do ambiente'), 'UNSAFE');
 // Demonstração canônica: mesmo diagnóstico, banco próprio e marcado como demo.
 assert.equal((await doctor({ ...baseEnv, ARANDU_ENV: 'demo' }, { marker: 'demo' })).exit_code, 2, 'marker demo não substitui atribuição ativa aprovada');
-assert.equal(levelOf(await doctor({ ...baseEnv, ARANDU_ENV: 'demo' }), 'marcador de ambiente'), 'ERROR', 'demo ainda sem seed');
+assert.ok((await doctor({ ...baseEnv, ARANDU_ENV: 'demo' })).checks.some((check) => check.category === 'DATABASE' && check.name === 'conexão' && check.level === 'ERROR'), 'demo sem atribuição não consulta o banco');
 const demoOnPilot = await doctor({ ...baseEnv, ARANDU_ENV: 'demo', SUPABASE_URL: 'https://offgpyysgdhfemjlchod.supabase.co' }, { marker: 'demo' });
 assert.equal(levelOf(demoOnPilot, 'projeto Supabase do ambiente'), 'UNSAFE', 'demo no banco do piloto');
-for (const environment of ['pilot', 'production']) {
-  const onDemoDb = await doctor({ ...baseEnv, ARANDU_ENV: environment }, { marker: 'demo' });
-  assert.equal(levelOf(onDemoDb, 'marcador de ambiente'), 'UNSAFE', `${environment} ligado a um banco de demonstração`);
-  assert.equal(onDemoDb.exit_code, 2);
-}
+const onDemoDb = await doctor(baseEnv, { marker: 'demo' });
+assert.equal(levelOf(onDemoDb, 'marcador de ambiente'), 'UNSAFE', 'pilot ligado a um banco de demonstração');
+assert.equal(onDemoDb.exit_code, 2);
 assert.equal((await doctor(baseEnv, { legacyOpen: true })).exit_code, 1, 'rotas legadas de arte abertas no piloto bloqueiam');
 assert.equal(levelOf(await doctor({ ...baseEnv, SUPABASE_URL: 'https://proj.supabase.co', SUPABASE_ANON_KEY: jwtRef('anon', 'proj'), SUPABASE_SERVICE_ROLE_KEY: jwtRef('service_role', 'proj') }), 'chaves do mesmo projeto'), 'OK');
 assert.equal(levelOf(complete, 'identificador de requisição'), 'OK');
@@ -247,8 +294,7 @@ for (const rpc of ['fin_governance_request_export', 'fin_governance_create_legal
 }
 assert.equal((await doctor(baseEnv, { marker: 'production' })).result, 'UNSAFE');
 for (const workspaceStatus of [401, 403, 503]) {
-  const report = await doctor({ ...baseEnv, ARANDU_ENV: 'demo', ARANDU_DEMO_PASSWORD: 'SyntheticOnlySecret9' }, { marker: 'demo', workspaceStatus });
-  assert.equal(report.checks.find(check => check.name === 'capacidade de visitantes').outcome, workspaceStatus === 503 ? 'FAIL' : 'ACCESS_BLOCKED');
+  assert.equal(demoCapacityStatus({ ok: false, status: workspaceStatus }, now().getTime()), workspaceStatus === 503 ? 'unavailable' : 'access_blocked');
 }
 
 const localRelease = releaseIdentity({ ARANDU_ENV: 'pilot' });
