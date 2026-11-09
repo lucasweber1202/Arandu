@@ -175,3 +175,26 @@ test('sem entidades cadastradas a interface segue como antes', async ({ page }) 
   await page.goto('/finance/dashboard.html');
   await expect(page.locator('.entity-summary')).toHaveCount(0);
 });
+
+test('limpar filtros zera entidade, produto e ordem e recomeça a leitura sem cursor', async ({ page }) => {
+  await mockSession(page);
+  const seen = [];
+  page.on('request', (r) => { const u = new URL(r.url()); if (u.pathname === '/api/finance/rfqs' && r.method() === 'GET') seen.push(u.searchParams); });
+  await page.goto('/finance/rfqs.html?sort=recent');
+  await page.getByLabel('Filtrar por entidade').selectOption(ENTITY_A);
+  await page.getByLabel('Filtrar por produto').selectOption('acquiring');
+  await page.getByLabel('Filtrar por produto').selectOption('credit');
+  await page.getByPlaceholder('Buscar por título…').fill('nada que exista');
+  await page.getByRole('button', { name: 'Limpar filtros' }).click();
+  await expect(page.locator('.rfq-table tbody tr')).toHaveCount(4);
+  await expect(page.getByLabel('Filtrar por entidade')).toHaveValue('');
+  await expect(page.getByLabel('Filtrar por produto')).toHaveValue('');
+  await expect(page.getByLabel('Ordenar solicitações')).toHaveValue('deadline');
+  await expect(page.getByPlaceholder('Buscar por título…')).toHaveValue('');
+  await expect(page).toHaveURL(/\/finance\/rfqs\.html$/);
+  const last = seen.at(-1);
+  expect(last.get('legal_entity_id')).toBeNull();
+  expect(last.get('product')).toBeNull();
+  expect(last.get('cursor')).toBeNull();
+  expect(last.get('order')).toBe('deadline_asc');
+});

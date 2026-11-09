@@ -1408,3 +1408,18 @@ test('portal institucional paginado: 101 oportunidades e continuidade após erro
   await expect(page.getByRole('button', { name: 'Próxima página', exact: true })).toBeDisabled();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test('busca e ordem por respostas avisam que valem só para as carregadas quando há mais páginas', async ({ page }) => {
+  await mockSession(page, { data: overview({ rfqs: manyRfqs(30) }) });
+  await page.goto('/finance/rfqs.html');
+  await expect(page.locator('.rfq-table tbody tr')).toHaveCount(25);
+  await page.getByPlaceholder('Buscar por título…').fill('Solicitação 0');
+  await expect(page.getByText('Busca: aplicado só às 25 carregadas, não a todas as solicitações.')).toBeVisible();
+  await page.getByPlaceholder('Buscar por título…').fill('');
+  await expect(page.getByText(/aplicado só às/)).toBeHidden();
+  await page.getByLabel('Ordenar solicitações').selectOption('responses');
+  await expect(page.getByText('Ordem por respostas: aplicado só às 25 carregadas, não a todas as solicitações.')).toBeVisible();
+  await page.getByRole('button', { name: 'Carregar mais solicitações' }).click();
+  await expect(page.locator('.rfq-table tbody tr')).toHaveCount(30);
+  await expect(page.getByText(/aplicado só às/)).toBeHidden();
+});
