@@ -6,24 +6,39 @@ import { el, icon } from '../../core.js';
 import { button, errorState, loading, mutedText } from '../../ui.js';
 import { comparisonMatrix, weightsPanel } from '../shared/comparison.js';
 import { exportProcess } from './export.js';
+import { buildComparison, applyUserWeights } from '../../../../lib/finance/comparison.mjs';
 
-export function comparisonTab(ctx, rfq, decision = null) {
+export function comparisonTab(ctx, rfq, decision = null, { approvals = [], contract = null } = {}) {
   const proposals = rfq.proposals || [];
-  const wrap = el('div', { class: 'stack' });
+  const wrap = el('div', { class: 'stack comparison-tab' });
   const matrix = el('div', {}, loading('Carregando comparação…'));
   const weightsSlot = el('div');
+  const studioSlot = el('div');
+  let model = null;
+  // Estúdio de decisão: só com duas ou mais colunas comparáveis, carregado sob demanda.
+  const mountStudio = (columns) => {
+    if (columns < 2 || studioSlot.childElementCount) return;
+    import('./decision-studio.js').then((m) => { if (!studioSlot.childElementCount) studioSlot.append(m.decisionStudio(ctx, rfq, {
+      calculate: (__ARANDU_DEMO__ && ctx.mode === 'demo') ? async (weights) => applyUserWeights(rfq.product, proposals, weights) : async (weights) => (await fetchComparison(weights)).weighted,
+      getModel: () => model, approvals, decision, contract,
+      initialWeights: ctx.weights[rfq.id] || decision?.criteria?.weights || null })); }).catch(() => {});
+  };
   const fetchComparison = async (weights = {}) => ctx.send('comparison', { rfq_id: rfq.id, weights });
   const load = () => {
     matrix.replaceChildren(loading('Carregando comparação…'));
     fetchComparison().then(({ comparison }) => {
-      matrix.replaceChildren(comparisonMatrix(rfq, proposals, { model: comparison }));
+      model = comparison;
+      mountStudio(comparison?.columns?.length || 0);
+      matrix.replaceChildren(comparisonMatrix(rfq, proposals, { model: comparison, persist: true }));
       // Com propostas externas conferidas, o servidor pode comparar mais colunas
       // que as do portal: os pesos (mesmo motor, via servidor) ficam disponíveis.
       if (proposals.length <= 1 && (comparison?.columns?.length || 0) > 1 && !weightsSlot.childElementCount) weightsSlot.append(panel());
     })
-      .catch(() => matrix.replaceChildren(errorState({ title: 'Comparação indisponível', error: 'As condições não puderam ser consultadas. Tente novamente.', onRetry: load })));
+      // A causa do servidor (permissão, conflito, limite de requisições) é mantida;
+      // só uma falha sem mensagem vira o texto genérico.
+      .catch((error) => matrix.replaceChildren(errorState({ title: 'Comparação indisponível', error: error?.message ? error : 'As condições não puderam ser consultadas. Tente novamente.', onRetry: load })));
   };
-  if ((__ARANDU_DEMO__ && ctx.mode === 'demo')) matrix.replaceChildren(comparisonMatrix(rfq, proposals));
+  if ((__ARANDU_DEMO__ && ctx.mode === 'demo')) { model = buildComparison(rfq.product, proposals, rfq.demand, { revision: rfq.revision }); matrix.replaceChildren(comparisonMatrix(rfq, proposals, { persist: true })); mountStudio(model.columns.length); }
   else load();
   // Coleta aberta: a matriz é parcial. Diz quantas convidadas responderam, sem
   // tratar quem ainda não enviou como pior nem antecipar o resultado.
@@ -47,6 +62,7 @@ export function comparisonTab(ctx, rfq, decision = null) {
     calculate: (__ARANDU_DEMO__ && ctx.mode === 'demo') ? null : async weights => (await fetchComparison(weights)).weighted });
   if (proposals.length > 1) wrap.append(panel());
   else wrap.append(weightsSlot);
+  wrap.append(studioSlot);
   if (proposals.length) {
     ctx.send('signals', { organization_id: ctx.organization.id, event: 'comparison_viewed', entity_type: 'rfq', entity_id: rfq.id }).catch(() => {});
     wrap.append(el('div', { class: 'row-actions' }, [button('Exportar processo (JSON)', { size: 'sm', iconName: 'download', attrs: { id: 'export-rfq' }, onClick: () => exportProcess(ctx, rfq) }),

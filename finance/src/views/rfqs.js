@@ -275,6 +275,9 @@ export async function newRfq(ctx) {
   let highest = 0;
   // Campo da demanda → sugestão do Passport aplicada (para o snapshot da RFQ).
   const passportUsed = new Map();
+  // Sugestões do Passport que a pessoa recusou ou apagou: não voltam sozinhas
+  // quando a tela é redesenhada (troca de entidade ou de produto).
+  const declined = new Set();
 
   // Etapa 1 — produto e título. Rádios nativos: teclado e leitor de tela de graça.
   form.append(...fieldsets);
@@ -332,12 +335,20 @@ export async function newRfq(ctx) {
       // Financial Passport: preenche só campo vazio, e diz de onde veio.
       const suggestion = suggestions.get(spec2.key);
       const previousValue = previous[spec2.key];
-      if (suggestion && !source && (previousValue === undefined || previousValue === '')) control.value = String(suggestion.value);
+      if (suggestion && !source && !declined.has(spec2.key) && (previousValue === undefined || previousValue === '')) control.value = String(suggestion.value);
       if (suggestion && !source && control.value === String(suggestion.value)) passportUsed.set(spec2.key, suggestion);
       const fromPassport = passportUsed.has(spec2.key);
       const wrap = field({ label: spec2.label, control, required: Boolean(spec2.required),
         hint: fromPassport ? passportHint(suggestion) : HINTS[spec2.key] || null,
         className: spec2.type === 'text' && (spec2.max ?? 0) > 400 ? 'span-2' : '' });
+      if (suggestion && !source) {
+        // Apagar o valor sugerido conta como recusa; digitar outro valor é conflito visível na revisão.
+        control.addEventListener('input', () => { if (control.value === '') declined.add(spec2.key); });
+        const toggle = fromPassport
+          ? button('Não usar este dado', { variant: 'ghost', size: 'sm', attrs: { 'data-passport-decline': spec2.key }, onClick: () => { declined.add(spec2.key); control.value = ''; renderFields(); } })
+          : declined.has(spec2.key) ? button(`Usar sugestão do Passport (${fieldValue(spec2, suggestion.value) ?? suggestion.value})`, { variant: 'ghost', size: 'sm', attrs: { 'data-passport-accept': spec2.key }, onClick: () => { declined.delete(spec2.key); control.value = String(suggestion.value); renderFields(); } }) : null;
+        if (toggle) wrap.append(toggle);
+      }
       if (fromPassport) {
         wrap.classList.add('field-passport');
         wrap.dataset.freshness = suggestion.freshness;
@@ -384,10 +395,50 @@ export async function newRfq(ctx) {
     return { product, title: (entries.title || '').trim(), description: (entries.description || '').trim(), response_deadline: entries.response_deadline || null, demand, passport_fields };
   }
   const submit = el('button', { type: 'submit', id: 'rfq-submit', class: 'btn btn-primary' }, [icon('check'), el('span', { class: 'btn-label', text: 'Criar solicitação' })]);
+  // Prontidão da demanda: categorias verificáveis a partir do catálogo do
+  // produto, das mesmas regras de validação das etapas e do Passport. Não é
+  // nota, aprovação, conformidade nem análise de crédito; o servidor valida ao criar.
+  function readiness(data, spec) {
+    const invalid = [0, 1, 2].flatMap((step) => checkStep(step)).map((item) => item.label);
+    const filled = (item) => data.demand[item.key] !== undefined;
+    const requiredMissing = spec.demandFields.filter((item) => item.required && !filled(item)).map((item) => item.label);
+    const requiredDone = spec.demandFields.filter((item) => item.required && filled(item)).length;
+    const requiredTotal = spec.demandFields.filter((item) => item.required).length;
+    const optionalOpen = spec.demandFields.filter((item) => !item.required && NEED_KEYS[data.product].includes(item.key) && !filled(item)).map((item) => item.label);
+    const label = (key) => spec.demandFields.find((entry) => entry.key === key)?.label || key;
+    const confirm = [], conflicts = [];
+    for (const { demand_key: key } of data.passport_fields) {
+      const item = passportUsed.get(key);
+      if (String(data.demand[key]) !== String(item.value)) conflicts.push(`${label(key)}: você informou ${fieldValue(spec.demandFields.find((entry) => entry.key === key), data.demand[key])}; o Passport tem ${fieldValue(spec.demandFields.find((entry) => entry.key === key), item.value)}. Vale o que você informou.`);
+      else if (['stale', 'review_due'].includes(item.freshness)) confirm.push(`${label(key)} (${item.freshness === 'stale' ? 'desatualizado no Passport' : 'revisão do Passport vencendo'})`);
+    }
+    const declinedLabels = [...declined].filter((key) => spec.demandFields.some((entry) => entry.key === key) && !filled({ key })).map(label);
+    const state = invalid.length || requiredMissing.length ? 'missing' : confirm.length ? 'confirm' : 'complete';
+    return { state, invalid: [...new Set(invalid)], requiredMissing, requiredDone, requiredTotal, optionalOpen, confirm, conflicts, declined: declinedLabels };
+  }
+  function readinessBlock(ready) {
+    const head = { missing: ['callout-danger', 'alert', 'Informação ainda necessária'], confirm: ['callout-warning', 'alert', 'Pronta para revisão, com dados a confirmar'], complete: ['callout-success', 'checkCircle', 'Informações obrigatórias completas'] }[ready.state];
+    const items = [
+      textItem(`Obrigatórios preenchidos: ${ready.requiredDone} de ${ready.requiredTotal}${ready.requiredMissing.length ? ` · faltam ${ready.requiredMissing.join(', ')}` : ''}.`),
+      ready.invalid.length ? textItem(`Corrigir antes de criar: ${ready.invalid.join(', ')}.`) : null,
+      ...ready.confirm.map((text) => textItem(`Confirmar origem: ${text}.`)),
+      ...ready.conflicts.map((text) => textItem(`Divergente do Passport — ${text}`)),
+      ready.declined.length ? textItem(`Sugestões do Passport não usadas: ${ready.declined.join(', ')}.`) : null,
+      ready.optionalOpen.length ? textItem(`Opcionais ainda em branco (ajudam o provedor a ofertar): ${ready.optionalOpen.join(', ')}.`) : null
+    ].filter(Boolean);
+    return el('section', { class: `review-block readiness callout ${head[0]}`, id: 'rfq-readiness', 'data-readiness': ready.state }, [
+      el('div', { class: 'review-head' }, [el('h3', {}, [icon(head[1], { size: 16 }), textSpan(` Prontidão da demanda: ${head[2]}`)])]),
+      el('ul', { class: 'plain-list' }, items),
+      el('p', { class: 'small', text: 'Prontidão de preenchimento, conferida com as regras do produto. Não é aprovação, conformidade nem análise de crédito; o servidor valida de novo ao criar.' }),
+      el('p', { class: 'small', text: 'Ao criar: a solicitação nasce como rascunho da empresa, visível só para a sua equipe. Convites às instituições só saem quando você abrir a solicitação e convidar; o título e a demanda passam a ser vistos por quem aceitar o convite.' })
+    ]);
+  }
   function renderReview() {
     const data = payload();
     const spec = PRODUCTS[data.product];
     review.replaceChildren();
+    const ready = readiness(data, spec);
+    review.append(readinessBlock(ready));
     const sections = [
       ['Produto', 0, [['Produto', spec.label], ['Título', data.title || '—'], ['Contexto', data.description || 'Não informado']]],
       ['Necessidade', 1, spec.demandFields.filter((item) => NEED_KEYS[data.product].includes(item.key)).map((item) => [item.label, fieldValue(item, data.demand[item.key]) ?? 'Não informado'])],
@@ -420,7 +471,7 @@ export async function newRfq(ctx) {
       for (const message of shares.warnings) review.append(el('p', { class: 'callout callout-warning' }, [icon('alert'), textSpan(message)]));
       blocked = !shares.ok;
     }
-    submit.disabled = blocked;
+    submit.disabled = blocked || ready.state === 'missing';
   }
 
   // Navegação entre etapas.

@@ -8,6 +8,24 @@ import { readableDetail } from './shell.js';
 const KIND_LABELS = { ...SEARCH_KIND_LABELS, action: 'Ação' };
 const KIND_ICONS = { rfq: 'file', proposal: 'inbox', provider: 'building', contract: 'briefcase', task: 'tasks', implementation: 'tasks', covenant: 'calendar', performance: 'scale', spend: 'layers', action: 'arrowRight' };
 
+// A busca do servidor devolve, para alguns tipos, só a página da lista
+// (contratos, instituições, tarefas). Cada linha traz o id do registro: com ele
+// a busca abre o próprio objeto pelas rotas que já existem. Só substitui o link
+// genérico; um link específico vindo do servidor é mantido.
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const LIST_PAGES = { contract: '/finance/contracts.html', provider: '/finance/providers.html', task: '/finance/dashboard.html' };
+export function recordHref(kind, id, href) {
+  // Resultado de proposta: abre a solicitação já na aba de propostas.
+  if (kind === 'proposal' && /^\/finance\/rfq\.html\?id=[^#]+$/.test(href || '')) return `${href}#propostas`;
+  if (!UUID.test(String(id || ''))) return href;
+  if (href === LIST_PAGES[kind] || !href) {
+    if (kind === 'contract') return `/finance/contracts.html?abrir=contrato#contract-${id}`;
+    if (kind === 'provider') return `/finance/providers.html?provider_id=${id}`;
+    if (kind === 'task') return `/finance/tasks.html#task-${id}`;
+  }
+  return href;
+}
+
 function localItems(ctx) {
   const data = ctx.data || {};
   const items = [];
@@ -21,7 +39,7 @@ function localItems(ctx) {
     items.push({ kind: 'rfq', title: rfq.title, detail: `${productLabel(rfq.product, { short: true })} · ${RFQ_STATUS[rfq.status]?.label || rfq.status}`, href: ctx.href(`/finance/rfq.html?id=${encodeURIComponent(rfq.id)}`) });
     for (const proposal of rfq.proposals || []) items.push({ kind: 'proposal', title: proposal.provider_name, detail: rfq.title, href: ctx.href(`/finance/rfq.html?id=${encodeURIComponent(rfq.id)}#propostas`) });
   }
-  for (const provider of data.providers || []) items.push({ kind: 'provider', title: provider.name, detail: provider.region || '', href: ctx.href(`/finance/providers.html#provider-${provider.id}`) });
+  for (const provider of data.providers || []) items.push({ kind: 'provider', title: provider.name, detail: provider.region || '', href: ctx.href(`/finance/providers.html?provider_id=${encodeURIComponent(provider.id)}`) });
   for (const contract of data.contracts || []) items.push({ kind: 'contract', title: contract.provider_name || 'Contrato', detail: `${productLabel(contract.product, { short: true })}${contract.ends_on ? ` · vence ${formatDate(contract.ends_on)}` : ''}`, href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${contract.id}`) });
   for (const task of data.tasks || []) items.push({ kind: 'task', title: task.title, detail: task.due_on ? `prazo ${formatDate(task.due_on)}` : '', href: ctx.href(`/finance/tasks.html#task-${task.id}`) });
   return items;
@@ -81,17 +99,19 @@ export function createCommandCenter(ctx, trigger) {
     const term = input.value.trim();
     const current = ++sequence;
     const local = localSearch(term);
-    if (term.length < 2) { render(local); return; }
+    // Com menos de 2 letras a busca é só no que já está carregado: não diz "nada nesta organização".
+    if (term.length < 2) { render(local, term && !local.length ? 'Digite ao menos 2 letras para buscar em toda a organização.' : ''); return; }
     render(local, 'Buscando…');
     timer = setTimeout(async () => {
       try {
         const response = await ctx.api(`search?organization_id=${ctx.orgId}&q=${encodeURIComponent(term)}`);
         if (current !== sequence || !dialog.open) return;
         const seen = new Set();
-        const rows = (response.rows || []).map((row) => ({ kind: row.kind, title: row.title, detail: readableDetail(row.detail), href: ctx.href(row.href) }))
+        const rows = (response.rows || []).map((row) => ({ kind: row.kind, title: row.title, detail: readableDetail(row.detail), href: ctx.href(recordHref(row.kind, row.id, row.href)) }))
           .concat(local.filter((item) => item.kind === 'action'))
           .filter((row) => { const key = `${row.kind}:${row.title}:${row.href}`; if (seen.has(key)) return false; seen.add(key); return true; });
-        render(rows);
+        // O servidor devolve até 20; com mais, a lista não é exaustiva e diz isso.
+        render(rows, response.has_more ? `${rows.length} resultados exibidos; há outros para este termo. Refine a busca para encontrá-los.` : '');
       } catch {
         if (current === sequence) render(local, 'A busca completa está indisponível; mostrando resultados já carregados.');
       }
