@@ -132,7 +132,7 @@ export function renewalWorkbench(ctx, contracts, { coverage = { state: 'complete
   }
   owner.addEventListener('change', draw);
   draw();
-  return el('section', { class: 'card renewal-workbench', id: 'plano-renovacoes', 'aria-labelledby': 'plano-renovacoes-title' }, [
+  return el('section', { class: 'renewal-workbench', id: 'plano-renovacoes', 'aria-labelledby': 'plano-renovacoes-title' }, [
     el('div', { class: 'card-head' }, [el('div', { class: 'card-head-text' }, [
       el('h2', { class: 'card-title', id: 'plano-renovacoes-title', text: 'Plano de renovações' }),
       el('p', { class: 'card-subtitle', text: 'Contratos vigentes pelo prazo do aviso prévio, com responsável, renovação em andamento e tarefas. Datas do cadastro do contrato.' })]), owner]),

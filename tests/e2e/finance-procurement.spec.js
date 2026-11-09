@@ -1656,7 +1656,9 @@ test('estúdio: dois cenários pelo mesmo motor mostram que a primeira posição
   await studio.getByRole('button', { name: 'Calcular Cenário A' }).click();
   await expect(studio.getByText(/Calculado\. Pesos: Valor ofertado \(R\$\) 70% · Taxa \(% a\.m\.\) 30%/)).toBeVisible();
   await studio.getByRole('button', { name: 'Novo cenário a partir do último' }).click();
-  await setWeight(studio, 'Cenário B', 'Valor ofertado (R$)', 0);
+  // Teclado no controle deslizante (Home = 0), como faria quem usa o teclado.
+  await studio.getByLabel('Cenário B: peso de Valor ofertado (R$)').press('Home');
+  await expect(studio.getByLabel('Cenário B: peso de Valor ofertado (R$)')).toHaveValue('0');
   await studio.getByRole('button', { name: 'Calcular Cenário B' }).click();
   const table = studio.getByRole('region', { name: 'Tabela de cenários' });
   await expect(table.locator('tr[data-proposal="p1"]')).toContainText('1º');
@@ -1685,7 +1687,7 @@ test('estúdio: cenários continuam ao ir à proposta e voltar; pesos alterados 
   const back = page.locator('#estudio-decisao');
   await expect(back.getByRole('region', { name: 'Tabela de cenários' })).toBeVisible();
   await expect(back.getByLabel('Cenário B: peso de Taxa (% a.m.)')).toHaveValue('50');
-  await setWeight(back, 'Cenário B', 'Taxa (% a.m.)', 80);
+  await back.getByLabel('Cenário B: peso de Taxa (% a.m.)').press('End');
   await expect(back.getByText('Pesos alterados: calcule de novo.')).toBeVisible();
   await expect(back.getByText('Calcule um segundo cenário para comparar')).toBeVisible();
 });

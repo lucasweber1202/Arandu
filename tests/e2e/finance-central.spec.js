@@ -261,6 +261,7 @@ test('plano de renovações agrupa pelo prazo do aviso, mostra tarefas e quem re
   const tasks = [{ id: '00000000-0000-4000-8000-0000000008a1', title: 'Pedir minuta', due_on: day(5), status: 'open', related_type: 'contract', related_id: RW(1), assignee_id: 'u1' }];
   await setup(page, { overview: { ...OVERVIEW, contracts: RENEWALS, tasks } });
   await page.goto('/finance/contracts.html');
+  await page.locator('#plano-renovacoes-toggle > summary').click();
   const plan = page.locator('#plano-renovacoes');
   await expect(plan.locator('.renewal-past_notice [data-contract]')).toHaveCount(1);
   await expect(plan.locator(`.renewal-past_notice [data-contract="${RW(2)}"]`)).toContainText('Sem responsável');
@@ -284,7 +285,7 @@ test('plano de renovações registra tarefa de preparação; resposta incerta re
     return posts.length === 1 ? route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'Indisponível' }) })
       : route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ ok: true, row: { id: '00000000-0000-4000-8000-0000000008b1' } }) });
   });
-  await page.goto('/finance/contracts.html');
+  await page.goto('/finance/contracts.html#plano-renovacoes');
   const row = page.locator(`#plano-renovacoes [data-contract="${RW(1)}"]`);
   await row.getByRole('button', { name: 'Registrar tarefa de preparação' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Registrar tarefa' }).click();
@@ -300,6 +301,7 @@ test('plano de renovações registra tarefa de preparação; resposta incerta re
 test('plano de renovações: leitor vê o plano sem ações de escrita', async ({ page }) => {
   await setup(page, { role: 'viewer', overview: { ...OVERVIEW, contracts: RENEWALS, tasks: [] } });
   await page.goto('/finance/contracts.html');
+  await page.locator('#plano-renovacoes-toggle > summary').click();
   const plan = page.locator('#plano-renovacoes');
   await expect(plan.locator('[data-contract]').first()).toBeVisible();
   await expect(plan.getByRole('button', { name: /Registrar tarefa|Iniciar nova concorrência|Abrir concorrência/ })).toHaveCount(0);
