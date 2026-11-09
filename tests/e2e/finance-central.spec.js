@@ -316,3 +316,73 @@ test('plano de renovações: com 100 tarefas abertas na leitura, não afirma aus
   await expect(row).not.toContainText('Nenhuma tarefa aberta');
   await expect(page.locator('#plano-renovacoes')).toContainText('Contagem de tarefas a partir das 100 tarefas abertas');
 });
+
+// Central de ações (Painel · "Precisa de você"): ação no próprio item, com
+// confirmação lida do servidor; triagem de sem-responsável; atalho ao plano. API SIMULADA.
+const T_LATE = '00000000-0000-4000-8000-0000000009a1';
+const ACTION_TASKS = [
+  { id: T_LATE, title: 'Enviar balancete ao banco', status: 'open', due_on: day(-1), assignee_id: 'u1', related_type: 'contract', related_id: C1 },
+  { id: '00000000-0000-4000-8000-0000000009a2', title: 'Conferir garantia', status: 'open', due_on: null, assignee_id: null, related_type: 'contract', related_id: C1 },
+  { id: '00000000-0000-4000-8000-0000000009a3', title: 'Atualizar cadastro', status: 'open', due_on: day(20), assignee_id: null, related_type: null, related_id: null }
+];
+async function actionCenter(page, { role = 'admin', patch = 200, readBack = 'done' } = {}) {
+  await setup(page, { role, overview: { ...OVERVIEW, tasks: ACTION_TASKS } });
+  const calls = [];
+  await page.route('**/api/finance/tasks*', (route) => {
+    const req = route.request(); const u = new URL(req.url());
+    calls.push(`${req.method()} ${u.searchParams.get('task_id') || ''}`);
+    if (req.method() === 'PATCH') return route.fulfill({ status: patch, contentType: 'application/json', body: JSON.stringify(patch === 200 ? { ok: true } : { ok: false, error: 'Indisponível' }) });
+    return route.fulfill({ json: { ok: true, rows: [{ ...ACTION_TASKS[0], status: readBack }], page: { limit: 1, has_more: false, next_cursor: null } } });
+  });
+  await page.goto('/finance/dashboard.html');
+  return { attention: page.locator('#precisa-de-voce'), calls };
+}
+
+test('central de ações: concluir tarefa vencida no próprio item só após confirmação do servidor', async ({ page }) => {
+  const { attention, calls } = await actionCenter(page);
+  const row = attention.locator('.action-row', { hasText: 'Enviar balancete ao banco' });
+  await row.getByRole('button', { name: 'Concluir tarefa: Enviar balancete ao banco' }).click();
+  await expect(row).toContainText('Concluída · confirmada pelo servidor.');
+  await expect(row).toHaveClass(/action-done/);
+  expect(calls).toEqual(['PATCH ', `GET ${T_LATE}`]);
+  await expect(row.getByRole('link', { name: 'Enviar balancete ao banco' })).toHaveAttribute('href', `/finance/tasks.html#task-${T_LATE}`);
+});
+
+test('central de ações: falha na conclusão não some com a pendência nem afirma sucesso', async ({ page }) => {
+  const { attention } = await actionCenter(page, { patch: 503 });
+  const row = attention.locator('.action-row', { hasText: 'Enviar balancete ao banco' });
+  await row.getByRole('button', { name: /Concluir tarefa/ }).click();
+  await expect(row).toContainText('Não confirmamos a conclusão');
+  await expect(row).not.toHaveClass(/action-done/);
+  await expect(row.getByRole('button', { name: /Concluir tarefa/ })).toBeDisabled();
+});
+
+test('central de ações: servidor não confirma o estado → item continua pendente', async ({ page }) => {
+  const { attention } = await actionCenter(page, { readBack: 'open' });
+  const row = attention.locator('.action-row', { hasText: 'Enviar balancete ao banco' });
+  await row.getByRole('button', { name: /Concluir tarefa/ }).click();
+  await expect(row).toContainText('Não confirmamos a conclusão');
+  await expect(row).not.toHaveClass(/action-done/);
+});
+
+test('central de ações: tarefas sem responsável (com e sem prazo) viram triagem para o filtro da Caixa', async ({ page }) => {
+  const { attention } = await actionCenter(page);
+  const item = attention.getByRole('link', { name: '2 tarefas abertas sem responsável' });
+  await expect(item).toHaveAttribute('href', '/finance/tasks.html?filtro=sem-responsavel');
+});
+
+test('central de ações: leitor vê as pendências sem ação de escrita nem triagem de atribuição', async ({ page }) => {
+  const { attention } = await actionCenter(page, { role: 'viewer' });
+  await expect(attention.getByRole('button', { name: /Concluir tarefa/ })).toHaveCount(0);
+  await expect(attention.getByRole('link', { name: /sem responsável/ })).toHaveCount(0);
+});
+
+test('central de ações: renovação leva ao contrato e ao plano de renovações', async ({ page }) => {
+  const soon = { ...CONTRACT, ends_on: day(70), renewal_notice_days: 60 };
+  await setup(page, { overview: { ...OVERVIEW, contracts: [soon], tasks: [] } });
+  await page.goto('/finance/dashboard.html');
+  const row = page.locator('#precisa-de-voce .action-row', { hasText: 'Decidir renovação' });
+  await expect(row.getByRole('link', { name: /Decidir renovação/ })).toHaveAttribute('href', `/finance/contracts.html?abrir=contrato#contract-${C1}`);
+  await row.getByRole('link', { name: 'Plano de renovações' }).click();
+  await expect(page.locator(`#plano-renovacoes [data-contract="${C1}"]`)).toBeVisible();
+});

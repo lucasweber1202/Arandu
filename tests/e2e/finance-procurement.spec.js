@@ -1792,3 +1792,29 @@ test('estúdio: dossiê baixado trata título como texto, sem marcação execut�
   expect(html).toContain('&lt;script&gt;');
   expect(html).toContain('Não é recomendação do Arandu');
 });
+
+// Jornada conectada (API SIMULADA; não é validação hospedada): central de ações →
+// comparação → Estúdio → proposta → volta com o cenário → dossiê → aprovações,
+// sempre a mesma solicitação (id canônico na URL).
+test('jornada conectada: do Painel ao Estúdio, à proposta e de volta, sem perder o processo', async ({ page }) => {
+  await mockSession(page);
+  await page.goto('/finance/dashboard.html');
+  await page.locator('#precisa-de-voce').getByRole('link', { name: /Avaliar propostas: Crédito expansão/ }).click();
+  await expect(page).toHaveURL(new RegExp(`rfq\\.html\\?id=${RFQ}#comparacao$`));
+  const studio = page.locator('#estudio-decisao');
+  await setWeight(studio, 'Cenário A', 'Taxa (% a.m.)', 60);
+  await studio.getByRole('button', { name: 'Calcular Cenário A' }).click();
+  await expect(studio.getByText(/Calculado\./)).toBeVisible();
+  await page.getByRole('link', { name: /Ver proposta (e documentos|de Banco Dois)/ }).filter({ visible: true }).last().click();
+  await expect(page.getByRole('tab', { name: /Propostas/ })).toHaveAttribute('aria-selected', 'true');
+  expect(new URL(page.url()).searchParams.get('id')).toBe(RFQ);
+  await page.goBack();
+  await expect(page.getByRole('tab', { name: 'Comparação' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#estudio-decisao').getByText(/Calculado\. Pesos: Taxa \(% a\.m\.\) 100%/)).toBeVisible();
+  await page.locator('#estudio-decisao').getByRole('button', { name: 'Abrir dossiê da análise' }).click();
+  await expect(page.locator('#dossie')).toContainText('Cenário A — pesos: Taxa (% a.m.) 100%');
+  await page.keyboard.press('Escape');
+  await page.getByRole('tab', { name: /Aprovações/ }).click();
+  await expect(page).toHaveURL(new RegExp(`id=${RFQ}#aprovacoes$`));
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+});

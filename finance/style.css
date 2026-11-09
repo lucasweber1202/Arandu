@@ -1474,3 +1474,5 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 .renewal-meta,.renewal-actions{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center}
 .studio-scenarios{display:grid;gap:var(--s3);grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
 .studio-sensitivity ul{margin:var(--s2) 0;padding-left:var(--s4)}
+.action-secondary,.action-inline{position:relative;z-index:1}
+.action-row.action-done .action-title{text-decoration:line-through;color:var(--text-muted)}
