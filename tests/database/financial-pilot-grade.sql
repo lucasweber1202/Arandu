@@ -132,7 +132,7 @@ declare v_kinds text[];
 begin
  select array_agg(payload->>'kind' order by payload->>'kind') into v_kinds from public.transactional_email_outbox where template='finance_notification';
  if v_kinds is distinct from array['approval','proposal','renewal_due'] then raise exception 'unexpected e-mails %', v_kinds; end if;
- if exists(select 1 from public.transactional_email_outbox where template='finance_notification' and (payload::text ~* 'R\$|1,49|Banco X|Provedor B|DEMO' or payload->>'path' !~ '^/finance/(rfq\.html\?id=|contracts\.html#contract-)[0-9a-f-]{36}$'))
+ if exists(select 1 from public.transactional_email_outbox where template='finance_notification' and (payload::text ~* 'R\$|1,49|Banco X|Provedor B|DEMO' or payload->>'path' !~ '^/finance/(rfq\.html\?id=|contracts\.html(\?abrir=contrato)?#contract-)[0-9a-f-]{36}$'))
  then raise exception 'e-mail payload leaked content or has unsafe link'; end if;
  if (select count(distinct idempotency_key) from public.transactional_email_outbox where template='finance_notification')<>3 then raise exception 'idempotency keys not unique per notice'; end if;
 end $$;

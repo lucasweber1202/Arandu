@@ -143,6 +143,175 @@ assert.equal(sent.length, 0, 'organization_id inválido não pode chegar ao banc
 reset(() => []);
 await rejects('GET', 'rfqs', { url: `/api/finance/rfqs?organization_id=${OTHER_ORG}` }, 403);
 
+// RFQ pagination: sentinel, deterministic continuation, bound filters and live JWT.
+{
+  const ids = [RFQ, '00000000-0000-4000-8000-0000000000f2'];
+  reset(entry => {
+    if (entry.url.includes('fin_organizations')) return orgRow(BUYER, 'BUYER');
+    if (entry.url.includes('fin_rfqs')) {
+      const q = new URL(entry.url).searchParams;
+      assert.equal(q.get('organization_id'), `eq.${BUYER}`);
+      assert.equal(q.get('status'), 'eq.open');
+      assert.equal(q.get('legal_entity_id'), 'is.null');
+      assert.equal(q.get('order'), 'id.asc');
+      assert.equal(q.get('limit'), '2');
+      assert.equal(entry.authorization, 'Bearer user-jwt');
+      return (q.has('or') ? ids.slice(1) : ids).map(id => ({id,status:'open'}));
+    }
+    return [];
+  });
+  const url = `/api/finance/rfqs?organization_id=${BUYER}&paged=1&limit=1&status=open&legal_entity_id=group`;
+  const first = (await call('GET', 'rfqs', {url})).payload;
+  assert.deepEqual(first.rows.map(row=>row.id), [ids[0]]);
+  assert.equal(first.page.has_more, true);
+  assert.deepEqual(Object.keys(first.next_states), [ids[0]]);
+  const cursor = first.page.next_cursor;
+  const second = (await call('GET', 'rfqs', {url: `${url}&cursor=${cursor}`})).payload;
+  assert.deepEqual(second.rows.map(row=>row.id), [ids[1]]);
+  assert.equal(second.page.next_cursor, null);
+  const reads = sent.filter(entry=>entry.url.includes('fin_rfqs')).length;
+  await rejects('GET', 'rfqs', {url: `${url.replace('status=open','status=closed')}&cursor=${cursor}`}, 400);
+  await rejects('GET', 'rfqs', {url: `${url}&limit=2`}, 400);
+  await rejects('GET', 'rfqs', {url: `${url}&unknown=value`}, 400);
+  assert.equal(sent.filter(entry=>entry.url.includes('fin_rfqs')).length, reads, 'invalid continuation must not read RFQs');
+}
+
+// Visible-page context never reads historical financial terms or all RFQs.
+{
+  reset(entry => {
+    if (entry.url.includes('fin_organizations')) return orgRow(BUYER, 'BUYER');
+    if (entry.url.includes('fin_rfqs?')) return [{ id: RFQ, status: 'open' }];
+    assert.equal(entry.authorization, 'Bearer user-jwt');
+    if (entry.url.includes('fin_rfq_invites?')) return [{ id: RFQ, rfq_id: RFQ, provider_id: PROVIDER_ORG, status: 'accepted' }];
+    if (entry.url.includes('fin_proposals?')) return [{ id: PROPOSAL, rfq_id: RFQ, provider_id: PROVIDER_ORG, current_version: 8 }];
+    if (entry.url.includes('fin_proposal_versions?')) {
+      const q = new URL(entry.url).searchParams;
+      assert.equal(q.get('select').includes('terms'), false);
+      assert.match(q.get('or'), /version.eq.8/);
+      return [{ proposal_id: PROPOSAL, version: 8, rfq_revision: 3 }];
+    }
+    return [];
+  });
+  const result = (await call('GET', 'rfqs', { url: `/api/finance/rfqs?organization_id=${BUYER}&paged=1&context=1` })).payload;
+  assert.equal(result.rows[0].proposals[0].rfq_revision, 3);
+  assert.equal(result.rows[0].invites.length, 1);
+  await rejects('GET', 'rfqs', { url: `/api/finance/rfqs?organization_id=${BUYER}&paged=1&context=forged` }, 400);
+}
+
+// Server ordering, null deadlines and subtree scope are part of cursor identity.
+{
+  const child = '00000000-0000-4000-8000-0000000000a8';
+  const sibling = '00000000-0000-4000-8000-0000000000a9';
+  for (const order of ['created_desc', 'deadline_asc']) {
+    reset(entry => {
+      if (entry.url.includes('fin_organizations')) return orgRow(BUYER, 'BUYER');
+      if (entry.url.includes('fin_legal_entities')) return [{id:ACTOR,parent_id:null},{id:child,parent_id:ACTOR},{id:sibling,parent_id:null}];
+      if (entry.url.includes('fin_rfqs?')) {
+        const q=new URL(entry.url).searchParams;
+        assert.equal(q.get('legal_entity_id'),`in.(${[ACTOR,child].sort().join(',')})`);
+        assert.equal(q.get('legal_entity_id').includes(sibling),false);
+        assert.equal(q.get('order'),order==='created_desc'?'created_at.desc,id.desc':'response_deadline.asc.nullslast,id.asc');
+        return [{id:RFQ,status:'open',created_at:'2026-11-01T00:00:00Z',response_deadline:null},{id:PROPOSAL,status:'open',created_at:'2026-10-01T00:00:00Z',response_deadline:null}];
+      }
+      return [];
+    });
+    const url=`/api/finance/rfqs?organization_id=${BUYER}&paged=1&limit=1&legal_entity_id=${ACTOR}&include_children=1&order=${order}`;
+    const first=(await call('GET','rfqs',{url})).payload;
+    assert(first.page.next_cursor);
+    await call('GET','rfqs',{url:url+'&cursor='+first.page.next_cursor});
+    await rejects('GET','rfqs',{url:url.replace(order,'id_asc')+'&cursor='+first.page.next_cursor},400);
+    await rejects('GET','rfqs',{url:url.replace('&include_children=1','')+'&cursor='+first.page.next_cursor},400);
+  }
+  for(const tail of ['&order=forged','&order=','&include_children=1','&legal_entity_id=group&include_children=1','&include_children=0'])
+    await rejects('GET','rfqs',{url:`/api/finance/rfqs?organization_id=${BUYER}&paged=1${tail}`},400);
+  await rejects('GET','rfqs',{url:`/api/finance/rfqs?organization_id=${BUYER}&paged=0`},400);
+}
+
+// Institutional lists continue beyond the legacy cap without historical scans.
+{
+  const ids = [PROPOSAL, '00000000-0000-4000-8000-0000000000e2'];
+  for (const resource of ['invites', 'proposals']) {
+    reset(entry => {
+      if (entry.url.includes('fin_organizations')) return orgRow(entry.url.includes(OTHER_ORG) ? OTHER_ORG : PROVIDER_ORG, 'PROVIDER');
+      const q = new URL(entry.url).searchParams;
+      if (entry.url.includes('fin_proposal_versions')) {
+        assert.equal(q.get('limit'), '2');
+        assert.match(q.get('or'), /version.eq.999/);
+        return [{ proposal_id: q.get('or').includes(ids[1]) ? ids[1] : ids[0], version: 999, terms: { amount: 42 } }];
+      }
+      assert.equal(entry.authorization, 'Bearer user-jwt');
+      assert.equal(q.get('limit'), '2');
+      assert.equal(q.get('order'), 'id.asc');
+      if (resource === 'invites') {
+        assert.match(q.get('and'), new RegExp(`buyer_organization_id.eq.${PROVIDER_ORG}`));
+        assert.equal(q.has('or'), false);
+      } else assert.equal(q.get('provider_organization_id'), `eq.${PROVIDER_ORG}`);
+      const continued = resource === 'invites' ? q.get('and').includes('id.gt.') : q.has('or');
+      return (continued ? ids.slice(1) : ids).map(id => ({ id, current_version: 999 }));
+    });
+    const url = `/api/finance/${resource}?organization_id=${PROVIDER_ORG}&paged=1&limit=1`;
+    const first = (await call('GET', resource, { url })).payload;
+    assert.equal(first.page.has_more, true);
+    if (resource === 'proposals') {
+      assert.equal(first.rows[0].current_snapshot.version, 999);
+      assert.equal(first.coverage.history, 'current_snapshot_only');
+      assert.equal('history' in first.rows[0], false);
+    }
+    const cursor = first.page.next_cursor;
+    const next = (await call('GET', resource, { url: `${url}&cursor=${cursor}` })).payload;
+    assert.deepEqual(next.rows.map(r => r.id), ids.slice(1));
+    assert.equal(next.page.has_more, false);
+    for (const tail of ['&status=forged', '&unknown=1', '&limit=2', '&cursor=bad', '&rfq_id='+RFQ])
+      await rejects('GET', resource, { url: url+tail }, 400);
+    await rejects('GET', resource, { url: `${url}&status=${resource === 'invites' ? 'accepted' : 'submitted'}&cursor=${cursor}` }, 400);
+    await rejects('GET', resource, { url: `${url.replace(PROVIDER_ORG, OTHER_ORG)}&cursor=${cursor}` }, 400);
+  }
+  reset(entry => entry.url.includes('fin_organizations') ? orgRow(PROVIDER_ORG, 'PROVIDER') : entry.url.includes('fin_proposals?') ? [{ id: PROPOSAL, current_version: 999 }] : []);
+  await rejects('GET', 'proposals', { url: `/api/finance/proposals?organization_id=${PROVIDER_ORG}&paged=1` }, 409);
+}
+
+// Maximum institutional page and large revisions keep upstream URLs bounded.
+{
+  const rows=Array.from({length:100},(_,i)=>({id:`00000000-0000-4000-8000-${String(i+1).padStart(12,'0')}`,current_version:2147483647}));
+  let batches=0;
+  reset(entry=>{
+    if(entry.url.includes('fin_organizations'))return orgRow(PROVIDER_ORG,'PROVIDER');
+    if(entry.url.includes('fin_proposals?'))return rows;
+    if(entry.url.includes('fin_proposal_versions?')){
+      assert(entry.url.length<5000,'upstream URL must remain below 8 KiB');
+      assert.equal(new URL(entry.url).searchParams.get('limit'),'51');
+      return rows.slice(batches++*50,batches*50).map(row=>({proposal_id:row.id,version:row.current_version,terms:{offered_amount:1000}}));
+    }
+    return [];
+  });
+  const result=(await call('GET','proposals',{url:`/api/finance/proposals?organization_id=${PROVIDER_ORG}&paged=1&limit=100`})).payload;
+  assert.equal(result.rows.length,100);
+  assert.equal(batches,2);
+  assert(result.rows.every(row=>row.current_snapshot.version===2147483647));
+}
+
+// Paged assignments reuse current snapshots and enrich only their RFQs/drafts.
+{
+  reset(entry => {
+    if (entry.url.includes('fin_organizations')) return orgRow(PROVIDER_ORG, 'PROVIDER');
+    if (entry.url.includes('fin_proposals?')) return [{id:PROPOSAL,rfq_id:RFQ,current_version:2,status:'submitted',product:'credit'}];
+    if (entry.url.includes('fin_proposal_versions?')) return [{proposal_id:PROPOSAL,version:2,rfq_revision:1,terms:{offered_amount:1000}}];
+    if (entry.url.includes('fin_rfqs?')) return [{id:RFQ,title:'Solicitação canônica',status:'open',revision:2,demand:{amount:1000}}];
+    if (entry.url.includes('fin_proposal_drafts?')) return [{proposal_id:PROPOSAL}];
+    if (entry.url.includes('fin_assignment_buyer_names')) return [{rfq_id:RFQ,buyer_name:'Empresa sintética'}];
+    return [];
+  });
+  const result=(await call('GET','assignments',{url:`/api/finance/assignments?organization_id=${PROVIDER_ORG}&paged=1&limit=1`})).payload;
+  assert.equal(result.rows[0].proposal_id,PROPOSAL);
+  assert.equal(result.rows[0].rfq_id,RFQ);
+  assert.equal(result.rows[0].has_draft,true);
+  assert.equal(result.rows[0].submitted_rfq_revision,1);
+  assert.equal(result.rows[0].rfq_revision,2);
+  assert.equal(result.rows[0].terms.offered_amount,1000);
+  assert.equal('history' in result.rows[0],false);
+  assert(sent.every(entry=>entry.authorization==='Bearer user-jwt'));
+}
+
 // ------------------------------------------------------ mass assignment
 
 reset((entry) => (entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER') : [{ id: RFQ }]));
@@ -357,7 +526,7 @@ reset((entry) => (entry.url.includes('fin_organizations') ? orgRow(BUYER, 'BUYER
 // A mensagem do Postgres nunca atravessa: o que chega é o motivo em português,
 // sem revelar tabela, policy nem a existência de registro de terceiro.
 reset((entry) => {
-  if (entry.url.includes('fin_organizations')) return orgRow(PROVIDER_ORG, 'PROVIDER');
+  if (entry.url.includes('fin_organizations')) return orgRow(entry.url.includes(OTHER_ORG) ? OTHER_ORG : PROVIDER_ORG, 'PROVIDER');
   const error = new Error('invalid invitation'); error.status = 400; throw error;
 });
 await assert.rejects(
@@ -664,7 +833,7 @@ reset((entry) => {
     if (missingBuyerRpc) throw Object.assign(new Error('private missing function'), { status: 404, details: { code: 'PGRST202' } });
     return [{ rfq_id: RFQ, buyer_name: 'Compradora sintética' }];
   }
-  if (entry.url.includes('fin_organizations')) return orgRow(PROVIDER_ORG, 'PROVIDER');
+  if (entry.url.includes('fin_organizations')) return orgRow(entry.url.includes(OTHER_ORG) ? OTHER_ORG : PROVIDER_ORG, 'PROVIDER');
   if (entry.url.includes('fin_proposal_versions')) return [{ proposal_id: PROPOSAL, version: 1, terms: { institution: 'Meu Banco' }, submitted_at: '2026-01-01T00:00:00Z', rfq_revision: 2 }];
   if (entry.url.includes('fin_proposals')) return [{ id: PROPOSAL, rfq_id: RFQ, product: 'credit', status: 'submitted', current_version: 1 }];
   if (entry.url.includes('fin_rfqs')) return [{ id: RFQ, title: 'RFQ', product: 'credit', status: 'collecting', demand: { amount: 500000 }, description: 'necessidade', revision: 3 }];
@@ -709,7 +878,7 @@ for (const resource of ['assignments', 'proposals']) {
     { proposal_id: OTHER_ORG, version: 1, terms: { institution: 'Concorrente privado' }, submitted_at: '2026-10-15T12:00:00Z' }
   ];
   reset((entry) => {
-    if (entry.url.includes('fin_organizations')) return orgRow(PROVIDER_ORG, 'PROVIDER');
+    if (entry.url.includes('fin_organizations')) return orgRow(entry.url.includes(OTHER_ORG) ? OTHER_ORG : PROVIDER_ORG, 'PROVIDER');
     if (entry.url.includes('fin_proposal_versions')) return structuredClone(snapshots);
     if (entry.url.includes('fin_proposals')) return [{ id: PROPOSAL, rfq_id: RFQ, product: 'credit', status: 'submitted', current_version: 2 }];
     if (entry.url.includes('fin_rfqs')) return [{ id: RFQ, title: 'RFQ', revision: 4 }];
@@ -743,7 +912,7 @@ for (const resource of ['assignments', 'proposals']) {
 }
 
 reset((entry) => {
-  if (entry.url.includes('fin_organizations')) return orgRow(PROVIDER_ORG, 'PROVIDER');
+  if (entry.url.includes('fin_organizations')) return orgRow(entry.url.includes(OTHER_ORG) ? OTHER_ORG : PROVIDER_ORG, 'PROVIDER');
   if (entry.url.includes('fin_proposal_drafts')) return [{ proposal_id: PROPOSAL }];
   if (entry.url.includes('fin_proposals')) return [{ id: PROPOSAL, rfq_id: RFQ, product: 'credit', status: 'draft', current_version: 0 }];
   if (entry.url.includes('fin_rfqs')) return [{ id: RFQ, title: 'RFQ', product: 'credit', status: 'collecting', demand: {}, revision: 1 }];
@@ -829,7 +998,7 @@ assert.equal(sent.filter((entry) => entry.url.includes('rpc/fin_record_client_ev
 // --- exportação é do comprador e não vira parecer ---
 
 reset((entry) => {
-  if (entry.url.includes('fin_organizations')) return orgRow(PROVIDER_ORG, 'PROVIDER');
+  if (entry.url.includes('fin_organizations')) return orgRow(entry.url.includes(OTHER_ORG) ? OTHER_ORG : PROVIDER_ORG, 'PROVIDER');
   if (entry.url.includes('fin_rfqs')) return [{ id: RFQ, organization_id: BUYER, product: 'credit', status: 'decided', demand: {} }];
   return [];
 });
@@ -1184,4 +1353,55 @@ console.log('Lifecycle adversarial: provider cannot read decision, invite scope 
  }
  reset(e=>e.url.includes('fin_organizations')?orgRow(BUYER,'BUYER'):[]);
  await rejects('GET','provider-creation-result',{url:`/api/finance/provider-creation-result?organization_id=${BUYER}&request_key=bad`},400);
+}
+
+// Read-side approval freshness matches the SQL version/RFQ snapshot guard.
+// UI consumers already use stale; it must come from persisted caller-RLS data.
+{
+  let stamp = '2026-11-01T10:00:00.123456Z', version = 2, expires = null;
+  let sourceVisible = true, sourceStatus = 'submitted', requestStatus = 'pending', rfqStatus = 'comparing';
+  let external = false, documentAvailable = true;
+  reset(entry => {
+    if (entry.url.includes('fin_organizations')) return orgRow(BUYER, 'BUYER');
+    if (entry.url.includes('fin_approval_requests?')) return [{ id: DECISION_ID, rfq_id: RFQ, status: requestStatus, proposal_id: external ? null : PROPOSAL,
+      external_proposal_id: external ? PROPOSAL : null, proposal_version: 2, rfq_updated_at: '2026-11-01T07:00:00.123456-03:00', requested_by: OTHER_ORG, expires_at: expires }];
+    if (entry.url.includes('fin_approval_steps?')) return [{ id: ACTOR, request_id: DECISION_ID, position: 1, approver_id: ACTOR, status: 'pending' }];
+    if (entry.url.includes('fin_rfqs?')) return [{ id: RFQ, organization_id: BUYER, status: rfqStatus, updated_at: stamp, product: 'credit', demand: {} }];
+    if (entry.url.includes('fin_proposals?')) return sourceVisible && !external ? [{ id: PROPOSAL, rfq_id: RFQ, current_version: version, status: sourceStatus, provider_id: PROVIDER_ORG }] : [];
+    if (entry.url.includes('fin_external_proposal_current?')) return sourceVisible && external ? [{ id: PROPOSAL, rfq_id: RFQ, current_version: version, state: 'reviewed', rfq_revision_matches: true, document_id: RFQ, document_available: documentAvailable }] : [];
+    if (entry.url.includes('fin_proposal_versions?')) return [{ proposal_id: PROPOSAL, version, terms: {}, rfq_revision: 1 }];
+    return [];
+  });
+  const inbox = async () => (await call('GET', 'approvals', { url: `/api/finance/approvals?organization_id=${BUYER}` })).payload.rows[0];
+  const indicators = async expected => {
+    const page = (await call('GET', 'rfqs', { url: `/api/finance/rfqs?organization_id=${BUYER}&paged=1&context=1` })).payload;
+    assert.equal(page.rows[0].pending_approval, expected);
+    const overview = (await call('GET', 'overview', { url: `/api/finance/overview?organization_id=${BUYER}` })).payload;
+    assert.equal(overview.rfqs[0].pending_approval, expected);
+  };
+  let row = await inbox();
+  assert.equal(row.stale, false, 'same instant in different offsets is current');
+  assert.equal(row.viewer_can_act, true);
+  await indicators(true);
+  version = 3;
+  row = await inbox(); assert.equal(row.stale_reason, 'proposal_changed'); assert.equal(row.viewer_can_act, false);
+  await indicators(false);
+  version = 2; stamp = '2026-11-01T10:00:00.123457Z';
+  row = await inbox(); assert.equal(row.stale_reason, 'rfq_changed', 'one microsecond must invalidate the read snapshot');
+  await indicators(false);
+  stamp = '2026-11-01T10:00:00.123456Z'; expires = new Date(Date.now()-1000).toISOString();
+  row = await inbox(); assert.equal(row.expired, true); assert.equal(row.viewer_can_act, false);
+  await indicators(false);
+  expires = null; sourceVisible = false;
+  row = await inbox(); assert.equal(row.stale_reason, 'context_unavailable'); assert.equal(row.viewer_can_act, false);
+  await indicators(false);
+  sourceVisible = true; sourceStatus = 'withdrawn';
+  row = await inbox(); assert.equal(row.stale_reason, 'source_ineligible'); assert.equal(row.viewer_can_act, false);
+  sourceStatus = 'submitted'; external = true;
+  row = await inbox(); assert.equal(row.stale, false); assert.equal(row.viewer_can_act, true);
+  documentAvailable = false;
+  row = await inbox(); assert.equal(row.stale_reason, 'source_ineligible'); assert.equal(row.viewer_can_act, false);
+  external = false; requestStatus = 'approved'; rfqStatus = 'contracted'; stamp = '2026-11-02T10:00:00Z';
+  row = await inbox(); assert.equal(row.freshness, 'historical'); assert.equal(row.stale, false); assert.equal(row.viewer_can_act, false);
+  console.log('Approval read context: live caller JWT, microsecond/offset equality, revision/version/expiry/source conflicts, consistent page/overview indicators and immutable historical approval passed.');
 }

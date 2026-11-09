@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { pagedRfqs } from './helpers/rfq-pages.js';
 
 // Multi-entity na interface publicada: contexto de entidade, criação de
 // processo na entidade, administração do grupo, escopo dos membros e
@@ -39,6 +40,7 @@ async function mockSession(page, { role = 'admin', scope = 'group', entities = E
     const json = (payload, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(payload) });
     if (path === 'organizations') return json({ ok: true, rows: [{ id: ORG, kind: 'BUYER', legal_name: 'Grupo Vitta' }] });
     if (path === 'overview') return json(OVERVIEW);
+    if (path === 'rfqs' && request.method() === 'GET') { const page = pagedRfqs(OVERVIEW.rfqs, url, { entities }); return json(page.body, page.status); }
     if (path === 'members') return json({ ok: true, rows: [{ user_id: 'u1', role, display_name: 'Paula Nogueira', title: 'Tesouraria' }, { user_id: 'u2', role: 'finance_manager', display_name: 'Rui Tavares', title: 'Financeiro Logística' }], viewer_id: 'u1' });
     if (path === 'entities' && request.method() === 'GET') return json({ ok: true, rows: entities, scope, can_admin: role === 'admin', base_currency: 'BRL' });
     if (path === 'entities' && request.method() === 'POST') return json({ ok: true, id: '00000000-0000-4000-8000-00000000e0c1', tax_identifier: null }, 201);
@@ -172,4 +174,27 @@ test('sem entidades cadastradas a interface segue como antes', async ({ page }) 
   await expect(page.getByLabel('Filtrar por entidade')).toHaveCount(0);
   await page.goto('/finance/dashboard.html');
   await expect(page.locator('.entity-summary')).toHaveCount(0);
+});
+
+test('limpar filtros zera entidade, produto e ordem e recomeça a leitura sem cursor', async ({ page }) => {
+  await mockSession(page);
+  const seen = [];
+  page.on('request', (r) => { const u = new URL(r.url()); if (u.pathname === '/api/finance/rfqs' && r.method() === 'GET') seen.push(u.searchParams); });
+  await page.goto('/finance/rfqs.html?sort=recent');
+  await page.getByLabel('Filtrar por entidade').selectOption(ENTITY_A);
+  await page.getByLabel('Filtrar por produto').selectOption('acquiring');
+  await page.getByLabel('Filtrar por produto').selectOption('credit');
+  await page.getByPlaceholder('Buscar por título…').fill('nada que exista');
+  await page.getByRole('button', { name: 'Limpar filtros' }).click();
+  await expect(page.locator('.rfq-table tbody tr')).toHaveCount(4);
+  await expect(page.getByLabel('Filtrar por entidade')).toHaveValue('');
+  await expect(page.getByLabel('Filtrar por produto')).toHaveValue('');
+  await expect(page.getByLabel('Ordenar solicitações')).toHaveValue('deadline');
+  await expect(page.getByPlaceholder('Buscar por título…')).toHaveValue('');
+  await expect(page).toHaveURL(/\/finance\/rfqs\.html$/);
+  const last = seen.at(-1);
+  expect(last.get('legal_entity_id')).toBeNull();
+  expect(last.get('product')).toBeNull();
+  expect(last.get('cursor')).toBeNull();
+  expect(last.get('order')).toBe('deadline_asc');
 });

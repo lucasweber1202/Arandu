@@ -260,6 +260,7 @@ async function loadSession(ctx) {
   const organizations = listing.rows || [];
   // Ambiente declarado pelo servidor (ARANDU_ENV=demo): só muda o selo da barra.
   ctx.environment = listing.environment || null;
+  ctx.capabilities = listing.capabilities || {};
   const kind = audience === 'provider' ? 'PROVIDER' : 'BUYER';
   ctx.organizations = organizations.filter((organization) => organization.kind === kind);
   if (!ctx.organizations.length) {
@@ -274,8 +275,8 @@ async function loadSession(ctx) {
   ctx.organization = ctx.organizations.find((organization) => organization.id === remembered) || ctx.organizations[0];
   if (demoPage) ctx.persona = ctx.transport.persona();
   if (audience === 'provider') {
-    const result = await ctx.api(`assignments?organization_id=${ctx.orgId}`);
-    ctx.data = { assignments: result.rows || [], pending_invites: result.pending_invites || [] };
+    const result = await ctx.api(`assignments?organization_id=${ctx.orgId}${view === 'providerRfqs' && ctx.capabilities.operational_pagination ? '&paged=1&limit=25' : ''}`);
+    ctx.data = { assignments: result.rows || [], pending_invites: result.pending_invites || [], assignment_page: result.page || null, assignment_coverage: result.coverage || null };
     if (ctx.persona) {
       ctx.viewer = { id: ctx.persona.user, name: ctx.persona.name, title: ctx.persona.title, role: ctx.persona.role };
     } else {
@@ -287,7 +288,9 @@ async function loadSession(ctx) {
     return {};
   }
   const [overview, members] = await Promise.all([
-    ctx.api(`overview?organization_id=${ctx.orgId}`),
+    view === 'rfqs' && ctx.capabilities.operational_pagination
+      ? Promise.resolve({ organization: ctx.organization, rfqs: [], contracts: [], tasks: [] })
+      : ctx.api(`overview?organization_id=${ctx.orgId}`),
     // Sem a lista de membros não se sabe o papel de quem entra: mostrar a tela
     // como se a pessoa não pudesse nada seria uma falsa "falta de permissão".
     ctx.api(`members?organization_id=${ctx.orgId}`)
@@ -401,7 +404,10 @@ async function render({ refresh = false, rebuildShell = false } = {}) {
   } catch (error) {
     node = errorState({ title: 'Esta tela não pôde ser exibida', error, onRetry: () => render({ refresh: true }) });
   }
-  if (node) root.replaceChildren(node);
+  if (node) {
+    root.replaceChildren(node);
+    if (ctx.data.coverage?.possibly_incomplete) root.prepend(el('p', { class: 'muted', role: 'note', text: 'Este resumo tem cobertura limitada. Contagens e indicadores consideram apenas os registros carregados. Consulte as listas e os detalhes para conferir o contexto completo.' }));
+  }
   root.setAttribute('aria-busy', 'false');
   workspace?.afterRender(ctx, { failure });
   focusDeepLink();

@@ -100,6 +100,21 @@ export async function tasks(ctx) {
   for (const [value, text] of TASK_FILTERS) filter.add(new Option(text, value));
   filter.value = [...filter.options].some(({value}) => value === url.searchParams.get('filtro')) ? url.searchParams.get('filtro') : requestedTask ? 'vinculada' : 'abertas';
   const scopeNote = el('span', { class: 'muted small', role: 'status', 'aria-live': 'polite' });
+  // Recorte por contrato (?contrato=<id>): vai ao servidor como contract_id e
+  // combina com situação e responsável; nunca é um filtro sobre o que já carregou.
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  let contractScope = UUID.test(url.searchParams.get('contrato') || '') ? url.searchParams.get('contrato') : null;
+  const scopedContract = contractScope ? (ctx.data.contracts || []).find((row) => row.id === contractScope) : null;
+  const contractChip = contractScope ? el('span', { class: 'callout callout-info compact task-contract-scope' }, [
+    textSpan(`Somente tarefas do contrato ${scopedContract ? `${scopedContract.provider_name || 'Contrato'} · ${scopedContract.title || CONTRACT_CATEGORIES[scopedContract.product] || 'contrato'}` : 'selecionado'}`),
+    el('a', { class: 'btn btn-ghost btn-sm', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${contractScope}`), text: 'Abrir contrato' }),
+    button('Ver todas as tarefas', { variant: 'ghost', size: 'sm', onClick: () => {
+      contractScope = null; contractChip.remove();
+      const next = new URL(location.href); next.searchParams.delete('contrato');
+      history.replaceState(null, '', next.pathname + next.search + next.hash);
+      draw();
+    } })
+  ]) : null;
   filter.addEventListener('change', () => {
     const next = new URL(location.href);
     if (filter.value === 'abertas' && !requestedTask) next.searchParams.delete('filtro'); else next.searchParams.set('filtro', filter.value);
@@ -116,6 +131,7 @@ export async function tasks(ctx) {
     if (filter.value === 'concluidas') q.set('status', 'done'); else q.set('status', 'open');
     if (filter.value === 'minhas' && ctx.viewer?.id) q.set('assignee_id', ctx.viewer.id);
     if (filter.value === 'sem-responsavel') q.set('unassigned', 'true');
+    if (contractScope) q.set('contract_id', contractScope);
     if (cursor) q.set('cursor', cursor);
     return `tasks?${q}`;
   };
@@ -232,7 +248,9 @@ export async function tasks(ctx) {
         // concluir a tarefa não muda o vencimento nem o aviso prévio.
         const contract = task.related_type === 'contract' ? contractsById.get(task.related_id) : null;
         const related = task.related_type === 'rfq' && rfqs.get(task.related_id) ? el('a', { href: ctx.href(`/finance/rfq.html?id=${task.related_id}`), text: rfqs.get(task.related_id).title })
-          : task.related_type === 'contract' ? el('a', { href: ctx.href(`/finance/contracts.html#contract-${task.related_id}`), text: contract ? `${contract.provider_name || 'Contrato'} · ${contract.title || CONTRACT_CATEGORIES[contract.product] || 'contrato'}` : 'Ver contrato' }) : null;
+          : task.related_type === 'contract' ? el('a', { href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${task.related_id}`), text: contract ? `${contract.provider_name || 'Contrato'} · ${contract.title || CONTRACT_CATEGORIES[contract.product] || 'contrato'}` : 'Ver contrato' }) : null;
+        // Volta ao relacionamento pela instituição registrada no próprio contrato (sem inferência).
+        const providerLink = contract?.provider_id ? el('a', { href: ctx.href(`/finance/providers.html?provider_id=${encodeURIComponent(contract.provider_id)}`), text: `Relacionamento com ${contract.provider_name || 'a instituição'}` }) : null;
         const contractDue = contract && ['active', 'renewing'].includes(contract.status) && contract.ends_on
           ? el('span', { class: 'task-contract-due', text: `Contrato vence em ${formatDate(contract.ends_on)}${contract.review_from ? ` · aviso prévio até ${formatDate(contract.review_from)}` : ''}` }) : null;
         const owner = !task.assignee_id ? 'Sem responsável' : task.assignee_id === ctx.viewer?.id ? `${task.assignee_name || 'Você'} (você)` : task.assignee_name || 'Responsável indisponível';
@@ -241,13 +259,15 @@ export async function tasks(ctx) {
           : el('span', { class: `task-owner${task.assignee_id ? '' : ' muted'}`, text: owner });
         (grouped ? lists.get(bucketOf(task)) : single).append(el('li', { class: `task-item${task.status === 'done' ? ' done' : ''}${location.hash === `#task-${task.id}` || focusId === task.id ? ' highlighted' : ''}`, id: `task-${task.id}`, dataset: { assignee: task.assignee_id ? 'set' : 'none' } }, [
           check, el('div', { class: 'task-main' }, [state, el('span', { class: 'task-title', text: task.title }),
-            el('span', { class: 'task-meta' }, [el('span', { class: 'sr-only', text: 'Responsável: ' }), canAssign && task.status === 'open' ? null : owner, canAssign && task.status === 'open' ? null : (related ? ' · ' : null), related].filter(Boolean)), contractDue]),
+            el('span', { class: 'task-meta' }, [el('span', { class: 'sr-only', text: 'Responsável: ' }), canAssign && task.status === 'open' ? null : owner, canAssign && task.status === 'open' ? null : (related ? ' · ' : null), related, providerLink ? ' · ' : null, providerLink].filter(Boolean)), contractDue]),
           canAssign && task.status === 'open' ? el('label', { class: 'task-owner-field' }, [el('span', { class: 'sr-only', text: 'Responsável' }), ownerNode]) : null,
           task.due_on ? el('span', { class: `task-due${task.status === 'open' && days < 0 ? ' overdue' : task.status === 'open' && days <= 2 ? ' soon' : ''}` }, [icon('calendar', { size: 12 }), textSpan(`${formatDate(task.due_on, { withYear: false })}${task.status === 'open' ? ` · ${relativeDays(task.due_on)}` : ''}`)]) : el('span', { class: 'task-due muted', text: 'sem prazo' })
         ]));
       }
       const empty = { abertas: ['Nenhuma tarefa aberta', 'Tarefas de renovação são criadas automaticamente a partir dos contratos.'], minhas: ['Nenhuma tarefa aberta atribuída a você', 'Quando alguém atribuir uma tarefa a você, ela aparece aqui.'],
-        vinculada: ['Tarefa não disponível neste escopo', 'Atualize a lista ou confira o acesso à entidade desta tarefa.'], 'sem-responsavel': ['Toda tarefa aberta tem responsável', null], concluidas: ['Nenhuma tarefa concluída', null] }[filter.value];
+        vinculada: ['Tarefa não disponível neste escopo', 'Atualize a lista ou confira o acesso à entidade desta tarefa.'], 'sem-responsavel': ['Toda tarefa aberta tem responsável', null], concluidas: ['Nenhuma tarefa concluída', null] }[filter.value].slice();
+      // No recorte por contrato, o vazio vale só para aquele contrato.
+      if (contractScope && filter.value !== 'vinculada') empty[0] = `${empty[0]} neste contrato`;
       const list = grouped
         ? el('div', { class: 'task-list task-groups' }, BUCKETS.filter(([key]) => lists.get(key).children.length).map(([key, label]) => el('section', { class: `notice-group task-group task-group-${key}`, 'aria-label': label }, [
           el('h2', { class: 'notice-group-title', text: `${label} · ${lists.get(key).children.length}` }), lists.get(key)])))
@@ -259,7 +279,7 @@ export async function tasks(ctx) {
   }
   draw();
   const readOnly = el('p', { class: 'callout callout-info compact task-readonly' }, [icon('lock', { size: 14 }), textSpan('Seu papel acompanha as tarefas da equipe: criar, concluir e reabrir ficam com administradores, gestores financeiros e analistas.')]);
-  root.append(card({ body: canEdit ? form : readOnly }), el('div', { class: 'toolbar task-toolbar' }, [field({ label: 'Mostrar', control: filter }), scopeNote]), card({ flush: true, body: box }), el('div', { class: 'task-more' }, more));
+  root.append(...[card({ body: canEdit ? form : readOnly }), el('div', { class: 'toolbar task-toolbar' }, [field({ label: 'Mostrar', control: filter }), scopeNote]), contractChip, card({ flush: true, body: box }), el('div', { class: 'task-more' }, more)].filter(Boolean));
   // Radar de prazos: contratos, solicitações e tarefas da visão geral já carregada,
   // sob demanda (o módulo não pesa na lista de tarefas).
   const radarSlot = el('div', { class: 'deadline-radar-slot' });

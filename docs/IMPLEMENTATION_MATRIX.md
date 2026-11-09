@@ -1,3 +1,34 @@
+## 09/11/2026 — Candidata integrada Arandu 9.1
+
+M1 com validação local em andamento; sem autorização de produção. Backend
+`e9f32c653c6bd22a6dbe86a4aed9304da9927ec5` e frontend Claude
+`bf00b0b812da68565ab233c2d6787e66d20e0638` (inclui b3f9967) preservados por merge explícito.
+A branch real é `claude/sweet-gates-epqu3i`, reconhecida na issue #334; a falsa
+dependência do nome anterior foi removida.
+
+RFQs e oportunidades institucionais agora consomem paginação no servidor;
+convites/propostas também oferecem extensão opt-in. Continuidade vinculada ao
+usuário/organização/filtros, erros sem falso fim, contexto somente da página e
+snapshot atual sem varrer histórico inteiro. Listas locais declaram seu escopo;
+resumos com limites atingidos informam cobertura incompleta. Migration adicional
+corrige links de e-mail para Contract 360 sem reescrever baseline nem outbox antiga.
+Contrato: `docs/integration/ARANDU_9_1_CONTRACT.md` v1.3.
+
+Evidência já obtida durante o desenvolvimento: check:all PASS; testes direcionados
+de API/e-mail/migrations e seis E2E novos desktop/mobile PASS; jornada API real
+27 etapas e 64 ataques PASS. Passo novo de navegador real PASS: cinco páginas, 103 RFQs, IDs canônicos,
+link de e-mail, isolamento e logout/login. Suíte SQL integral PASS no mesmo
+schema. Evidência: `docs/integration/evidence/ARANDU_9_1_INTEGRATED_JOURNEY.md`.
+Cinco projetos completos e quatro gates finais continuam em validação. Resultados finais por SHA serão
+registrados na issue/PR única; estes checkpoints não substituem os gates oficiais.
+Nenhum M2/M3 herdado de outro SHA.
+
+Leitura hospedada: Pilot Supabase ACTIVE_HEALTHY, legado INACTIVE sem causa
+exposta pelo endpoint de projeto; advisory health vazio não comprova disponibilidade.
+Demo/Pilot Vercel READY na base; produção ERROR confirmada no log por atribuição
+de Supabase legado sem cutover. Backup/classificação/restore seguem gates externos
+de `docs/TWO_ENVIRONMENT_CONSOLIDATION.md`; nenhuma mutação hospedada executada.
+
 ## 05/11/2026 — Backend operacional v8 em validação local
 
 M1, candidata na PR #330 em draft: Contract 360 com seções paginadas e qualidade
@@ -40,6 +71,26 @@ públicas/33 financeiras/14 linhas; legado 16/0/42; ambos Auth 0 e Storage 0.
 Demo e Pilot na Vercel READY em main8837; Production ERROR observado. Isso não
 comprova M3 canônica. Credenciais de preservação, destino/custódia e aprovação
 específica de cutover continuam ausentes; nenhum dado hospedado foi alterado.
+
+
+## 07/11/2026 — Arandu 9.1: checkpoint de integração, frontend pendente
+
+Base comum `4f9e01b27ec33359cfe2a7b07e26af926c4fe6aa`; contrato inicial
+`f4f73f535b75955cdd4811e59d0aff8e0b253b2f`; coordenação issue #334.
+
+| Capacidade | Estado / evidência nesta missão | Limite |
+| --- | --- | --- |
+| RFQs além das primeiras 100 | extensão `paged=1`, filtros no servidor, cursor vinculado a usuário/organização/filtros; teste de fronteira e percurso real de duas páginas | cliente legado preservado; frontend Claude ainda não incorporado |
+| RFQ → convite → proposta → aprovação → decisão → contrato | ensaio real local: 27 etapas + 64 ataques, zero falhas; `docs/integration/evidence/ARANDU_9_1_REAL_JOURNEY.md` | evidência via API, não comprova interação no navegador nem Pilot hospedado |
+| Documentos, versões, tarefas/responsáveis, carteira contratual, relacionamento e renovação | mesmas linhas persistidas lidas via API; Storage privado real; revogação com JWT não expirado recusada pela API e PostgREST | portfólio de facilities não é carteira de contratos; nenhum saldo/facility inventado |
+| Ambiente do ensaio | PostgreSQL 17.11 descartável, GoTrue 2.181.0, PostgREST 12.2.9, Storage 1.25.3, API do repositório, contas sintéticas | imagem completa Supabase excedeu disco; usado PostgreSQL stock com papéis/funções de plataforma e Storage oficial importado em camada única; nenhum negócio substituído por mock |
+| Hospedados | Demo READY; produção ERROR com bloqueio confirmado por ref legado sem cutover; Pilot/legado ACTIVE_HEALTHY; Pilot com zero organizações/membros/provedores/RFQs/contratos | somente leitura; nenhum seed/configuração/migration hospedado alterado; nenhum GO |
+| Integração Claude e quatro gates no SHA integrado | pendentes | branch `claude/arandu-9-1-product` não encontrada; nenhuma PR final aberta e nenhum merge |
+
+Verificações locais: build, `check:all`, `check:backend`, API direcionada e ensaio
+real aprovados. Suíte completa SQL registrada separadamente ao término. A
+listagem dos projetos de navegador não equivale à sua execução. Não elevar esta
+entrega a produto integrado ou release aprovado.
 
 ## 04/11/2026 — CI Acceleration 7.0 validada na #327
 

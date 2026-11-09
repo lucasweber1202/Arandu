@@ -83,7 +83,8 @@ test('tesouraria: painel → RFQ concluída → propostas → comparação → a
 
   // Colaboração na RFQ em negociação.
   await page.goto('/finance/rfqs.html');
-  await openRfq(page, 'Capital de giro — nova linha');
+  await page.getByRole('link', { name: /^Capital de giro — nova linha/ }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Capital de giro — nova linha');
   await expect(page.locator('#convites')).toContainText('Meridian Financial');
   await expect(page.locator('#view')).toContainText('Aguardando Helena Duarte');
   await page.getByRole('tab', { name: 'Atividade' }).click();

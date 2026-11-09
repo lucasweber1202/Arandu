@@ -82,6 +82,15 @@ export async function rfqDetail(ctx) {
     loadEntities(ctx)
   ]);
   externalUi?.normalizeExternalApprovals(approvals,rfq);
+  // Enquanto a leitura de aprovações não expuser `stale` (pendência do backend
+  // no contrato 9.1), a tela fica do lado conservador: se a proposta aprovada já
+  // tem versão mais nova, a aprovação não aparece como válida. Só marca como
+  // desatualizada, nunca o contrário; o banco continua decidindo (approval_stale).
+  for (const request of approvals) {
+    if (typeof request.stale === 'boolean' || !['pending', 'approved'].includes(request.status) || !request.proposal_id || request.proposal_version == null) continue;
+    const current = (rfq.proposals || []).find((row) => row.id === request.proposal_id);
+    if (current?.version != null && Number(current.version) !== Number(request.proposal_version)) request.stale = true;
+  }
   if ((__ARANDU_DEMO__ && ctx.mode === 'demo') && ctx.approvalsError) gaps.add('as aprovações');
   const governanceGap = gaps.size ? ['a decisão registrada', 'a política de aprovação', 'a exigência de aprovação', 'as aprovações'].filter(item=>gaps.has(item)) : null;
   const policy = { ...generalPolicy, required_for_decision: Boolean(generalPolicy.required_for_decision || evaluation?.approval_required), evaluation };
@@ -116,7 +125,7 @@ export async function rfqDetail(ctx) {
     if (['draft', 'open', 'collecting'].includes(rfq.status)) actions.push(button('Editar', { iconName: 'edit', onClick: () => editDrawer(ctx, rfq) }));
   }
   if (pending) actions.push(linkButton(isViewerTurn(pending, ctx.viewer?.id) ? 'Decidir aprovação' : 'Acompanhar aprovação', '#aprovacoes', { variant: 'primary', iconName: 'clock' }));
-  if (contract) actions.push(linkButton('Ver contrato', ctx.href(`/finance/contracts.html#contract-${contract.id}`), { iconName: 'briefcase' }));
+  if (contract) actions.push(linkButton('Ver contrato', ctx.href(`/finance/contracts.html?abrir=contrato#contract-${contract.id}`), { iconName: 'briefcase' }));
   const more = [
     { label: 'Exportar processo (JSON)', icon: 'download', onClick: () => exportProcess(ctx, rfq) },
     manage && rfq.status === 'comparing' && !decision ? { label: 'Reabrir coleta', icon: 'refresh', onClick: () => transition('collecting', { title: 'Reabrir a coleta?', description: 'Provedores voltam a poder enviar e revisar propostas.', confirmLabel: 'Reabrir' }) } : null,

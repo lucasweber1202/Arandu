@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { pagedRfqs } from './helpers/rfq-pages.js';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { buildComparison, applyUserWeights } from '../../lib/finance/comparison.mjs';
@@ -61,6 +62,7 @@ async function mockSession(page, { organizations = [{ id: ORG, kind: 'BUYER', le
     const json = (body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
     if (path === 'organizations') return json({ ok: true, rows: organizations });
     if (path === 'overview') return json(data);
+    if (path === 'rfqs' && request.method() === 'GET') { const page = pagedRfqs(data.rfqs, url); return json(page.body, page.status); }
     if (path === 'members') return json({ ok: true, rows: [{ user_id: 'u1', role: viewerRole, display_name: 'Paula Nogueira', title: 'Gerente Financeira' }, { user_id: 'u2', role: 'analyst', display_name: 'Rui Tavares', title: 'Analista de Crédito' }], viewer_id: 'u1' });
     if (path.startsWith('private-documents') || path.startsWith('ops/')) return onDocuments ? onDocuments(path, request, json) : json({ ok: true, rows: [] });
     if (path === 'search') { onSearch?.(url); return json({ ok: true, rows: [{ kind: 'rfq', id: RFQ, title: 'Crédito expansão', detail: 'comparing', href: `/finance/rfq.html?id=${RFQ}` }] }); }
@@ -1146,7 +1148,7 @@ test('lifecycle: RFQ fora do resumo abre decisão e contrato reais do processo',
   if(process.env.PROCUREMENT_CAPTURE){await mkdir('reports',{recursive:true});await page.screenshot({path:`reports/procurement-${process.env.PROCUREMENT_CAPTURE}-${info.project.name}.png`,fullPage:true});}
   await expect(page.getByRole('heading',{level:1})).toHaveText(rfq.title);
   await expect(page.locator('#decisao-registrada')).toContainText('Condições preservadas no momento da decisão · proposta v1');
-  await expect(page.getByRole('link',{name:'Abrir ciclo de vida do contrato'})).toHaveAttribute('href','/finance/contracts.html#contract-contract-old');
+  await expect(page.getByRole('link',{name:'Abrir ciclo de vida do contrato'})).toHaveAttribute('href','/finance/contracts.html?abrir=contrato#contract-contract-old');
   await expect(page.locator('#contract-form')).toHaveCount(0);
   expect(new URL(urls[0]).searchParams.get('rfq_id')).toBe(RFQ);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)).toBeLessThanOrEqual(1);
@@ -1250,4 +1252,265 @@ test('buyer-first: organização vazia começa pelo que já existe; acompanhar s
   panel = page.getByRole('dialog', { name: 'O que você precisa fazer?' });
   await expect(panel.getByRole('link', { name: /Acompanhar vencimentos e próximas ações/ })).toHaveAttribute('href', /tasks\.html$/);
   await expect(panel.getByRole('link', { name: /Revisar condições de um contrato/ })).toHaveAttribute('href', /contracts\.html$/);
+});
+
+// Arandu 9.1 — lista de solicitações sobre GET rfqs?paged=1 (API SIMULADA com
+// o formato do contrato v1.1; a leitura real é provada na integração do Codex).
+function manyRfqs(n) {
+  const base = overview().rfqs[0];
+  return Array.from({ length: n }, (_, i) => ({ ...base, id: `00000000-0000-4000-8000-${String(1000 + i).padStart(12, '0')}`, title: `Solicitação ${String(i + 1).padStart(2, '0')}`, product: i % 3 ? 'credit' : 'acquiring', proposals: [] }));
+}
+async function rfqRequests(page) {
+  const seen = [];
+  page.on('request', (r) => { const u = new URL(r.url()); if (u.pathname === '/api/finance/rfqs' && r.method() === 'GET') seen.push(u.searchParams); });
+  return seen;
+}
+
+test('solicitações paginadas: carrega mais pelo cursor e nunca chama a página de carteira completa', async ({ page }) => {
+  const rows = manyRfqs(30);
+  await mockSession(page, { data: overview({ rfqs: rows }) });
+  const seen = await rfqRequests(page);
+  await page.goto('/finance/rfqs.html');
+  await expect(page.locator('.rfq-table tbody tr')).toHaveCount(25);
+  await expect(page.locator('.result-count')).toHaveText('25 de 25 carregadas · há mais neste filtro');
+  expect(seen[0].get('paged')).toBe('1');
+  expect(seen[0].get('cursor')).toBeNull();
+  await page.getByRole('button', { name: 'Carregar mais solicitações' }).click();
+  await expect(page.locator('.rfq-table tbody tr')).toHaveCount(30);
+  await expect(page.locator('.result-count')).toHaveText('30 de 30 carregadas · todas deste filtro');
+  await expect(page.getByRole('button', { name: 'Carregar mais solicitações' })).toBeHidden();
+  expect(seen).toHaveLength(2);
+  expect(seen[1].get('cursor')).toBeTruthy();
+});
+
+test('solicitações paginadas: mudar o filtro descarta o cursor, vai ao servidor e fica na URL', async ({ page }) => {
+  await mockSession(page, { data: overview({ rfqs: manyRfqs(30) }) });
+  const seen = await rfqRequests(page);
+  await page.goto('/finance/rfqs.html');
+  await expect(page.locator('.rfq-table tbody tr')).toHaveCount(25);
+  await page.getByLabel('Filtrar por produto').selectOption('acquiring');
+  await expect(page.locator('.result-count')).toHaveText('10 de 10 carregadas · todas deste filtro');
+  const last = seen.at(-1);
+  expect(last.get('product')).toBe('acquiring');
+  expect(last.get('cursor')).toBeNull();
+  await expect(page).toHaveURL(/[?&]product=acquiring/);
+  await page.reload();
+  await expect(page.getByLabel('Filtrar por produto')).toHaveValue('acquiring');
+  await expect(page.locator('.rfq-table tbody tr')).toHaveCount(10);
+});
+
+test('solicitações paginadas: falha ao carregar mais mantém as exibidas e declara cobertura incompleta', async ({ page }) => {
+  await mockSession(page, { data: overview({ rfqs: manyRfqs(30) }) });
+  await page.route('**/api/finance/rfqs?*cursor=*', (route) => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'Serviço indisponível.' }) }));
+  await page.goto('/finance/rfqs.html');
+  await page.getByRole('button', { name: 'Carregar mais solicitações' }).click();
+  await expect(page.getByRole('alert').filter({ hasText: 'a lista deste filtro está incompleta' })).toBeVisible();
+  await expect(page.locator('.rfq-table tbody tr')).toHaveCount(25);
+  await expect(page.getByRole('button', { name: 'Carregar mais solicitações' })).toBeVisible();
+  await expect(page.getByText('Nenhuma solicitação ainda')).toHaveCount(0);
+});
+
+test('solicitações paginadas: falha na primeira página não vira lista vazia', async ({ page }) => {
+  await mockSession(page);
+  let fail = true;
+  await page.route('**/api/finance/rfqs?*', (route) => fail ? route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'Falha.' }) }) : route.fallback());
+  await page.goto('/finance/rfqs.html');
+  await expect(page.getByText('Não foi possível carregar as solicitações')).toBeVisible();
+  await expect(page.getByText('Nenhuma solicitação ainda')).toHaveCount(0);
+  fail = false;
+  await page.getByRole('button', { name: 'Tentar novamente' }).click();
+  await expect(page.locator('.rfq-table tbody tr')).toHaveCount(1);
+});
+
+test('solicitação fora do contexto da visão geral não recebe respostas nem próximo passo inventados', async ({ page }) => {
+  const data = overview();
+  const outside = { ...data.rfqs[0], id: '00000000-0000-4000-8000-0000000009f9', title: 'Solicitação antiga', proposals: [], invites_count: 0 };
+  await mockSession(page, { data });
+  await page.route('**/api/finance/rfqs?*', (route) => { const u = new URL(route.request().url()); const r = pagedRfqs([...data.rfqs, outside], u); return route.fulfill({ status: r.status, contentType: 'application/json', body: JSON.stringify(r.body) }); });
+  await page.goto('/finance/rfqs.html');
+  const row = page.locator('tr[data-id="00000000-0000-4000-8000-0000000009f9"]');
+  await expect(row).toContainText('Abra para ver convites e respostas');
+  await expect(row).toContainText('Abra a solicitação para ver o próximo passo');
+  await expect(row).not.toContainText('sem convites');
+});
+
+test('lista vazia de verdade orienta a primeira solicitação', async ({ page }) => {
+  await mockSession(page, { data: overview({ rfqs: [] }) });
+  await page.goto('/finance/rfqs.html');
+  await expect(page.getByText('Nenhuma solicitação ainda')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Criar a primeira solicitação' })).toHaveAttribute('href', '/finance/new-rfq.html');
+});
+
+// Integration contract v1.2: server filters/cursors, with an explicit page scope.
+test('RFQs paginadas: percorre 101 registros e reinicia o cursor ao mudar o filtro', async ({ page }) => {
+  await mockSession(page);
+  await page.route('**/api/finance/organizations', route => route.fulfill({ json: { ok: true, rows: [{ id: 'org1', kind: 'BUYER', legal_name: 'Empresa de teste' }], capabilities: { operational_pagination: true } } }));
+  const requests = [];
+  await page.route('**/api/finance/rfqs?**', route => {
+    const q = new URL(route.request().url()).searchParams;
+    requests.push(Object.fromEntries(q));
+    const offset = Number(q.get('cursor') || 0);
+    const count = q.get('status') ? 1 : 101;
+    const rows = Array.from({ length: Math.max(0, Math.min(25, count - offset)) }, (_, i) => ({ id: `paged-${offset + i}`, title: `Solicitação paginada ${offset + i + 1}`, product: 'credit', status: q.get('status') || 'open', owner_id: 'u1', invites: [], proposals: [], demand: {} }));
+    return route.fulfill({ json: { ok: true, rows, page: { limit: 25, has_more: offset + 25 < count, next_cursor: offset + 25 < count ? String(offset + 25) : null } } });
+  });
+  await page.goto('/finance/rfqs.html');
+  await expect(page.getByText('Solicitação paginada 1', { exact: true })).toBeVisible();
+  for (let i = 0; i < 4; i++) { await page.getByRole('button', { name: 'Carregar mais solicitações', exact: true }).click(); await expect(page.getByText(`Solicitação paginada ${26 + i * 25}`, { exact: true })).toBeVisible(); }
+  await expect(page.getByText('Solicitação paginada 101', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Carregar mais solicitações', exact: true })).toBeHidden();
+  await page.getByRole('button', { name: 'Rascunho', exact: true }).click();
+  await expect(page.getByText('Solicitação paginada 1', { exact: true })).toBeVisible();
+  expect(requests.at(-1).status).toBe('draft');
+  expect(requests.at(-1).cursor).toBeUndefined();
+  expect(requests.every(q => q.paged === '1' && q.context === '1')).toBe(true);
+  await expect(page.getByText(/todas deste filtro/)).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('RFQs paginadas: falha na continuação não vira fim do acervo e permite tentar de novo', async ({ page }) => {
+  await mockSession(page);
+  await page.route('**/api/finance/organizations', route => route.fulfill({ json: { ok: true, rows: [{ id: 'org1', kind: 'BUYER', legal_name: 'Empresa de teste' }], capabilities: { operational_pagination: true } } }));
+  let failed = false;
+  await page.route('**/api/finance/rfqs?**', route => {
+    const after = new URL(route.request().url()).searchParams.has('cursor');
+    if (after && !failed) { failed = true; return route.fulfill({ status: 503, json: { ok: false, code: 'unavailable', error: 'Temporariamente indisponível.' } }); }
+    return route.fulfill({ json: { ok: true, rows: [{ id: after ? 'second' : 'first', title: after ? 'Página recuperada' : 'Página inicial', product: 'credit', status: 'draft', invites: [], proposals: [] }], page: { has_more: !after, next_cursor: after ? null : 'next' } } });
+  });
+  await page.goto('/finance/rfqs.html');
+  await page.getByRole('button', { name: 'Carregar mais solicitações', exact: true }).click();
+  await expect(page.getByRole('alert').filter({ hasText: 'lista deste filtro está incompleta' })).toBeVisible();
+  await expect(page.getByText('Página inicial', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Carregar mais solicitações', exact: true }).click();
+  await expect(page.getByText('Página recuperada', { exact: true })).toBeVisible();
+});
+
+test('portal institucional paginado: 101 oportunidades e continuidade após erro de backend', async ({ page }) => {
+  await mockSession(page, { organizations: [{ id: 'provider-org', kind: 'PROVIDER', legal_name: 'Instituição sintética' }], viewerRole: 'provider_user' });
+  await page.route('**/api/finance/organizations', route => route.fulfill({ json: { ok: true, rows: [{ id: 'provider-org', kind: 'PROVIDER', legal_name: 'Instituição sintética' }], capabilities: { operational_pagination: true } } }));
+  let failed = false;
+  await page.route('**/api/finance/assignments?**', route => {
+    const q = new URL(route.request().url()).searchParams;
+    expect(q.get('organization_id')).toBe('provider-org');
+    expect(q.get('paged')).toBe('1');
+    const offset = Number(q.get('cursor') || 0);
+    if (offset === 25 && !failed) { failed = true; return route.fulfill({ status: 503, json: { ok: false, code: 'unavailable', error: 'Indisponível' } }); }
+    const rows = Array.from({ length: Math.min(25, 101 - offset) }, (_, i) => ({ proposal_id: `proposal-${offset+i}`, rfq_id: `rfq-${offset+i}`, title: `Oportunidade sintética ${offset+i+1}`, product: 'credit', rfq_status: 'open', version: 0, demand: {}, terms: {} }));
+    return route.fulfill({ json: { ok: true, rows, page: { has_more: offset + 25 < 101, next_cursor: offset + 25 < 101 ? String(offset+25) : null }, coverage: { history: 'current_snapshot_only' } } });
+  });
+  await page.goto('/provider/rfqs.html');
+  await expect(page.getByText('Oportunidade sintética 1', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Próxima página', exact: true }).click();
+  await expect(page.getByText('Não foi possível carregar esta página. Tente novamente.', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Tentar novamente', exact: true }).click();
+  await expect(page.getByText('Oportunidade sintética 26', { exact: true })).toBeVisible();
+  for (let i=0;i<3;i++) { await page.getByRole('button', { name: 'Próxima página', exact: true }).click(); await expect(page.getByText(`Oportunidade sintética ${51+i*25}`, { exact: true })).toBeVisible(); }
+  await expect(page.getByRole('button', { name: 'Próxima página', exact: true })).toBeDisabled();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('busca e ordem por respostas avisam que valem só para as carregadas quando há mais páginas', async ({ page }) => {
+  await mockSession(page, { data: overview({ rfqs: manyRfqs(30) }) });
+  await page.goto('/finance/rfqs.html');
+  await expect(page.locator('.rfq-table tbody tr')).toHaveCount(25);
+  await page.getByPlaceholder('Buscar por título…').fill('Solicitação 0');
+  await expect(page.getByText('Busca: aplicado só às 25 carregadas, não a todas as solicitações.')).toBeVisible();
+  await page.getByPlaceholder('Buscar por título…').fill('');
+  await expect(page.getByText(/aplicado só às/)).toBeHidden();
+  await page.getByLabel('Ordenar solicitações').selectOption('responses');
+  await expect(page.getByText('Ordem por respostas: aplicado só às 25 carregadas, não a todas as solicitações.')).toBeVisible();
+  await page.getByRole('button', { name: 'Carregar mais solicitações' }).click();
+  await expect(page.locator('.rfq-table tbody tr')).toHaveCount(30);
+  await expect(page.getByText(/aplicado só às/)).toBeHidden();
+});
+
+// Enquanto a leitura de aprovações não expõe `stale` (pendência do backend 9.1),
+// a interface não apresenta como válida a aprovação de uma versão já substituída.
+test('aprovação de versão substituída aparece desatualizada mesmo sem o campo stale na API', async ({ page }) => {
+  const data = overview();
+  const rfq = { ...data.rfqs[0], organization_id: ORG, proposals: data.rfqs[0].proposals.map((p) => p.id === 'p1' ? { ...p, version: 2 } : p) };
+  await mockSession(page, { data: overview({ rfqs: [rfq] }) });
+  await page.route('**/api/finance/rfq/*', (route) => route.fulfill({ json: { ok: true, rfq, invites: [], proposals: rfq.proposals } }));
+  await page.route('**/api/finance/approvals?*', (route) => route.fulfill({ json: { ok: true, rows: [{ id: 'ap1', rfq_id: RFQ, proposal_id: 'p1', proposal_version: 1, status: 'pending', requested_at: '2026-10-20T10:00:00Z', requested_by: 'u2', rationale: 'Melhor custo', steps: [{ id: 's1', position: 1, approver_id: 'u1', status: 'pending' }] }] } }));
+  await page.goto(`/finance/rfq.html?id=${RFQ}#aprovacoes`);
+  await page.getByRole('tab', { name: /Aprovações/ }).click();
+  await expect(page.getByText('Desatualizada')).toBeVisible();
+  await expect(page.getByText('Esta aprovação não vale para a versão atual; peça uma nova.')).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Aprovar/ })).toHaveCount(0);
+});
+
+async function pagedProvider(page, pages) {
+  await mockSession(page, { organizations: [{ id: 'provider-org', kind: 'PROVIDER', legal_name: 'Instituição sintética' }], viewerRole: 'provider_user' });
+  await page.route('**/api/finance/organizations', route => route.fulfill({ json: { ok: true, rows: [{ id: 'provider-org', kind: 'PROVIDER', legal_name: 'Instituição sintética' }], capabilities: { operational_pagination: true } } }));
+  await page.route('**/api/finance/assignments?**', route => { const q = new URL(route.request().url()).searchParams; return route.fulfill({ json: pages(q.get('cursor')) }); });
+}
+
+test('portal institucional paginado sem nenhuma oportunidade orienta pelo convite, não por filtro vazio', async ({ page }) => {
+  await pagedProvider(page, () => ({ ok: true, rows: [], page: { has_more: false, next_cursor: null } }));
+  await page.goto('/provider/rfqs.html');
+  await expect(page.getByText('Nenhuma oportunidade ainda')).toBeVisible();
+  await expect(page.getByText(/quando uma empresa convida a sua instituição/)).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Aceitar convite' })).toHaveAttribute('href', '/provider/invite.html');
+  await expect(page.getByText('Nada neste filtro')).toHaveCount(0);
+});
+
+test('portal institucional paginado: filtro vazio na página não vira "nenhuma oportunidade"', async ({ page }) => {
+  const row = (i, status) => ({ proposal_id: `proposal-${i}`, rfq_id: `rfq-${i}`, title: `Oportunidade ${i}`, product: 'credit', rfq_status: status, version: 0, demand: {} });
+  await pagedProvider(page, (cursor) => cursor ? { ok: true, rows: [row(2, 'closed')], page: { has_more: false, next_cursor: null } } : { ok: true, rows: [row(1, 'open')], page: { has_more: true, next_cursor: 'c2' } });
+  await page.goto('/provider/rfqs.html');
+  await expect(page.getByText('Oportunidade 1', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: /^Encerradas/ }).click();
+  await expect(page.getByText('Nada neste filtro nesta página')).toBeVisible();
+  await expect(page.getByText('Nenhuma oportunidade ainda')).toHaveCount(0);
+});
+
+test('painel sem concorrências oferece a primeira solicitação a quem pode criar', async ({ page }) => {
+  await mockSession(page, { data: overview({ rfqs: [] }) });
+  await page.goto('/finance/dashboard.html');
+  await expect(page.getByText('Nenhuma concorrência em andamento')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Nova solicitação' }).last()).toHaveAttribute('href', '/finance/new-rfq.html');
+});
+
+test('escala: 230 solicitações percorridas por cursor sem duplicar nem inventar total', async ({ page }) => {
+  await mockSession(page, { data: overview({ rfqs: manyRfqs(230) }) });
+  const seen = await rfqRequests(page);
+  await page.goto('/finance/rfqs.html');
+  const more = page.getByRole('button', { name: 'Carregar mais solicitações' });
+  for (let loaded = 25; loaded < 230; loaded += 25) {
+    await expect(page.locator('.result-count')).toHaveText(`${loaded} de ${loaded} carregadas · há mais neste filtro`);
+    await more.click();
+  }
+  await expect(page.locator('.result-count')).toHaveText('230 de 230 carregadas · todas deste filtro');
+  const ids = await page.locator('.rfq-table tbody tr').evaluateAll((rows) => rows.map((row) => row.dataset.id));
+  expect(new Set(ids).size).toBe(230);
+  expect(seen).toHaveLength(10);
+  expect(new Set(seen.slice(1).map((q) => q.get('cursor'))).size).toBe(9);
+  await expect(page.locator('main')).not.toContainText(/total de \d+/i);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test('escala: trocar o produto enquanto a página anterior carrega não mistura recortes', async ({ page }) => {
+  const rows = manyRfqs(120);
+  await mockSession(page, { data: overview({ rfqs: rows }) });
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  await page.route('**/api/finance/rfqs?*', async (route) => {
+    const u = new URL(route.request().url());
+    if (u.searchParams.get('cursor')) await gate; // continuação do recorte antigo atrasa
+    const r = pagedRfqs(rows, u);
+    return route.fulfill({ status: r.status, contentType: 'application/json', body: JSON.stringify(r.body) });
+  });
+  await page.goto('/finance/rfqs.html?status=comparing');
+  await expect(page.locator('.rfq-table tbody tr')).toHaveCount(25);
+  await page.getByRole('button', { name: 'Carregar mais solicitações' }).click();
+  await page.getByLabel('Filtrar por produto').selectOption('acquiring');
+  await expect(page.locator('.result-count')).toHaveText('25 de 25 carregadas · há mais neste filtro');
+  release();
+  await page.waitForTimeout(300);
+  const products = await page.locator('.rfq-table .row-sub').allTextContents();
+  expect(products.every((text) => /Adquir/i.test(text))).toBe(true);
+  await expect(page.locator('.rfq-table tbody tr')).toHaveCount(25);
+  await page.reload();
+  await expect(page.getByLabel('Filtrar por produto')).toHaveValue('acquiring');
+  await expect(page.locator('[data-status="comparing"]')).toHaveAttribute('aria-pressed', 'true');
 });

@@ -63,11 +63,33 @@ export function importContractButton(ctx, entities, { label = 'Registrar contrat
   return button(label, { variant, size, iconName: 'plus', attrs: { 'data-intent': 'registrar-contrato' }, onClick: () => import('./contract-center/import.js').then((m) => m.openImportContract(ctx, entities, { providerId })).catch((error) => toast(readableError(error), 'error')) });
 }
 
+// Índice das seções do Contract 360. Várias seções chegam depois (trabalho,
+// próximas ações, documentos), então o índice acompanha os títulos que de fato
+// estão na tela. Botões rolam o painel: mudar o hash quebraria o link do contrato.
+function sectionIndex(body) {
+  const nav = el('nav', { class: 'cc-index', 'aria-label': 'Seções deste contrato' });
+  body.prepend(nav);
+  let signature = '';
+  const build = () => {
+    if (!nav.isConnected) { observer.disconnect(); return; }
+    const heads = [...body.querySelectorAll('h3')].filter((h) => !nav.contains(h) && !h.closest('form, dialog .drawer-form') && h.textContent.trim());
+    const next = heads.map((h) => h.textContent.trim()).join('|');
+    if (next === signature) return;
+    signature = next;
+    nav.replaceChildren(...heads.map((h) => button(h.textContent.trim(), { variant: 'ghost', size: 'sm', onClick: () => { h.setAttribute('tabindex', '-1'); h.scrollIntoView({ block: 'start' }); h.focus({ preventScroll: true }); } })));
+    nav.hidden = heads.length < 3;
+  };
+  let queued = false;
+  const observer = new MutationObserver(() => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; build(); }); });
+  observer.observe(body, { childList: true, subtree: true });
+  build();
+}
+
 export function openContract(ctx, contract, { initialDetail = null } = {}) {
   const body = el('div', { class: 'stack contract-center' }, loading('Carregando contrato…'));
   const dialog = drawer({ title: contract.title || contract.provider_name || 'Contrato', subtitle: `${CONTRACT_CATEGORIES[contract.product] || contract.product} · ${formatDate(contract.starts_on)} → ${formatDate(contract.ends_on)}`, body, className: 'drawer-wide', onClose: () => { const url = new URL(location.href); if (url.searchParams.get('abrir') === 'contrato' && location.hash === `#contract-${contract.id}`) { url.searchParams.delete('abrir'); history.replaceState(null, '', url.pathname + url.search); } } });
   const manage = ctx.can('create_rfq');
-  const load = () => ctx.api(`contract-detail?id=${encodeURIComponent(contract.id)}`).then((detail) => body.replaceChildren(...render(detail)))
+  const load = () => ctx.api(`contract-detail?id=${encodeURIComponent(contract.id)}`).then((detail) => { body.replaceChildren(...render(detail)); sectionIndex(body); })
     .catch((error) => body.replaceChildren(errorState({ error, onRetry: load })));
   const after = (message) => { toast(message); load(); ctx.reload?.(); };
 
@@ -304,7 +326,7 @@ export function openContract(ctx, contract, { initialDetail = null } = {}) {
     } catch (error) { toastError(error); }
   }
 
-  if (initialDetail) body.replaceChildren(...render(initialDetail));
+  if (initialDetail) { body.replaceChildren(...render(initialDetail)); sectionIndex(body); }
   else load();
   return dialog;
 }
