@@ -100,6 +100,21 @@ export async function tasks(ctx) {
   for (const [value, text] of TASK_FILTERS) filter.add(new Option(text, value));
   filter.value = [...filter.options].some(({value}) => value === url.searchParams.get('filtro')) ? url.searchParams.get('filtro') : requestedTask ? 'vinculada' : 'abertas';
   const scopeNote = el('span', { class: 'muted small', role: 'status', 'aria-live': 'polite' });
+  // Recorte por contrato (?contrato=<id>): vai ao servidor como contract_id e
+  // combina com situação e responsável; nunca é um filtro sobre o que já carregou.
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  let contractScope = UUID.test(url.searchParams.get('contrato') || '') ? url.searchParams.get('contrato') : null;
+  const scopedContract = contractScope ? (ctx.data.contracts || []).find((row) => row.id === contractScope) : null;
+  const contractChip = contractScope ? el('span', { class: 'callout callout-info compact task-contract-scope' }, [
+    textSpan(`Somente tarefas do contrato ${scopedContract ? `${scopedContract.provider_name || 'Contrato'} · ${scopedContract.title || CONTRACT_CATEGORIES[scopedContract.product] || 'contrato'}` : 'selecionado'}`),
+    el('a', { class: 'btn btn-ghost btn-sm', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${contractScope}`), text: 'Abrir contrato' }),
+    button('Ver todas as tarefas', { variant: 'ghost', size: 'sm', onClick: () => {
+      contractScope = null; contractChip.remove();
+      const next = new URL(location.href); next.searchParams.delete('contrato');
+      history.replaceState(null, '', next.pathname + next.search + next.hash);
+      draw();
+    } })
+  ]) : null;
   filter.addEventListener('change', () => {
     const next = new URL(location.href);
     if (filter.value === 'abertas' && !requestedTask) next.searchParams.delete('filtro'); else next.searchParams.set('filtro', filter.value);
@@ -116,6 +131,7 @@ export async function tasks(ctx) {
     if (filter.value === 'concluidas') q.set('status', 'done'); else q.set('status', 'open');
     if (filter.value === 'minhas' && ctx.viewer?.id) q.set('assignee_id', ctx.viewer.id);
     if (filter.value === 'sem-responsavel') q.set('unassigned', 'true');
+    if (contractScope) q.set('contract_id', contractScope);
     if (cursor) q.set('cursor', cursor);
     return `tasks?${q}`;
   };
@@ -259,7 +275,7 @@ export async function tasks(ctx) {
   }
   draw();
   const readOnly = el('p', { class: 'callout callout-info compact task-readonly' }, [icon('lock', { size: 14 }), textSpan('Seu papel acompanha as tarefas da equipe: criar, concluir e reabrir ficam com administradores, gestores financeiros e analistas.')]);
-  root.append(card({ body: canEdit ? form : readOnly }), el('div', { class: 'toolbar task-toolbar' }, [field({ label: 'Mostrar', control: filter }), scopeNote]), card({ flush: true, body: box }), el('div', { class: 'task-more' }, more));
+  root.append(...[card({ body: canEdit ? form : readOnly }), el('div', { class: 'toolbar task-toolbar' }, [field({ label: 'Mostrar', control: filter }), scopeNote]), contractChip, card({ flush: true, body: box }), el('div', { class: 'task-more' }, more)].filter(Boolean));
   // Radar de prazos: contratos, solicitações e tarefas da visão geral já carregada,
   // sob demanda (o módulo não pesa na lista de tarefas).
   const radarSlot = el('div', { class: 'deadline-radar-slot' });

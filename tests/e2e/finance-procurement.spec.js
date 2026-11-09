@@ -1423,3 +1423,18 @@ test('busca e ordem por respostas avisam que valem só para as carregadas quando
   await expect(page.locator('.rfq-table tbody tr')).toHaveCount(30);
   await expect(page.getByText(/aplicado só às/)).toBeHidden();
 });
+
+// Enquanto a leitura de aprovações não expõe `stale` (pendência do backend 9.1),
+// a interface não apresenta como válida a aprovação de uma versão já substituída.
+test('aprovação de versão substituída aparece desatualizada mesmo sem o campo stale na API', async ({ page }) => {
+  const data = overview();
+  const rfq = { ...data.rfqs[0], organization_id: ORG, proposals: data.rfqs[0].proposals.map((p) => p.id === 'p1' ? { ...p, version: 2 } : p) };
+  await mockSession(page, { data: overview({ rfqs: [rfq] }) });
+  await page.route('**/api/finance/rfq/*', (route) => route.fulfill({ json: { ok: true, rfq, invites: [], proposals: rfq.proposals } }));
+  await page.route('**/api/finance/approvals?*', (route) => route.fulfill({ json: { ok: true, rows: [{ id: 'ap1', rfq_id: RFQ, proposal_id: 'p1', proposal_version: 1, status: 'pending', requested_at: '2026-10-20T10:00:00Z', requested_by: 'u2', rationale: 'Melhor custo', steps: [{ id: 's1', position: 1, approver_id: 'u1', status: 'pending' }] }] } }));
+  await page.goto(`/finance/rfq.html?id=${RFQ}#aprovacoes`);
+  await page.getByRole('tab', { name: /Aprovações/ }).click();
+  await expect(page.getByText('Desatualizada')).toBeVisible();
+  await expect(page.getByText('Esta aprovação não vale para a versão atual; peça uma nova.')).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Aprovar/ })).toHaveCount(0);
+});
