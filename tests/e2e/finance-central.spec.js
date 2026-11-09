@@ -190,3 +190,58 @@ test('Caixa de Trabalho: pendência de contrato abre o Contract 360 do contrato 
   await expect(page.getByRole('dialog', { name: 'Capital de giro' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
 });
+
+// Arandu 9.1 — Caixa de Trabalho recortada por contrato: o recorte vai ao
+// servidor (contract_id) e combina com responsável; volta ao contrato e sai do recorte.
+test('Caixa de Trabalho por contrato: contract_id no servidor, combinado com sem responsável, com volta ao contrato', async ({ page }) => {
+  const task = { id: '00000000-0000-4000-8000-0000000000e2', organization_id: ORG, title: 'Renovar seguro da garantia', status: 'open', due_on: null, assignee_id: null, related_type: 'contract', related_id: C1 };
+  await setup(page);
+  const seen = [];
+  await page.route('**/api/finance/tasks?*', (route) => { const u = new URL(route.request().url()); seen.push(u.searchParams); return route.fulfill({ json: { ok: true, rows: u.searchParams.get('contract_id') ? [task] : [], page: { limit: 50, has_more: false, next_cursor: null } } }); });
+  await page.goto(`/finance/tasks.html?contrato=${C1}`);
+  await expect(page.getByText('Somente tarefas do contrato Atlas Bank · Capital de giro')).toBeVisible();
+  await expect(page.getByText('Renovar seguro da garantia')).toBeVisible();
+  expect(seen.at(-1).get('contract_id')).toBe(C1);
+  await page.getByLabel('Mostrar tarefas').selectOption('sem-responsavel');
+  await expect.poll(() => seen.at(-1).get('unassigned')).toBe('true');
+  expect(seen.at(-1).get('contract_id')).toBe(C1);
+  await expect(page.getByRole('link', { name: 'Abrir contrato' })).toHaveAttribute('href', `/finance/contracts.html?abrir=contrato#contract-${C1}`);
+  await page.getByRole('button', { name: 'Ver todas as tarefas' }).click();
+  await expect.poll(() => seen.at(-1).get('contract_id')).toBeNull();
+  await expect(page).not.toHaveURL(/contrato=/);
+  await expect(page.getByText(/Somente tarefas do contrato/)).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test('Contract 360 leva às tarefas do contrato na Caixa de Trabalho', async ({ page }) => {
+  await setup(page);
+  await page.goto(`/finance/contracts.html?abrir=contrato#contract-${C1}`);
+  const dialog = page.getByRole('dialog', { name: 'Capital de giro' });
+  await expect(dialog.getByRole('link', { name: 'Tarefas deste contrato na Caixa de Trabalho' })).toHaveAttribute('href', `/finance/tasks.html?contrato=${C1}`);
+});
+
+test('Contract 360: índice leva à seção sem trocar o endereço do contrato', async ({ page }) => {
+  await setup(page);
+  await page.goto(`/finance/contracts.html?abrir=contrato#contract-${C1}`);
+  const dialog = page.getByRole('dialog', { name: 'Capital de giro' });
+  const index = dialog.getByRole('navigation', { name: 'Seções deste contrato' });
+  await expect(index.getByRole('button', { name: 'Aditivos' })).toBeVisible();
+  await expect(index.getByRole('button', { name: /^Termos vigentes/ })).toBeVisible();
+  await expect(index.getByRole('button', { name: 'Trabalho deste contrato' })).toBeVisible();
+  await index.getByRole('button', { name: 'Marcos e obrigações' }).click();
+  await expect(dialog.getByRole('heading', { name: 'Marcos e obrigações' })).toBeFocused();
+  await expect(page).toHaveURL(new RegExp(`abrir=contrato#contract-${C1}$`));
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test('Caixa de Trabalho: tarefa de contrato volta ao relacionamento; vazio no recorte não fala da empresa toda', async ({ page }) => {
+  const task = { id: '00000000-0000-4000-8000-0000000000e3', organization_id: ORG, title: 'Conferir aviso prévio', status: 'open', due_on: day(3), assignee_id: 'u1', related_type: 'contract', related_id: C1 };
+  await setup(page, { role: 'viewer' });
+  let rows = [task];
+  await page.route('**/api/finance/tasks?*', (route) => route.fulfill({ json: { ok: true, rows, page: { limit: 50, has_more: false, next_cursor: null } } }));
+  await page.goto('/finance/tasks.html');
+  await expect(page.getByRole('link', { name: 'Relacionamento com Atlas Bank' })).toHaveAttribute('href', `/finance/providers.html?provider_id=${P_ATLAS}`);
+  rows = [];
+  await page.goto(`/finance/tasks.html?contrato=${C1}`);
+  await expect(page.getByText('Nenhuma tarefa aberta neste contrato')).toBeVisible();
+});

@@ -82,6 +82,15 @@ export async function rfqDetail(ctx) {
     loadEntities(ctx)
   ]);
   externalUi?.normalizeExternalApprovals(approvals,rfq);
+  // Enquanto a leitura de aprovações não expuser `stale` (pendência do backend
+  // no contrato 9.1), a tela fica do lado conservador: se a proposta aprovada já
+  // tem versão mais nova, a aprovação não aparece como válida. Só marca como
+  // desatualizada, nunca o contrário; o banco continua decidindo (approval_stale).
+  for (const request of approvals) {
+    if (typeof request.stale === 'boolean' || !['pending', 'approved'].includes(request.status) || !request.proposal_id || request.proposal_version == null) continue;
+    const current = (rfq.proposals || []).find((row) => row.id === request.proposal_id);
+    if (current?.version != null && Number(current.version) !== Number(request.proposal_version)) request.stale = true;
+  }
   if ((__ARANDU_DEMO__ && ctx.mode === 'demo') && ctx.approvalsError) gaps.add('as aprovações');
   const governanceGap = gaps.size ? ['a decisão registrada', 'a política de aprovação', 'a exigência de aprovação', 'as aprovações'].filter(item=>gaps.has(item)) : null;
   const policy = { ...generalPolicy, required_for_decision: Boolean(generalPolicy.required_for_decision || evaluation?.approval_required), evaluation };

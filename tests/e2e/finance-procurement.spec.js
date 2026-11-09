@@ -1408,3 +1408,109 @@ test('portal institucional paginado: 101 oportunidades e continuidade após erro
   await expect(page.getByRole('button', { name: 'Próxima página', exact: true })).toBeDisabled();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test('busca e ordem por respostas avisam que valem só para as carregadas quando há mais páginas', async ({ page }) => {
+  await mockSession(page, { data: overview({ rfqs: manyRfqs(30) }) });
+  await page.goto('/finance/rfqs.html');
+  await expect(page.locator('.rfq-table tbody tr')).toHaveCount(25);
+  await page.getByPlaceholder('Buscar por título…').fill('Solicitação 0');
+  await expect(page.getByText('Busca: aplicado só às 25 carregadas, não a todas as solicitações.')).toBeVisible();
+  await page.getByPlaceholder('Buscar por título…').fill('');
+  await expect(page.getByText(/aplicado só às/)).toBeHidden();
+  await page.getByLabel('Ordenar solicitações').selectOption('responses');
+  await expect(page.getByText('Ordem por respostas: aplicado só às 25 carregadas, não a todas as solicitações.')).toBeVisible();
+  await page.getByRole('button', { name: 'Carregar mais solicitações' }).click();
+  await expect(page.locator('.rfq-table tbody tr')).toHaveCount(30);
+  await expect(page.getByText(/aplicado só às/)).toBeHidden();
+});
+
+// Enquanto a leitura de aprovações não expõe `stale` (pendência do backend 9.1),
+// a interface não apresenta como válida a aprovação de uma versão já substituída.
+test('aprovação de versão substituída aparece desatualizada mesmo sem o campo stale na API', async ({ page }) => {
+  const data = overview();
+  const rfq = { ...data.rfqs[0], organization_id: ORG, proposals: data.rfqs[0].proposals.map((p) => p.id === 'p1' ? { ...p, version: 2 } : p) };
+  await mockSession(page, { data: overview({ rfqs: [rfq] }) });
+  await page.route('**/api/finance/rfq/*', (route) => route.fulfill({ json: { ok: true, rfq, invites: [], proposals: rfq.proposals } }));
+  await page.route('**/api/finance/approvals?*', (route) => route.fulfill({ json: { ok: true, rows: [{ id: 'ap1', rfq_id: RFQ, proposal_id: 'p1', proposal_version: 1, status: 'pending', requested_at: '2026-10-20T10:00:00Z', requested_by: 'u2', rationale: 'Melhor custo', steps: [{ id: 's1', position: 1, approver_id: 'u1', status: 'pending' }] }] } }));
+  await page.goto(`/finance/rfq.html?id=${RFQ}#aprovacoes`);
+  await page.getByRole('tab', { name: /Aprovações/ }).click();
+  await expect(page.getByText('Desatualizada')).toBeVisible();
+  await expect(page.getByText('Esta aprovação não vale para a versão atual; peça uma nova.')).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Aprovar/ })).toHaveCount(0);
+});
+
+async function pagedProvider(page, pages) {
+  await mockSession(page, { organizations: [{ id: 'provider-org', kind: 'PROVIDER', legal_name: 'Instituição sintética' }], viewerRole: 'provider_user' });
+  await page.route('**/api/finance/organizations', route => route.fulfill({ json: { ok: true, rows: [{ id: 'provider-org', kind: 'PROVIDER', legal_name: 'Instituição sintética' }], capabilities: { operational_pagination: true } } }));
+  await page.route('**/api/finance/assignments?**', route => { const q = new URL(route.request().url()).searchParams; return route.fulfill({ json: pages(q.get('cursor')) }); });
+}
+
+test('portal institucional paginado sem nenhuma oportunidade orienta pelo convite, não por filtro vazio', async ({ page }) => {
+  await pagedProvider(page, () => ({ ok: true, rows: [], page: { has_more: false, next_cursor: null } }));
+  await page.goto('/provider/rfqs.html');
+  await expect(page.getByText('Nenhuma oportunidade ainda')).toBeVisible();
+  await expect(page.getByText(/quando uma empresa convida a sua instituição/)).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Aceitar convite' })).toHaveAttribute('href', '/provider/invite.html');
+  await expect(page.getByText('Nada neste filtro')).toHaveCount(0);
+});
+
+test('portal institucional paginado: filtro vazio na página não vira "nenhuma oportunidade"', async ({ page }) => {
+  const row = (i, status) => ({ proposal_id: `proposal-${i}`, rfq_id: `rfq-${i}`, title: `Oportunidade ${i}`, product: 'credit', rfq_status: status, version: 0, demand: {} });
+  await pagedProvider(page, (cursor) => cursor ? { ok: true, rows: [row(2, 'closed')], page: { has_more: false, next_cursor: null } } : { ok: true, rows: [row(1, 'open')], page: { has_more: true, next_cursor: 'c2' } });
+  await page.goto('/provider/rfqs.html');
+  await expect(page.getByText('Oportunidade 1', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: /^Encerradas/ }).click();
+  await expect(page.getByText('Nada neste filtro nesta página')).toBeVisible();
+  await expect(page.getByText('Nenhuma oportunidade ainda')).toHaveCount(0);
+});
+
+test('painel sem concorrências oferece a primeira solicitação a quem pode criar', async ({ page }) => {
+  await mockSession(page, { data: overview({ rfqs: [] }) });
+  await page.goto('/finance/dashboard.html');
+  await expect(page.getByText('Nenhuma concorrência em andamento')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Nova solicitação' }).last()).toHaveAttribute('href', '/finance/new-rfq.html');
+});
+
+test('escala: 230 solicitações percorridas por cursor sem duplicar nem inventar total', async ({ page }) => {
+  await mockSession(page, { data: overview({ rfqs: manyRfqs(230) }) });
+  const seen = await rfqRequests(page);
+  await page.goto('/finance/rfqs.html');
+  const more = page.getByRole('button', { name: 'Carregar mais solicitações' });
+  for (let loaded = 25; loaded < 230; loaded += 25) {
+    await expect(page.locator('.result-count')).toHaveText(`${loaded} de ${loaded} carregadas · há mais neste filtro`);
+    await more.click();
+  }
+  await expect(page.locator('.result-count')).toHaveText('230 de 230 carregadas · todas deste filtro');
+  const ids = await page.locator('.rfq-table tbody tr').evaluateAll((rows) => rows.map((row) => row.dataset.id));
+  expect(new Set(ids).size).toBe(230);
+  expect(seen).toHaveLength(10);
+  expect(new Set(seen.slice(1).map((q) => q.get('cursor'))).size).toBe(9);
+  await expect(page.locator('main')).not.toContainText(/total de \d+/i);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test('escala: trocar o produto enquanto a página anterior carrega não mistura recortes', async ({ page }) => {
+  const rows = manyRfqs(120);
+  await mockSession(page, { data: overview({ rfqs: rows }) });
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  await page.route('**/api/finance/rfqs?*', async (route) => {
+    const u = new URL(route.request().url());
+    if (u.searchParams.get('cursor')) await gate; // continuação do recorte antigo atrasa
+    const r = pagedRfqs(rows, u);
+    return route.fulfill({ status: r.status, contentType: 'application/json', body: JSON.stringify(r.body) });
+  });
+  await page.goto('/finance/rfqs.html?status=comparing');
+  await expect(page.locator('.rfq-table tbody tr')).toHaveCount(25);
+  await page.getByRole('button', { name: 'Carregar mais solicitações' }).click();
+  await page.getByLabel('Filtrar por produto').selectOption('acquiring');
+  await expect(page.locator('.result-count')).toHaveText('25 de 25 carregadas · há mais neste filtro');
+  release();
+  await page.waitForTimeout(300);
+  const products = await page.locator('.rfq-table .row-sub').allTextContents();
+  expect(products.every((text) => /Adquir/i.test(text))).toBe(true);
+  await expect(page.locator('.rfq-table tbody tr')).toHaveCount(25);
+  await page.reload();
+  await expect(page.getByLabel('Filtrar por produto')).toHaveValue('acquiring');
+  await expect(page.locator('[data-status="comparing"]')).toHaveAttribute('aria-pressed', 'true');
+});

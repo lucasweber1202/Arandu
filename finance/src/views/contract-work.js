@@ -18,7 +18,8 @@ export function contractWork(ctx, contract) {
     el('p',{class:'muted small',text:'Concluir uma tarefa registra o trabalho da equipe; não conclui um marco, aprova uma obrigação nem altera o contrato.'}),
     el('div',{class:'toolbar'},[
       el('a',{class:'btn btn-sm btn-secondary',href:ctx.href(`/finance/providers.html?provider_id=${encodeURIComponent(contract.provider_id)}`),text:`Relacionamento com ${contract.provider_name || 'a instituição'}`}),
-      contract.source_rfq ? el('a',{class:'btn btn-sm btn-secondary',href:ctx.href(`/finance/rfq.html?id=${encodeURIComponent(contract.source_rfq.id)}`),text:`Solicitação de origem: ${contract.source_rfq.title}`}) : null
+      contract.source_rfq ? el('a',{class:'btn btn-sm btn-secondary',href:ctx.href(`/finance/rfq.html?id=${encodeURIComponent(contract.source_rfq.id)}`),text:`Solicitação de origem: ${contract.source_rfq.title}`}) : null,
+      el('a',{class:'btn btn-sm btn-secondary',href:ctx.href(`/finance/tasks.html?contrato=${encodeURIComponent(contract.id)}`),text:'Tarefas deste contrato na Caixa de Trabalho'})
     ]),renegotiations(ctx, contract),field({label:'Situação das tarefas do contrato',control:filter}),notice,list,more);
   filter.addEventListener('change',()=>load());
   function render() {

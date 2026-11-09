@@ -60,10 +60,14 @@ export async function rfqList(ctx) {
   actor.value = ['company', 'institution', 'approver'].includes(params.get('vez')) ? params.get('vez') : '';
   const entitySelect = entityContextSelect(entities, { label: 'Filtrar por entidade' });
   const count = el('span', { class: 'result-count', role: 'status', 'aria-live': 'polite' });
+  const localNote = el('p', { class: 'muted small', hidden: true });
   const clear = button('Limpar filtros', { variant: 'ghost', size: 'sm', onClick: () => {
-    const serverChanged = activeStatus || product.value;
-    search.value = ''; product.value = ''; owner.value = ''; actor.value = ''; activeStatus = '';
+    // Todo critério volta ao padrão. Se algum deles ia ao servidor (situação,
+    // produto, entidade ou ordem), o recorte muda e a leitura recomeça sem cursor.
+    const serverChanged = Boolean(activeStatus || product.value || entityValue() || sort.value !== 'deadline');
+    search.value = ''; product.value = ''; owner.value = ''; actor.value = ''; activeStatus = ''; sort.value = 'deadline';
     for (const node of status.children) node.setAttribute('aria-pressed', String(node.dataset.status === ''));
+    if (entitySelect && entitySelect.value) { entitySelect.value = ''; entitySelect.dispatchEvent(new Event('change')); return; }
     if (serverChanged) reload(); else draw();
   } });
 
@@ -173,6 +177,7 @@ export async function rfqList(ctx) {
       ]));
     }
     const unscoped = !activeStatus && !product.value && !owner.value && !actor.value && !search.value.trim() && !entityValue();
+    localNote.hidden = true;
     if (firstFailure) {
       count.textContent = '';
       table.hidden = true;
@@ -187,6 +192,11 @@ export async function rfqList(ctx) {
     } else {
       const complete = !nextCursor;
       count.textContent = `${visible.length} de ${loaded.length} ${loaded.length === 1 ? 'carregada' : 'carregadas'}${complete ? ' · todas deste filtro' : ' · há mais neste filtro'}`;
+      // Busca, responsável, "de quem é a vez" e "mais respostas" não vão ao
+      // servidor: com mais páginas, valem só para o que já foi carregado.
+      const local = [search.value.trim() && 'busca', owner.value && 'responsável', actor.value && 'de quem é a vez', sort.value === 'responses' && 'ordem por respostas'].filter(Boolean);
+      localNote.hidden = complete || !local.length;
+      localNote.textContent = localNote.hidden ? '' : `${local.join(', ').replace(/^./, (c) => c.toUpperCase())}: aplicado só às ${loaded.length} carregadas, não a todas as solicitações. Carregue mais para ampliar.`;
       table.hidden = !visible.length;
       empty.hidden = Boolean(visible.length);
       empty.replaceChildren(emptyState({ title: complete ? 'Nenhuma solicitação com esses filtros' : 'Nenhuma das carregadas atende a esses filtros',
@@ -209,6 +219,7 @@ export async function rfqList(ctx) {
   root.append(
     el('div', { class: 'toolbar' }, [el('div', { class: 'toolbar-search' }, [icon('search'), search]), entitySelect, product, owner, actor, sort, count].filter(Boolean)),
     el('div', { class: 'toolbar-chips' }, status),
+    localNote,
     tableCard,
     coverage,
     el('div', { class: 'task-more' }, more)
