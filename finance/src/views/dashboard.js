@@ -114,7 +114,8 @@ export function actionItems(ctx, approvals) {
   // geral traz até 100 tarefas abertas; além disso a contagem é parcial e diz isso.
   if (worksTasks) {
     const open = data.tasks || [];
-    const unassigned = open.filter((task) => !task.assignee_id).length;
+    // As que vencem em até 2 dias já aparecem uma a uma acima: não conta duas vezes.
+    const unassigned = open.filter((task) => !task.assignee_id && !(daysUntil(task.due_on) !== null && daysUntil(task.due_on) <= 2)).length;
     if (unassigned) items.push({ rank: 2, tone: 'warning', icon: 'tasks', kind: 'Atribuição', source: 'task',
       title: `${plural(unassigned, 'tarefa aberta sem responsável', 'tarefas abertas sem responsável')}${open.length >= 100 ? ' (entre as 100 mais próximas)' : ''}`,
       detail: 'Sem responsável, ninguém responde pelo prazo. Atribua na Caixa de Trabalho.', cta: 'Atribuir', href: ctx.href('/finance/tasks.html?filtro=sem-responsavel') });

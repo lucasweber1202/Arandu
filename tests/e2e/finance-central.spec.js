@@ -367,6 +367,7 @@ test('central de ações: servidor não confirma o estado → item continua pend
 
 test('central de ações: tarefas sem responsável (com e sem prazo) viram triagem para o filtro da Caixa', async ({ page }) => {
   const { attention } = await actionCenter(page);
+  // A sem prazo e a de prazo distante; nenhuma vence em até 2 dias (essas já aparecem uma a uma).
   const item = attention.getByRole('link', { name: '2 tarefas abertas sem responsável' });
   await expect(item).toHaveAttribute('href', '/finance/tasks.html?filtro=sem-responsavel');
 });
