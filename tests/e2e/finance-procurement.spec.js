@@ -1514,3 +1514,58 @@ test('escala: trocar o produto enquanto a página anterior carrega não mistura 
   await expect(page.getByLabel('Filtrar por produto')).toHaveValue('acquiring');
   await expect(page.locator('[data-status="comparing"]')).toHaveAttribute('aria-pressed', 'true');
 });
+
+// Busca → registro: a busca do servidor devolve a página da lista para contratos,
+// instituições e tarefas; a interface abre o próprio registro pelo id da linha.
+// API SIMULADA com o formato de fin_search (kind, id, title, detail, href).
+const SEARCH_CONTRACT = '00000000-0000-4000-8000-00000000c0c1';
+const SEARCH_PROVIDER = '00000000-0000-4000-8000-00000000b0b1';
+const SEARCH_TASK = '00000000-0000-4000-8000-00000000d0d1';
+async function openSearch(page, rows, hasMore = false) {
+  await page.route('**/api/finance/search?*', (route) => route.fulfill({ json: { ok: true, rows, has_more: hasMore } }));
+  await page.goto('/finance/dashboard.html');
+  await expect(page.getByRole('button', { name: /Buscar/ })).toBeVisible();
+  await page.keyboard.press('Control+k');
+  return page.getByRole('dialog', { name: 'Buscar no espaço da empresa' });
+}
+
+test('busca abre o contrato, a instituição e a tarefa encontrados, não a lista do tipo', async ({ page }) => {
+  await mockSession(page);
+  const dialog = await openSearch(page, [
+    { kind: 'contract', id: SEARCH_CONTRACT, title: 'Atlas Bank', detail: '2027-05-01', href: '/finance/contracts.html' },
+    { kind: 'provider', id: SEARCH_PROVIDER, title: 'Atlas Bank', detail: 'Sudeste', href: '/finance/providers.html' },
+    { kind: 'task', id: SEARCH_TASK, title: 'Atlas: renovar garantia', detail: '', href: '/finance/dashboard.html' },
+    { kind: 'proposal', id: 'p9', title: 'Atlas Bank', detail: 'Crédito expansão', href: `/finance/rfq.html?id=${RFQ}` }
+  ]);
+  await dialog.getByRole('combobox').fill('atlas');
+  await expect(dialog.getByRole('option', { name: /Atlas: renovar garantia/ })).toBeVisible();
+  const hrefs = await dialog.locator('[role=option]').evaluateAll((nodes) => nodes.map((node) => node.dataset.href));
+  expect(hrefs).toEqual(expect.arrayContaining([
+    `/finance/contracts.html?abrir=contrato#contract-${SEARCH_CONTRACT}`,
+    `/finance/providers.html?provider_id=${SEARCH_PROVIDER}`,
+    `/finance/tasks.html#task-${SEARCH_TASK}`,
+    `/finance/rfq.html?id=${RFQ}#propostas`
+  ]));
+  expect(hrefs).not.toContain('/finance/dashboard.html');
+  await page.route('**/api/finance/search?*', (route) => route.fulfill({ json: { ok: true, rows: [{ kind: 'contract', id: SEARCH_CONTRACT, title: 'Atlas Bank', detail: '', href: '/finance/contracts.html' }], has_more: false } }));
+  await dialog.getByRole('combobox').fill('atlas bank');
+  await expect(dialog.getByRole('option', { name: /Atlas Bank/ })).toHaveCount(1);
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(new RegExp(`contracts\\.html\\?abrir=contrato#contract-${SEARCH_CONTRACT}$`));
+});
+
+test('busca com mais resultados no servidor avisa que a lista não é exaustiva', async ({ page }) => {
+  await mockSession(page);
+  const rows = Array.from({ length: 20 }, (_, i) => ({ kind: 'rfq', id: `00000000-0000-4000-8000-${String(5000 + i).padStart(12, '0')}`, title: `Capital ${i}`, detail: 'open', href: `/finance/rfq.html?id=x${i}` }));
+  const dialog = await openSearch(page, rows, true);
+  await dialog.getByRole('combobox').fill('capital');
+  await expect(dialog.getByRole('status')).toHaveText('20 resultados exibidos; há outros para este termo. Refine a busca para encontrá-los.');
+});
+
+test('busca com uma letra sem resultado local não afirma que nada existe na organização', async ({ page }) => {
+  await mockSession(page);
+  const dialog = await openSearch(page, []);
+  await dialog.getByRole('combobox').fill('z');
+  await expect(dialog.getByRole('status')).toHaveText('Digite ao menos 2 letras para buscar em toda a organização.');
+  await expect(dialog.getByText('Nenhum resultado nesta organização')).toHaveCount(0);
+});
