@@ -1,0 +1,128 @@
+name: Arandu — semeadura remota da Demo (manual)
+run-name: Demo seed remoto — ${{ inputs.mode }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_ref:
+        description: 'Confirme o ref EXATO do Supabase Demo'
+        required: true
+        type: choice
+        options:
+          - offgpyysgdhfemjlchod
+      mode:
+        description: 'Escolha preflight antes de escrever; sem auto-reset'
+        required: true
+        type: choice
+        default: preflight-only
+        options:
+          - preflight-only
+          - seed-and-provision
+
+permissions:
+  contents: read
+
+concurrency:
+  group: arandu-demo-pool
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: demo
+    timeout-minutes: 100
+    env:
+      ARANDU_ENV: demo
+      ARANDU_DEMO_CONFIRM: offgpyysgdhfemjlchod
+      SUPABASE_URL: https://offgpyysgdhfemjlchod.supabase.co
+      ARANDU_DEMO_APP_URL: https://arandu-demo-9fxmf7u6k-lucas-projects467.vercel.app
+      SUPABASE_ANON_KEY: ${{ secrets.ARANDU_DEMO_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.ARANDU_DEMO_SUPABASE_SERVICE_ROLE_KEY }}
+      ARANDU_DEMO_PASSWORD: ${{ secrets.ARANDU_DEMO_PASSWORD }}
+      CRON_SECRET: ${{ secrets.ARANDU_DEMO_CRON_SECRET }}
+      USER_CONFIRMED_REF: ${{ inputs.confirm_ref }}
+    steps:
+      - name: Verificar confirmação e SHA aprovado
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$USER_CONFIRMED_REF" = 'offgpyysgdhfemjlchod'
+          echo 'Ref Demo confirmado; nenhum projeto de produção será usado.'
+
+      - name: Checkout apenas do commit aprovado da Demo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: 89b1f0f68e7c2a3cdf3fa138fc683889124098dc
+          persist-credentials: false
+
+      - name: Node 24
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '24'
+
+      - name: Instalar dependências do commit fixo
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Preflight seguro: guard + API + banco de destino
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '89b1f0f68e7c2a3cdf3fa138fc683889124098dc'
+          node --input-type=module <<'NODE'
+          import { assertDemoTarget, assertDemoDatabase } from './lib/finance/demo-guard.mjs';
+          import { supabaseApiKeyHeaders } from './lib/supabase-api-headers.mjs';
+          const names = ['SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'ARANDU_DEMO_PASSWORD', 'CRON_SECRET'];
+          for (const name of names) if (!process.env[name]) throw Error('Segredo ausente no GitHub Environment demo: ' + name);
+          if (process.env.CRON_SECRET.length < 32) throw Error('CRON_SECRET insuficiente, configure no Environment demo');
+          const cfg = assertDemoTarget(process.env);
+          if (cfg.target.ref !== 'offgpyysgdhfemjlchod') throw Error('Supabase incorreto');
+          if (cfg.appUrl !== 'https://arandu-demo-9fxmf7u6k-lucas-projects467.vercel.app') throw Error('URL do candidato incorreta');
+          const app = await fetch(cfg.appUrl + '/api/health', { signal: AbortSignal.timeout(30000) });
+          if (app.status !== 200) throw Error('App candidato indisponível: HTTP ' + app.status);
+          const health = await app.json();
+          if (health?.release?.environment !== 'demo' || health?.release?.datasource !== 'supabase')
+            throw Error('App candidato não confirma runtime Demo canônico');
+          const headers = supabaseApiKeyHeaders(cfg.serviceKey);
+          const st = await fetch(cfg.supabaseUrl + '/rest/v1/fin_settings?select=value&key=eq.deployment_environment', { headers, signal: AbortSignal.timeout(30000) });
+          if (!st.ok) throw Error('Supabase settings inacessível: HTTP ' + st.status);
+          const rows = await st.json();
+          const marker = rows?.[0]?.value ?? null;
+          const org = await fetch(cfg.supabaseUrl + '/rest/v1/fin_organizations?select=id&limit=1', { headers, signal: AbortSignal.timeout(30000) });
+          if (!org.ok) throw Error('Supabase fin_organizations inacessível: HTTP ' + org.status);
+          const orgRows = await org.json();
+          assertDemoDatabase({ marker, organizations: orgRows.length });
+          if (marker === 'demo' || orgRows.length !== 0)
+            throw Error('Preflight de primeiro seed exige base sem empresas; seed já iniciado? Não sobrescrever.');
+          console.log('DEMO_REMOTE_PREFLIGHT_OK: ref exclusivo, app canônico, secrets presentes, sem empresas e sem marcador');
+          NODE
+
+      - name: Criar baseline Vitta Foods com APIs e Auth reais
+        if: inputs.mode == 'seed-and-provision'
+        run: npm run demo:seed
+
+      - name: Validar baseline sem novas escritas
+        if: inputs.mode == 'seed-and-provision'
+        run: npm run demo:check
+
+      - name: Provisionar dois workspaces independentes
+        if: inputs.mode == 'seed-and-provision'
+        run: npm run demo:workspaces -- provision --count=2 --concurrency=1
+
+      - name: Conferir pool sem reset
+        if: inputs.mode == 'seed-and-provision'
+        run: npm run demo:workspaces -- list
+
+      - name: Resumo sem dados sensíveis
+        if: success()
+        shell: bash
+        run: |
+          {
+            echo '## Arandu Demo — seed remoto'
+            echo ''
+            echo 'Supabase ref: offgpyysgdhfemjlchod'
+            echo 'App candidato: https://arandu-demo-9fxmf7u6k-lucas-projects467.vercel.app'
+            echo 'SHA executado: 89b1f0f68e7c2a3cdf3fa138fc683889124098dc'
+            echo 'Modo solicitado: ${{ inputs.mode }}'
+            echo 'Não foi promovido nenhum domínio nem alterado o Supabase de produção.'
+          } >> "$GITHUB_STEP_SUMMARY"
