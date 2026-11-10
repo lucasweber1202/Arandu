@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { supabaseApiKeyHeaders } from '../../lib/supabase-api-headers.mjs';
 // Fase 1 da integração efêmera: antes do seed, prova que banco, Auth,
 // PostgREST, Storage e a API do Arandu respondem de verdade e que o RLS está
 // ligado. Cria uma conta descartável (*.example), entra pela API real, confere
@@ -64,7 +65,7 @@ await check('GoTrue (Auth) saudável pelo gateway', async () => { const r = awai
 await check('PostgREST saudável pelo gateway', async () => { const r = await waitFor('PostgREST', `${SB}/rest/v1/`, HEALTH_MS, { headers: { apikey: ANON } }); return `HTTP ${r.status}`; });
 await check('Pool: consulta real de capacidade e contagem exata antes do seed', async () => {
   const r = await fetchT(`${SB}/rest/v1/${DEMO_POOL_READINESS_PATH}`, {
-    headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, Prefer: 'count=exact' }
+    headers: { ...supabaseApiKeyHeaders(SERVICE), Prefer: 'count=exact' }
   });
   must(r.ok, `HTTP ${r.status}`);
   const rows = JSON.parse((await readBoundedResponse(r, 4 * 1024 * 1024)).toString('utf8'));
@@ -91,7 +92,7 @@ const password = `Smoke-${crypto.randomBytes(12).toString('base64url')}-9a`;
 let userId = null;
 let cookie = null;
 await check('Auth: conta descartável criada no GoTrue (admin)', async () => {
-  const r = await fetchT(`${SB}/auth/v1/admin/users`, { method: 'POST', headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, 'Content-Type': 'application/json' },
+  const r = await fetchT(`${SB}/auth/v1/admin/users`, { method: 'POST', headers: { ...supabaseApiKeyHeaders(SERVICE), 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, email_confirm: true }) });
   const data = await r.json();
   must(r.ok && data.id, `HTTP ${r.status} ${data.msg || data.error_code || ''}`);
@@ -169,7 +170,8 @@ await check('Sessão: logout pela API do Arandu derruba o token no PostgREST dir
   return 'API: não autenticado; PostgREST: 401 session_revoked';
 });
 await check('Sessão: service_role e anon não passam pela checagem de sessão', async () => {
-  const service = await restAs(SERVICE, 'fin_settings?select=key&limit=1');
+  const serviceResponse = await fetchT(`${SB}/rest/v1/fin_settings?select=key&limit=1`, { headers: supabaseApiKeyHeaders(SERVICE) });
+  const service = { status: serviceResponse.status };
   const anon = await fetchT(`${SB}/rest/v1/fin_rfqs?select=id`, { headers: { apikey: ANON } });
   must(service.status === 200, `service_role: HTTP ${service.status}`);
   must(anon.status !== 200 || (await anon.json()).length === 0, 'anon leu fin_rfqs');
@@ -177,7 +179,7 @@ await check('Sessão: service_role e anon não passam pela checagem de sessão',
 });
 await check('Auth: conta descartável removida', async () => {
   must(userId, 'sem conta para remover');
-  const r = await fetchT(`${SB}/auth/v1/admin/users/${userId}`, { method: 'DELETE', headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}` } });
+  const r = await fetchT(`${SB}/auth/v1/admin/users/${userId}`, { method: 'DELETE', headers: supabaseApiKeyHeaders(SERVICE) });
   must(r.ok, `HTTP ${r.status}`);
   must(sql(`select count(*) from auth.users where id = '${userId}'`) === '0', 'conta ainda existe');
   must(sql(`select count(*) from auth.sessions where user_id = '${userId}'`) === '0', 'sessões da conta removida continuam em auth.sessions');

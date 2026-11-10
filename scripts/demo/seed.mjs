@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { supabaseApiKeyHeaders } from '../../lib/supabase-api-headers.mjs';
 import { seedQuotaReport } from '../ci/seed-quota-report.mjs';
 // Seed e reset da demonstração canônica do Arandu (Vitta Foods S.A.).
 //
@@ -71,7 +72,7 @@ const must = (condition, message) => { if (!condition) throw new Error(message);
 
 // ----------------------------------------------------------- service role
 async function service(path, { method = 'GET', body, prefer, base = 'rest/v1' } = {}) {
-  const headers = { apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, 'Content-Type': 'application/json' };
+  const headers = { ...supabaseApiKeyHeaders(SERVICE), 'Content-Type': 'application/json' };
   if (prefer) headers.Prefer = prefer;
   const {response,text} = await profile.request({channel:base.split('/')[0],method,path},async()=>{
     const response=await fetch(`${SB}/${base}/${path}`,{method,headers,...(body===undefined?{}:{body:JSON.stringify(body)})});

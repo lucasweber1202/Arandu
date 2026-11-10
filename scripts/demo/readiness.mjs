@@ -1,3 +1,4 @@
+import { supabaseApiKeyHeaders } from '../../lib/supabase-api-headers.mjs';
 // Prontidão da apresentação na Demo canônica LOCAL: responde, antes de entrar na
 // sala, "posso apresentar no Modo leitura? e no Modo interativo?".
 //
@@ -218,14 +219,14 @@ check('Tarefas do seed presentes', (tasks.json?.rows || []).length >= Math.min(5
 // Entrada por persona: cada janela anônima nova reivindica um workspace pronto, e o
 // servidor aceita 4 reivindicações por hora por origem (auth-demo-claim). Só lê.
 const poolResponse = await get(`${SB}/rest/v1/${DEMO_POOL_READINESS_PATH}`, { headers: {
-  apikey: config.serviceKey, Authorization: `Bearer ${config.serviceKey}`, Prefer: 'count=exact' } });
+  ...supabaseApiKeyHeaders(config.serviceKey), Prefer: 'count=exact' } });
 const pool = [200, 206].includes(poolResponse.status) ? poolResponse.json : null;
 const poolStatus = demoPoolStatus(pool, { total: demoPoolTotal(poolResponse.headers.get('content-range')) });
 const readyCount = Array.isArray(pool) ? pool.filter(row => row.status === 'ready').length : 0;
 // Count all recent claims independently, including expired workspaces. A partial
 // Data API page must never understate quota consumption.
 const claims = await get(`${SB}/rest/v1/fin_demo_workspaces?select=id&claimed_at=gt.${new Date(Date.now() - 3600000).toISOString()}&limit=1`, {
-  headers: { apikey: config.serviceKey, Authorization: `Bearer ${config.serviceKey}`, Prefer: 'count=exact' } });
+  headers: { ...supabaseApiKeyHeaders(config.serviceKey), Prefer: 'count=exact' } });
 const recentClaims = [200, 206].includes(claims.status) && Array.isArray(claims.json) ? demoPoolTotal(claims.headers.get('content-range')) : null;
 check('Pool de visitantes (entrada por persona)', poolStatus === 'ok' && readyCount >= 2 && recentClaims !== null && recentClaims <= 2 ? 'PASS' : 'FAIL',
   `${readyCount} workspace(s) pronto(s); ${recentClaims ?? 'não comprovado'} entrada(s) nova(s) na última hora (limite 4/h por rede); integridade ${poolStatus}`,

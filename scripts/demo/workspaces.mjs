@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { supabaseApiKeyHeaders } from '../../lib/supabase-api-headers.mjs';
 // Pool de workspaces da Demo canônica (docs/demo/VISITOR_ISOLATION.md).
 //
 //   node scripts/demo/workspaces.mjs list
@@ -29,7 +30,7 @@ try { config = assertDemoTarget(process.env); } catch (error) {
 }
 
 async function service(path, { method = 'GET', body, prefer } = {}) {
-  const headers = { apikey: config.serviceKey, Authorization: `Bearer ${config.serviceKey}`, 'Content-Type': 'application/json', ...(prefer ? { Prefer: prefer } : {}) };
+  const headers = { ...supabaseApiKeyHeaders(config.serviceKey), 'Content-Type': 'application/json', ...(prefer ? { Prefer: prefer } : {}) };
   const response = await fetch(`${config.supabaseUrl}/rest/v1/${path}`, { method, headers, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
   const text = await response.text();
   if (!response.ok) throw new Error(`${method} ${path.split('?')[0]}: ${response.status} ${text.slice(0, 200)}`);
