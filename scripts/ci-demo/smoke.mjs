@@ -1,5 +1,5 @@
-import { supabaseApiKeyHeaders } from '../../lib/supabase-api-headers.mjs';
 #!/usr/bin/env node
+import { supabaseApiKeyHeaders } from '../../lib/supabase-api-headers.mjs';
 // Fase 1 da integração efêmera: antes do seed, prova que banco, Auth,
 // PostgREST, Storage e a API do Arandu respondem de verdade e que o RLS está
 // ligado. Cria uma conta descartável (*.example), entra pela API real, confere

@@ -1,5 +1,5 @@
-import { supabaseApiKeyHeaders } from '../../lib/supabase-api-headers.mjs';
 #!/usr/bin/env node
+import { supabaseApiKeyHeaders } from '../../lib/supabase-api-headers.mjs';
 import { seedQuotaReport } from '../ci/seed-quota-report.mjs';
 // Seed e reset da demonstração canônica do Arandu (Vitta Foods S.A.).
 //

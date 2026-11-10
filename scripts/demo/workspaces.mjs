@@ -1,5 +1,5 @@
-import { supabaseApiKeyHeaders } from '../../lib/supabase-api-headers.mjs';
 #!/usr/bin/env node
+import { supabaseApiKeyHeaders } from '../../lib/supabase-api-headers.mjs';
 // Pool de workspaces da Demo canônica (docs/demo/VISITOR_ISOLATION.md).
 //
 //   node scripts/demo/workspaces.mjs list
