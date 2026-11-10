@@ -1,3 +1,4 @@
+import { supabaseApiKeyHeaders } from '../lib/supabase-api-headers.mjs';
 import { createHash } from 'node:crypto';
 import { createAuthDomain } from '../lib/api/domains/auth.mjs';
 import { handleSecurityText, publicSiteUrl } from '../lib/api/domains/security-contact.mjs';
@@ -80,8 +81,7 @@ async function enforceRateLimit(req, scope, limit, windowMs, identity = '', opti
     method: 'POST',
     signal: AbortSignal.timeout(EXTERNAL_REQUEST_TIMEOUT_MS),
     headers: {
-      apikey: SUPABASE_SERVICE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+      ...supabaseApiKeyHeaders(SUPABASE_SERVICE_KEY),
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
