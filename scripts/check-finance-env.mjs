@@ -11,7 +11,7 @@
 // Sai com código 1 quando falta algo obrigatório para o ambiente declarado, ou
 // quando encontra uma combinação que não deveria existir.
 
-import { LEGACY_SUPABASE_REFS, PILOT_SUPABASE_REFS, foreignSupabaseRef } from '../lib/finance/pilot-doctor.mjs';
+import { LEGACY_SUPABASE_REFS, PILOT_SUPABASE_REFS, DEMO_SUPABASE_REFS, foreignSupabaseRef } from '../lib/finance/pilot-doctor.mjs';
 import { SERVER_ENVIRONMENTS, CANONICAL_BRANCH, resolveRuntime } from '../lib/runtime-mode.mjs';
 import { demoPersonaSecretReady } from '../lib/finance/demo-entry-readiness.mjs';
 import { publicHostname } from '../lib/public-site-url.mjs';
@@ -130,6 +130,10 @@ if (cronSecret && cronSecret === serviceRole) {
 // O piloto tem Supabase dedicado; o projeto histórico de arte nunca recebe a
 // stack financeira nem dado de empresa piloto.
 const supabaseRef = (() => { try { const host = new URL(String(env.SUPABASE_URL || '')).hostname.toLowerCase(); return host.endsWith('.supabase.co') ? host.split('.')[0] : null; } catch { return null; } })();
+// O projeto convertido para Demo não aceita mais deploys/consultas do Pilot.
+if (environment === 'pilot' && supabaseRef && DEMO_SUPABASE_REFS.includes(supabaseRef)) {
+  problems.push('SUPABASE_URL do piloto aponta para o projeto já convertido em Demo; Pilot não pode reutilizar banco de visitantes.');
+}
 if (environment === 'pilot' && supabaseRef && LEGACY_SUPABASE_REFS.includes(supabaseRef)) {
   problems.push('SUPABASE_URL do piloto aponta para o projeto legado de arte. Use o projeto dedicado ao piloto financeiro.');
 }
