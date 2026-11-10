@@ -2,7 +2,10 @@
 // na saída. Supabase e app simulados; nada de rede.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { runDoctor, formatDoctor, demoCapacityStatus, EXPECTED_SCHEMA_VERSION, REQUIRED_TABLES, REQUIRED_RPCS } from '../lib/finance/pilot-doctor.mjs';
+import { runDoctor as actualRunDoctor } from '../lib/finance/pilot-doctor.mjs';
+import { createHistoricalPilotFixture } from './historical-pilot-fixture.mjs';
+const historical = createHistoricalPilotFixture();
+const { runDoctor, formatDoctor, demoCapacityStatus, EXPECTED_SCHEMA_VERSION, REQUIRED_TABLES, REQUIRED_RPCS } = await historical.module('lib/finance/pilot-doctor.mjs');
 import { releaseIdentity } from '../lib/runtime-mode.mjs';
 import { DOCUMENT_MIME_TYPES } from '../lib/finance/document-storage.mjs';
 
@@ -314,3 +317,17 @@ for (const change of [{ notReady: true }, { readyStatus: 503 }, { readyStatus: 4
   assert.equal(c.outcome, change.readyStatus === 403 ? 'ACCESS_BLOCKED' : 'FAIL');
   assert.ok(c.code && c.next_action);
 }
+// A política publicada não aceita mais o antigo Pilot nesse projeto.
+// A fixture histórica acima conserva 300+ linhas de provas do fluxo anterior.
+const livePilot = await actualRunDoctor({
+  env: baseEnv, fetchImpl: fakeSupabase().fetchImpl, vercelConfig, now, timeoutMs: 1000
+});
+assert.equal(levelOf(livePilot, 'projeto Supabase do ambiente'), 'UNSAFE');
+assert.equal(livePilot.result, 'UNSAFE', 'o ref transferido não volta a ser Pilot mesmo sem seed');
+const liveDemo = await actualRunDoctor({
+  env: { ...baseEnv, ARANDU_ENV: 'demo', ARANDU_DEMO_PASSWORD: 'SyntheticOnlySecret9' },
+  fetchImpl: fakeSupabase({ environment: 'demo', marker: 'demo' }).fetchImpl,
+  vercelConfig, now, timeoutMs: 1000
+});
+assert.equal(levelOf(liveDemo, 'projeto Supabase do ambiente'), 'OK', 'ownership Demo reconhecido sem bypass');
+historical.cleanup();

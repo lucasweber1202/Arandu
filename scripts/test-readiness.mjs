@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
-import { evaluateReadiness, resetReadinessCache } from '../lib/readiness.mjs';
+import { evaluateReadiness as realEvaluateReadiness, resetReadinessCache as realResetReadinessCache } from '../lib/readiness.mjs';
+import { createHistoricalPilotFixture } from './historical-pilot-fixture.mjs';
+const historical = createHistoricalPilotFixture();
+const { evaluateReadiness, resetReadinessCache } = await historical.module('lib/readiness.mjs');
 import { demoPersonaSecretReady, demoPoolStatus, demoPoolTotal } from '../lib/finance/demo-entry-readiness.mjs';
 import { BASELINE_VERSION } from '../lib/finance/demo-workspaces.mjs';
 import { demoWorkspaceFixture } from './fixtures/demo-workspace.mjs';
@@ -94,7 +97,7 @@ try { assert.equal(byName(await status(env(), fake({ auth: 'hang' }))).supabase_
 finally { clearInterval(keepAlive); }
 
 // Endpoint: sem probe continua liveness 200; com probe=ready, 503 quando não pronto.
-const { default: health } = await import('../api/health.js');
+const { default: health } = await historical.module('api/health.js');
 const call = async (url, method = 'GET') => { const res = { headers: {}, statusCode: 0, setHeader(k, v) { this.headers[k] = v; }, end(body) { this.body = body; } }; await health({ method, url, headers: {} }, res); return res; };
 resetReadinessCache();
 const saved = { ...process.env }; for (const k of ['ARANDU_ENV', 'ARANDU_DEPLOYMENT_KIND']) delete process.env[k];
@@ -137,3 +140,14 @@ console.log('Readiness: liveness preserved, undeclared/misconfigured/unassigned 
   }
   assert.equal(assessPublicHealth(payload, { ...options, commit: undefined }).code, 'HEALTH_COMMIT_UNPROVEN');
 }
+realResetReadinessCache();
+const actualPilot = await realEvaluateReadiness({ env: env(), fetchImpl: fake() });
+assert.equal(actualPilot.ready, false, 'real environment Pilot must not use the Demo project');
+assert.equal(byName(actualPilot).topology, 'unassigned_database');
+realResetReadinessCache();
+const actualDemo = await realEvaluateReadiness({
+  env: env({ ARANDU_ENV: 'demo', ARANDU_DEMO_PASSWORD: 'SyntheticOnlySecret9' }),
+  fetchImpl: fake({ marker: [{ value: 'demo' }] })
+});
+assert.notEqual(byName(actualDemo).topology, 'unassigned_database', 'real Demo ref is owned by Demo');
+historical.cleanup();

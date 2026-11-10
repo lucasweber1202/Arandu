@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
-import { assessPilotRelease, PILOT_JOURNEY_STEPS, PILOT_CANARY_PROBES, PILOT_CI_GATES } from '../lib/finance/pilot-release.mjs';
+import { assessPilotRelease as currentAssessPilotRelease } from '../lib/finance/pilot-release.mjs';
+import { createHistoricalPilotFixture } from './historical-pilot-fixture.mjs';
+const historical = createHistoricalPilotFixture();
+const { assessPilotRelease, PILOT_JOURNEY_STEPS, PILOT_CANARY_PROBES, PILOT_CI_GATES } = await historical.module('lib/finance/pilot-release.mjs');
 import { EXPECTED_SCHEMA_VERSION } from '../lib/finance/pilot-doctor.mjs';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -112,3 +115,6 @@ try {
   fs.rmSync(temp, { recursive: true, force: true });
 }
 console.log('Pilot release gate: hosted identity, exact commit, freshness, restore, full journey and fail-closed redaction passed (fixtures only).');
+assert.equal(currentAssessPilotRelease(e, { commit, now }).result, 'PILOT NO-GO',
+  'a política real não emite GO para o Pilot depois do ownership Demo');
+historical.cleanup();
