@@ -228,7 +228,6 @@ test('pós-contrato: implantação → covenants → performance → spend → q
 
 test('responsáveis de tarefa no backend real: reatribuir, deixar sem responsável, recarregar, idempotência e recusas', async ({ page, browser, baseURL }) => {
   await login(page, 'juliana');
-  const write = (method, body) => page.request.fetch('/api/finance/tasks', { method, data: body, headers: { Origin: new URL(baseURL).origin } });
   await page.waitForFunction(() => Boolean(window.__aranduCtx?.organization?.id));
   const org = await page.evaluate(() => window.__aranduCtx.organization.id);
   await page.goto('/finance/tasks.html');
@@ -257,15 +256,31 @@ test('responsáveis de tarefa no backend real: reatribuir, deixar sem responsáv
   await expect(row).toBeVisible();
   await assign(row.locator('select.task-assignee'), { label: 'Juliana Ramos (você)' });
 
-  // Criação idempotente: mesma chave e mesmo conteúdo devolvem a mesma tarefa; conteúdo diferente é recusado.
+  // A quota de escrita financeira é por usuário. No mobile, Juliana foi usada
+  // pelas jornadas anteriores; outro membro autorizado testa idempotência
+  // isoladamente, SEM elevar limite, limpar estado nem ignorar resposta 429.
+  // Helena é admin na MESMA organização; as operações continuam usando API real.
+  const admin = await browser.newContext({ baseURL, ignoreHTTPSErrors: true });
+  const helena = await admin.newPage();
+  await login(helena, 'helena');
+  const write = (method, body) => helena.request.fetch('/api/finance/tasks', {
+    method, data: body, headers: { Origin: new URL(baseURL).origin }
+  });
+  // Criação idempotente: a primeira devolve 201; a repetição, 200 e o MESMO ID.
   const key = crypto.randomUUID();
   const body = { organization_id: org, title: 'Tarefa de ensaio da demonstração (cancelada ao final)', due_on: null, idempotency_key: key };
-  const first = await (await write('POST', body)).json();
-  const again = await (await write('POST', body)).json();
-  expect(again.row.id).toBe(first.row.id);
+  const createdResponse = await write('POST', body);
+  expect(createdResponse.status(), 'primeira criação deve persistir; não aceitar 429 ou respostas parciais').toBe(201);
+  const first = await createdResponse.json();
+  expect(first.row?.id, 'primeira criação deve devolver ID persistido').toMatch(/^[0-9a-f-]{36}$/i);
+  const repeatedResponse = await write('POST', body);
+  expect(repeatedResponse.status(), 'repetição idempotente deve localizar a tarefa anterior').toBe(200);
+  const again = await repeatedResponse.json();
+  expect(again.row?.id).toBe(first.row.id);
   const reused = await write('POST', { ...body, title: 'Outro conteúdo com a mesma chave' });
   expect(reused.status()).toBe(409);
   expect((await write('PATCH', { organization_id: org, task_id: first.row.id, status: 'cancelled' })).status()).toBe(200);
+  await admin.close();
 
   // Leitor (controller): vê quem responde, não recebe controle e o servidor recusa a atribuição.
   const viewer = await browser.newContext({ baseURL, ignoreHTTPSErrors: true });
