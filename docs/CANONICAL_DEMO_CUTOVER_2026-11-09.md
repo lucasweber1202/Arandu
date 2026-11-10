@@ -25,3 +25,9 @@ O operador confirmou que cadastrou as variáveis `SUPABASE_ANON_KEY` e `SUPABASE
 Os clientes REST, Storage, rate limit, readiness, doctor e ferramentas de seed agora distinguem o cabeçalho `apikey: sb_...` de `Authorization: Bearer <JWT real de usuário>`. Chaves legadas JWT ainda usam Bearer para retrocompatibilidade. Chaves opacas não devem entrar no Authorization sem um JWT real de sessão.
 
 **Atenção:** o último Redeploy executado pelo operador falhou por seis itens: falta das duas chaves/CRON_SECRET/senha Demo, classificação Pilot no repositório e modo sandbox ligado. As chaves foram acrescentadas depois desse deployment. A presença delas não resolve a atribuição GitHub nem os outros bloqueios. Não executar outro deploy enquanto `ARANDU_DEPLOYMENT_KIND=demo` conflitar com `ARANDU_ENV=demo`; não interromper o sandbox público.
+
+## Atribuição hospedada proposta em PR separado (10/11/2026)
+
+Após a remoção de `ARANDU_DEPLOYMENT_KIND` no Vercel e confirmação das sete variáveis, a transição de ownership pode ocorrer sem criar outro Supabase: `ACTIVE_SUPABASE_ASSIGNMENTS.demo=[offgpyysgdhfemjlchod]`, `pilot=[]`, `legacy=[igacnfjeuqhxcmfyepgj]`, `production=[]`. Os testes de compatibilidade Pilot agora rodam com a política antiga em fixture descartável, jamais no ambiente hospedado real. A nova política ativa deve recusar qualquer tentativa de executar o Pilot no banco da Demo e continuar bloqueando a produção.
+
+**ATENÇÃO** — este commit de atribuição, quando MESCLADO em `main`, pode disparar um deployment **Production do projeto Vercel Demo** automaticamente! Mesmo com o build verde, não faça merge antes de planejar o release sem alias público, seed pelo operador, verificação de Auth e validação de jornada. Esta PR permanece em draft, sem seed/deploy/promote. A mudança de ownership é necessária mas não é prova de Demo pronta.

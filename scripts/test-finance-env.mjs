@@ -6,7 +6,9 @@ import { spawnSync } from 'node:child_process';
 import { cpSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { permanentSupabaseAssignmentProblem } from '../lib/deployment-topology.mjs';
+import { createHistoricalPilotFixture } from './historical-pilot-fixture.mjs';
+const historical = createHistoricalPilotFixture();
+const { permanentSupabaseAssignmentProblem } = await historical.module('lib/deployment-topology.mjs');
 
 const key = (claims) => `eyJhbGciOiJIUzI1NiJ9.${Buffer.from(JSON.stringify(claims)).toString('base64url')}.assinatura-0123456789abcdef`;
 const pilotRef = 'offgpyysgdhfemjlchod';
@@ -19,7 +21,7 @@ const base = {
 };
 const run = (overrides) => {
   const env = { ...base, ...overrides };
-  const result = spawnSync(process.execPath, ['scripts/check-finance-env.mjs'], { env, encoding: 'utf8' });
+  const result = spawnSync(process.execPath, ['scripts/check-finance-env.mjs'], { cwd: historical.dir, env, encoding: 'utf8' });
   for (const secret of [env.SUPABASE_ANON_KEY, env.SUPABASE_SERVICE_ROLE_KEY, env.CRON_SECRET].filter(Boolean)) {
     assert.ok(!(result.stdout + result.stderr).includes(secret), 'finance:env:check imprimiu um segredo');
   }
@@ -162,3 +164,16 @@ try {
 assert.match(permanentSupabaseAssignmentProblem('production', prodRef), /sem atribuição ativa/,
   'fixture must not change the operational assignment');
 console.log('finance:env:check: permanentes exigem atribuição ativa aprovada; refs desconhecidos, destinos planejados e identidade não verificável bloqueados, sem imprimir segredo.');
+const realRun = (overrides = {}) => spawnSync(process.execPath,
+  ['scripts/check-finance-env.mjs'], { env: { ...base, ...overrides }, encoding: 'utf8' });
+const formerPilot = realRun({ ARANDU_ENV: 'pilot' });
+assert.equal(formerPilot.status, 1, 'backend financeiro da Demo não aceita mais configuração de Pilot');
+assert.match(formerPilot.stdout, /convertido em Demo/);
+const promotedDemo = realRun({
+  ARANDU_ENV: 'demo', ARANDU_SITE_URL: 'https://arandu-demo.vercel.app',
+  ARANDU_DEMO_PASSWORD: 'SyntheticOnlySecret9', VERCEL_GIT_COMMIT_REF: 'main'
+});
+assert.equal(promotedDemo.status, 0, 'ref agora atribuído à Demo deve passar validação estrutural');
+const wrongProduction = realRun({ ARANDU_ENV: 'production', ARANDU_SITE_URL: 'https://arandu.vercel.app' });
+assert.equal(wrongProduction.status, 1, 'produção não pode reutilizar o ref Demo');
+historical.cleanup();

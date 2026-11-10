@@ -4,7 +4,7 @@
 
 A Demo canônica (`ARANDU_ENV=demo`) é o mesmo build da `main` ligado a um Supabase DEMO dedicado: as rotas abaixo são as mesmas nos dois ambientes. O estado **local** é calculado (rota canônica + recurso real da API + check de sanidade do seed). Ele **não** prova publicação: o eixo hospedado é separado.
 
-**Estado hospedado da Demo canônica:** `BLOCKED` — Supabase DEMO sem atribuição ativa aprovada em `lib/deployment-topology.mjs`; depende de recuperação comprovada e cutover (docs/TWO_ENVIRONMENT_CONSOLIDATION.md).
+**Estado hospedado da Demo canônica:** `ASSIGNED_PENDING_EVIDENCE` — atribuição ativa registrada; falta evidência hospedada (deploy, seed, doctor, canary).
 
 **Denominador:** 31 capacidades. Verificadas localmente: 31. Parciais: 0. Limitadas pelo ambiente: 0. Não representadas: 0. Bloqueadas: 0.
 

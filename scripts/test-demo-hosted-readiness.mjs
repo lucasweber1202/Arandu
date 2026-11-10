@@ -1,20 +1,20 @@
 import assert from 'node:assert/strict';
-import { cpSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { cpSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import { demoWorkspaceFixture } from './fixtures/demo-workspace.mjs';
 
-// A disposable module tree models a future approved assignment. Operational
-// topology is never changed, and all dependency requests remain synthetic.
+// A disposable module tree tests the ACTIVE Demo assignment without ever using
+// hosted credentials or making external requests. All responses are synthetic.
 const dir = mkdtempSync(join(tmpdir(), 'arandu-demo-readiness-test-'));
 try {
   cpSync(new URL('../lib', import.meta.url), join(dir, 'lib'), { recursive: true });
   const topology = join(dir, 'lib/deployment-topology.mjs');
-  const ref = 'abcdefghijklmnopqrst';
+  const ref = 'offgpyysgdhfemjlchod';
   const source = readFileSync(topology, 'utf8');
-  assert.ok(source.includes('demo: Object.freeze([])'));
-  writeFileSync(topology, source.replace('demo: Object.freeze([])', `demo: Object.freeze(['${ref}'])`));
+  assert.ok(source.includes(`demo: Object.freeze(['${ref}'])`), 'a política real deve atribuir o ref exclusivamente à Demo');
+  assert.ok(source.includes('pilot: Object.freeze([])'), 'Pilot precisa ficar sem ownership');
   const { evaluateReadiness, resetReadinessCache } = await import(pathToFileURL(join(dir, 'lib/readiness.mjs')));
   const { REQUIRED_RPCS, EXPECTED_SCHEMA_VERSION } = await import(pathToFileURL(join(dir, 'lib/finance/pilot-doctor.mjs')));
   const { BASELINE_VERSION } = await import(pathToFileURL(join(dir, 'lib/finance/demo-workspaces.mjs')));

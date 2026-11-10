@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import { assertDemoTarget, assertDemoDatabase, assertDemoApplication, demoTargetIdentity, DemoGuardError, isDemoEmail, DEMO_EMAIL_DOMAINS } from '../lib/finance/demo-guard.mjs';
 
 const key = (claims) => `eyJhbGciOiJIUzI1NiJ9.${Buffer.from(JSON.stringify(claims)).toString('base64url')}.assinatura`;
-const ref = 'demoarandu0000000000';
+const ref = 'offgpyysgdhfemjlchod';
 const ok = {
   ARANDU_ENV: 'demo', ARANDU_DEMO_CONFIRM: ref, SUPABASE_URL: `https://${ref}.supabase.co`,
   SUPABASE_SERVICE_ROLE_KEY: key({ role: 'service_role', ref }), SUPABASE_ANON_KEY: key({ role: 'anon', ref }),
@@ -16,14 +16,14 @@ const refused = (env, pattern, label) => {
   assert.throws(() => assertDemoTarget(env), (error) => error instanceof DemoGuardError && error.reasons.some((reason) => pattern.test(reason)), label);
 };
 
-assert.equal(assertDemoTarget(ok).target.ref, ref);
+assert.equal(assertDemoTarget(ok).target.ref, ref, 'ref convertido é aceito somente como Demo, não mais Pilot');
 assert.equal(assertDemoTarget({ ...ok, SUPABASE_URL: 'https://localhost:8443', ARANDU_DEMO_CONFIRM: 'local', SUPABASE_SERVICE_ROLE_KEY: key({ role: 'service_role' }), SUPABASE_ANON_KEY: key({ role: 'anon' }) }).target.kind, 'local');
 for (const environment of ['', 'production', 'pilot', 'development']) refused({ ...ok, ARANDU_ENV: environment }, /ARANDU_ENV=demo/, `ARANDU_ENV=${environment || 'ausente'}`);
 refused({ ...ok, NODE_ENV: 'development', ARANDU_ENV: '' }, /ARANDU_ENV=demo/, 'NODE_ENV não basta');
 for (const vercel of ['production', 'preview']) refused({ ...ok, VERCEL_ENV: vercel }, /dentro de um deploy/, `VERCEL_ENV=${vercel}`);
 refused({ ...ok, ARANDU_DEMO_CONFIRM: '' }, /ARANDU_DEMO_CONFIRM/, 'sem confirmação');
 refused({ ...ok, ARANDU_DEMO_CONFIRM: 'local' }, /ARANDU_DEMO_CONFIRM/, 'confirmação de outro alvo');
-for (const [target, pattern] of [['offgpyysgdhfemjlchod', /piloto/], ['igacnfjeuqhxcmfyepgj', /legado/]]) {
+for (const [target, pattern] of [['igacnfjeuqhxcmfyepgj', /legado/], ['demoarandu0000000000', /DEMO_SUPABASE_REFS/]]) {
   refused({ ...ok, SUPABASE_URL: `https://${target}.supabase.co`, ARANDU_DEMO_CONFIRM: target, SUPABASE_SERVICE_ROLE_KEY: key({ role: 'service_role', ref: target }), SUPABASE_ANON_KEY: key({ role: 'anon', ref: target }) }, pattern, target);
 }
 refused({ ...ok, SUPABASE_URL: 'https://banco.empresa.com.br' }, /SUPABASE_URL/, 'domínio próprio não verificável');
