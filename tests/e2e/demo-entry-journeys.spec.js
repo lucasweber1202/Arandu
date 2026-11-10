@@ -87,7 +87,12 @@ test('visitante entra pela página pública, escreve no próprio workspace, troc
   await enterAs(page, 'meridian', '**/provider/index.html');
   await expect(page.locator('#view')).toContainText('Vitta Foods');
   await page.goto('/provider/rfqs.html');
-  await page.locator('.opportunity-title a').first().click();
+  // O dataset tem mais de uma RFQ da Meridian: somente a concorrência aberta
+  // de giro sazonal ainda não recebeu proposta dessa instituição. Não confiar
+  // na ordem do feed, que pode variar por data/recência após o seed.
+  const openRfq = page.locator('.opportunity-title a', { hasText: 'Capital de giro sazonal' });
+  await expect(openRfq, 'a concorrência aberta da safra deve aparecer uma única vez').toHaveCount(1);
+  await openRfq.click();
   await expect(page.locator('.meta-buyer')).toContainText('Solicitado por Vitta Foods');
   // A descricao da demanda foi redigida pela compradora e compartilhada com
   // as instituicoes convidadas. Ela cita legitimamente o banco do contrato
