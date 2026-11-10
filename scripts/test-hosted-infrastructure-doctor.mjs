@@ -16,7 +16,7 @@ assert.equal(report.executes_mutation, false);
 assert.equal(report.release_ready, false);
 assert.equal(report.cutover_authorized, false);
 assert.equal(report.evidence_origin_authenticated, false);
-assert.equal(row(report, 'active_database_assignment').result, 'BLOCKED');
+assert.equal(row(report, 'active_database_assignment').result, 'PASS', 'o ref está atribuído à Demo, mas não autoriza cutover');
 assert.equal(row(report, 'published_readiness').result, 'NOT_RUN');
 assert.equal(row(report, 'restore_schema_reconciliation').result, 'BLOCKED');
 assert.equal(row(report, 'restore_schema_reconciliation').owner, 'recovery_operator');
