@@ -16,3 +16,12 @@ Dados do marketplace aposentado e descartados com autorização. Configurações
 ## Alcance desta PR
 
 Atualiza os status de planejamento para refletir os schemas alinhados e insere testes de ownership para a futura transição, **sem alterar ACTIVE_SUPABASE_ASSIGNMENTS**, o banco, a Vercel, o seed ou a URL pública. O cutover continua bloqueado por segredo de servidor inacessível ao conector, ausência de seed e testes hospedados e recovery não comprovado. Não fabricar provas de release.
+
+
+## Estado das chaves e compatibilidade (atualizado na mesma PR)
+
+O operador confirmou que cadastrou as variáveis `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` no Vercel `arandu-demo`, usando chaves novas `sb_publishable_` e `sb_secret_`, com nome amigável `arandudemoserver` no Supabase. Esse nome é livre. O segredo `default` foi divulgado e deve ser revogado pelo operador; a revogação ainda não está comprovada. **Nunca reproduzir valores de API key, nem em logs nem Git.** O conector Vercel confirma presença das variáveis, não seus valores.
+
+Os clientes REST, Storage, rate limit, readiness, doctor e ferramentas de seed agora distinguem o cabeçalho `apikey: sb_...` de `Authorization: Bearer <JWT real de usuário>`. Chaves legadas JWT ainda usam Bearer para retrocompatibilidade. Chaves opacas não devem entrar no Authorization sem um JWT real de sessão.
+
+**Atenção:** o último Redeploy executado pelo operador falhou por seis itens: falta das duas chaves/CRON_SECRET/senha Demo, classificação Pilot no repositório e modo sandbox ligado. As chaves foram acrescentadas depois desse deployment. A presença delas não resolve a atribuição GitHub nem os outros bloqueios. Não executar outro deploy enquanto `ARANDU_DEPLOYMENT_KIND=demo` conflitar com `ARANDU_ENV=demo`; não interromper o sandbox público.

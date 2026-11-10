@@ -1,3 +1,4 @@
+import { supabaseApiKeyHeaders } from '../../lib/supabase-api-headers.mjs';
 import { assertLocalEnv } from './assert-local.mjs';
 import { DEMO_POOL_READINESS_PATH, demoPoolTotal, demoPoolStatus } from '../../lib/finance/demo-entry-readiness.mjs';
 import { readBoundedResponse } from '../../lib/bounded-response.mjs';
@@ -7,7 +8,7 @@ const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!key || !process.env.SUPABASE_URL) process.exit(2);
 try {
   const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/${DEMO_POOL_READINESS_PATH}`, {
-    headers: { apikey: key, Authorization: `Bearer ${key}`, Prefer: 'count=exact' }, signal: AbortSignal.timeout(15000)
+    headers: { ...supabaseApiKeyHeaders(key), Prefer: 'count=exact' }, signal: AbortSignal.timeout(15000)
   });
   if (!response.ok) throw new Error('pool_read_failed');
   const rows = JSON.parse((await readBoundedResponse(response, 4 * 1024 * 1024)).toString('utf8'));

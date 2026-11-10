@@ -1,3 +1,4 @@
+import { supabaseApiKeyHeaders } from '../../lib/supabase-api-headers.mjs';
 // Six independent synthetic actors; all business writes use the real Arandu
 // API and user sessions. Service access only creates Auth fixtures/allowlist.
 import fs from 'node:fs';
@@ -23,7 +24,7 @@ async function stage(name,run) {
  catch(error){stages.push({name,result:'FAIL',duration_ms:performance.now()-start});throw error;}
 }
 async function service(resource,body,{auth=false,method='POST',prefer}={}) {
- const response=await fetch(`${SB}/${auth?'auth/v1/':'rest/v1/'}${resource}`,{method,headers:{apikey:config.serviceKey,Authorization:`Bearer ${config.serviceKey}`,'Content-Type':'application/json',...(prefer?{Prefer:prefer}:{})},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(15000)});
+ const response=await fetch(`${SB}/${auth?'auth/v1/':'rest/v1/'}${resource}`,{method,headers:{...supabaseApiKeyHeaders(config.serviceKey),'Content-Type':'application/json',...(prefer?{Prefer:prefer}:{})},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(15000)});
  const text=await response.text();must(response.ok,'fixture_setup_failed');return text?JSON.parse(text):null;
 }
 async function call(who,method,resource,body,{expected=[200,201]}={}) {
