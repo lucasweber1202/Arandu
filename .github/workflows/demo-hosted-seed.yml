@@ -115,6 +115,8 @@ jobs:
 
       - name: Resumo sem dados sensíveis
         if: success()
+        env:
+          RUN_MODE: ${{ inputs.mode }}
         shell: bash
         run: |
           {
@@ -123,6 +125,6 @@ jobs:
             echo 'Supabase ref: offgpyysgdhfemjlchod'
             echo 'App candidato: https://arandu-demo-9fxmf7u6k-lucas-projects467.vercel.app'
             echo 'SHA executado: 89b1f0f68e7c2a3cdf3fa138fc683889124098dc'
-            echo 'Modo solicitado: ${{ inputs.mode }}'
+            echo "Modo solicitado: $RUN_MODE"
             echo 'Não foi promovido nenhum domínio nem alterado o Supabase de produção.'
           } >> "$GITHUB_STEP_SUMMARY"
