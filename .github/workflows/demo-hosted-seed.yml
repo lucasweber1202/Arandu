@@ -64,7 +64,7 @@ jobs:
       - name: Instalar dependências do commit fixo
         run: npm ci --ignore-scripts --no-audit --no-fund
 
-      - name: Preflight seguro: guard + API + banco de destino
+      - name: 'Preflight seguro: guard + API + banco de destino'
         shell: bash
         run: |
           set -euo pipefail
