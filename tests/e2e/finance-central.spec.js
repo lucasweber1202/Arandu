@@ -395,3 +395,41 @@ test('central de ações: renovação leva ao contrato e ao plano de renovaçõe
   await row.getByRole('link', { name: 'Plano de renovações' }).click();
   await expect(page.locator(`#plano-renovacoes [data-contract="${C1}"]`)).toBeVisible();
 });
+
+// Arandu 10 — Action Center: motivo da prioridade, filtro por tipo e "Assumir"
+// confirmado por releitura. API SIMULADA (não é validação hospedada).
+test('central de ações: explica a prioridade, filtra por tipo e assume tarefa sem responsável só após releitura', async ({ page }) => {
+  const T_FREE = '00000000-0000-4000-8000-0000000009b1';
+  const soon = { ...CONTRACT, ends_on: day(70), renewal_notice_days: 60 };
+  const tasks = [{ id: T_FREE, title: 'Coletar certidões', status: 'open', due_on: day(1), assignee_id: null, related_type: null, related_id: null }];
+  await setup(page, { overview: { ...OVERVIEW, contracts: [soon], tasks } });
+  const patches = [];
+  let assignee = null;
+  await page.route('**/api/finance/tasks*', (route) => {
+    const req = route.request();
+    if (req.method() === 'PATCH') { const body = req.postDataJSON(); patches.push(body); assignee = body.assignee_id; return route.fulfill({ json: { ok: true } }); }
+    return route.fulfill({ json: { ok: true, rows: [{ ...tasks[0], assignee_id: assignee }], page: { limit: 1, has_more: false, next_cursor: null } } });
+  });
+  await page.goto('/finance/dashboard.html');
+  const attention = page.locator('#precisa-de-voce');
+  const taskRow = attention.locator('.action-row', { hasText: 'Coletar certidões' });
+  await expect(taskRow).toContainText('Por que aqui: Prazo em 1 dia');
+  await expect(attention.locator('.action-row', { hasText: 'Decidir renovação' })).toContainText('Por que aqui: Prazo em');
+  const kinds = attention.getByRole('group', { name: 'Filtrar pendências por tipo' });
+  await kinds.getByRole('button', { name: /Contratos e renovações/ }).click();
+  await expect(attention.locator('.action-row:visible', { hasText: 'Coletar certidões' })).toHaveCount(0);
+  await expect(attention.locator('.action-row:visible', { hasText: 'Decidir renovação' })).toHaveCount(1);
+  await kinds.getByRole('button', { name: /Todos os tipos/ }).click();
+  await taskRow.getByRole('button', { name: 'Assumir tarefa: Coletar certidões' }).click();
+  await expect(taskRow).toContainText('Atribuída a você · confirmada pelo servidor.');
+  expect(patches).toEqual([{ organization_id: ORG, task_id: T_FREE, assignee_id: 'u1' }]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test('central de ações: leitor não recebe "Assumir"', async ({ page }) => {
+  const tasks = [{ id: '00000000-0000-4000-8000-0000000009b2', title: 'Revisar extrato', status: 'open', due_on: day(1), assignee_id: 'u1' }];
+  await setup(page, { role: 'viewer', overview: { ...OVERVIEW, tasks } });
+  await page.goto('/finance/dashboard.html');
+  await expect(page.locator('#precisa-de-voce')).toContainText('Revisar extrato');
+  await expect(page.getByRole('button', { name: /Assumir tarefa/ })).toHaveCount(0);
+});

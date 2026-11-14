@@ -1488,3 +1488,5 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 .renewal-filters{display:flex;flex-wrap:wrap;gap:var(--s2);padding:0 var(--s4)}
 .renewal-filters .input{flex:1 1 160px;min-width:0}
 .renewal-jump .chip{text-decoration:none}
+.action-why{color:var(--text-muted)}
+.inbox-stale{display:flex;gap:var(--s1);align-items:flex-start;color:var(--danger)}

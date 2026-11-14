@@ -4,7 +4,7 @@
 import { PRODUCTS, PRODUCT_IDS, checkAcquiringShares } from '../../../lib/finance/products.mjs';
 import { passportPrefill, SOURCE_LABELS } from '../../../lib/finance/passport.mjs';
 import { negotiationNextStep, ACTOR_LABEL } from '../../../lib/finance/negotiation-next-step.mjs';
-import { el, icon, fold, daysUntil, relativeDays, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, fieldValue, todayIso, textSpan, textStrong, textItem } from '../core.js';
+import { el, icon, fold, daysUntil, relativeDays, formatDate, formatDateTime, productLabel, demandHeadline, RFQ_STATUS, fieldValue, todayIso, textSpan, textStrong, textItem, plural } from '../core.js';
 import { pill, linkButton, button, emptyState, errorState, person, progress, field, catalogControl, saveIndicator, toast, confirmDialog, tag, onSubmit, toastError } from '../ui.js';
 import { loadEntities, entityContextSelect, inContext, entityName, entityField } from './entities.js';
 
@@ -554,8 +554,32 @@ export async function newRfq(ctx) {
       el('p', { class: 'summary-name', text: data.title || 'Sem título ainda' }),
       el('dl', { class: 'summary-list' }, spec.demandFields.filter((item) => data.demand[item.key] !== undefined).slice(0, 6).map((item) =>
         el('div', {}, [el('dt', { text: item.label }), el('dd', { text: fieldValue(item, data.demand[item.key]) })]))),
-      el('p', { class: 'summary-meta', text: `${filled} de ${required.length + 1} campos obrigatórios · prazo ${data.response_deadline ? formatDate(data.response_deadline) : 'não definido'}` })
+      el('p', { class: 'summary-meta', text: `${filled} de ${required.length + 1} campos obrigatórios · prazo ${data.response_deadline ? formatDate(data.response_deadline) : 'não definido'}` }),
+      pendingList(data, spec)
     );
+  }
+  // Pendências ao vivo, em qualquer etapa: cada uma leva ao campo. Sugestões do
+  // Passport aparecem como sugestões (mantidas ou alteradas), nunca como confirmação.
+  function goToField(key) {
+    const control = form.elements.namedItem(key);
+    const step = fieldsets.findIndex((node) => node.contains(control));
+    if (step < 0) return;
+    highest = Math.max(highest, step);
+    show(step);
+    control.focus();
+  }
+  function pendingList(data, spec) {
+    const missing = [...(data.title.length >= 3 ? [] : [['title', 'Título da solicitação']]),
+      ...spec.demandFields.filter((item) => item.required && data.demand[item.key] === undefined).map((item) => [item.key, item.label])];
+    const changed = data.passport_fields.filter(({ demand_key: key }) => String(data.demand[key]) !== String(passportUsed.get(key)?.value)).length;
+    const kept = data.passport_fields.length - changed;
+    const mobileLabel = root.querySelector?.('.wizard-summary-mobile > summary span');
+    if (mobileLabel) mobileLabel.textContent = missing.length ? `Resumo · ${plural(missing.length, 'obrigatório em branco', 'obrigatórios em branco')}` : 'Resumo e salvamento';
+    return el('div', { class: 'summary-pending', 'data-pending': String(missing.length) }, [
+      missing.length ? el('p', { class: 'small', text: `Impede a criação: ${plural(missing.length, 'campo obrigatório', 'campos obrigatórios')} em branco.` }) : el('p', { class: 'small', text: 'Obrigatórios preenchidos. A revisão confere o restante.' }),
+      missing.length ? el('ul', { class: 'plain-list small', 'aria-label': 'Campos obrigatórios em branco' }, missing.map(([key, label]) => el('li', {}, el('button', { type: 'button', class: 'link-btn', 'data-goto': key, text: label, onclick: () => goToField(key) })))) : null,
+      data.passport_fields.length ? el('p', { class: 'small muted', text: `Passport: ${plural(kept, 'sugestão mantida', 'sugestões mantidas')}${changed ? ` · ${plural(changed, 'alterada', 'alteradas')} por você` : ''}. Confira na revisão.` }) : null
+    ].filter(Boolean));
   }
 
   // Autosave no servidor (ou no motor da demonstração).
@@ -736,6 +760,7 @@ export async function newRfq(ctx) {
   const placeSummary = () => {
     if (media.matches) { if (!mobileSummary.contains(summary)) { mobileSummary.append(summary); root.querySelector('.wizard-main').before(mobileSummary); } }
     else if (mobileSummary.contains(summary)) { root.querySelector('.wizard-layout').append(summary); mobileSummary.remove(); }
+    updateSummary();
   };
   media.addEventListener?.('change', placeSummary);
   queueMicrotask(placeSummary);
