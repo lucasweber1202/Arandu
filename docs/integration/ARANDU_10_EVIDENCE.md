@@ -18,6 +18,8 @@ foi alterado. `finance/src/**`, `finance/style.css` e `tests/e2e/**` preservados
 | `npm run test:database` | PASS, exit 0, PostgreSQL 17.12, três caminhos históricos, recuperação/baseline, upgrade, rollback/reapply e concorrência |
 | `node scripts/test-arandu-10.mjs` | PASS, contratos novos, validação, cursor/filtros, read-only, comparação canônica e mudança durante leitura |
 | `node scripts/test-finance-api.mjs` | PASS, compatibilidade e contexto de aprovação |
+| `node scripts/test-restore-schema-fingerprint.mjs` | PASS, token interno normalizado e alterações semânticas preservadas |
+| Roundtrip isolado 16.15→16.16, 16.16→16.16, 17.12→17.12 | PASS, incluindo rollback e casos negativos; detalhes abaixo |
 | Instalação limpa adicional por todo o manifesto | PASS, SQL novo antes/depois de rollback e duas reaplicações, concorrência e probes |
 | Canário da instalação limpa adicional | PASS, 8 pessoas incluindo externa sintética, 738 verificações, zero vazamentos |
 | HTTP/Auth/RLS real novo | PASS, 54 verificações, PostgreSQL + GoTrue + PostgREST reais |
@@ -112,3 +114,15 @@ de autorização documental, mas isso não equivale a teste de Storage hospedado
 - Índice de aviso usa organização/data de aviso/ID e estados operáveis; índice de
   cenário segue organização/RFQ/estado/data/ID; histórico tem índice parcial por
   tipo. Não há benchmark de latência, SLA ou escala em produção nesta entrega.
+
+## Handoff CI PG16
+
+A falha de roundtrip da PR frontend #346 foi reproduzida com servidor 16.16 e
+cliente Ubuntu 16.15, mesma combinação do workflow, inclusive na main. A diff
+mostrou somente a opção interna pg_attver; a projeção de CHECKs era idêntica.
+A correção normaliza somente essa opção e adiciona proteções explícitas para
+opções semânticas de coluna/defaults. Nenhum assert ou gate foi retirado.
+Diagnóstico redigido e comandos: [ARANDU_10_PG16_RECOVERY.md](evidence/ARANDU_10_PG16_RECOVERY.md).
+A suíte integral também foi iniciada nessa combinação; seu resultado final por
+SHA e o gate de pré-publicação ficam na PR. O prepublish anterior em e571dd5f
+passou todas as etapas; a correção de recovery exige novo prepublish no HEAD final.
