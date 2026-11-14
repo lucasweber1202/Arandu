@@ -268,9 +268,17 @@ test('plano de renovações agrupa pelo prazo do aviso, mostra tarefas e quem re
   await expect(plan.locator(`.renewal-soon [data-contract="${RW(1)}"]`)).toContainText('1 tarefa aberta');
   await expect(plan.locator(`.renewal-soon [data-contract="${RW(1)}"]`).getByRole('link', { name: '1 tarefa aberta' })).toHaveAttribute('href', `/finance/tasks.html?contrato=${RW(1)}`);
   await expect(plan.locator(`.renewal-undated [data-contract="${RW(3)}"]`)).toContainText('Fim de vigência não cadastrado');
-  await expect(plan.locator(`.renewal-upcoming [data-contract="${RW(4)}"]`)).toContainText('Renovação em andamento');
+  await expect(plan.locator(`.renewal-upcoming [data-contract="${RW(4)}"]`)).toContainText('Renovação iniciada');
+  await expect(plan).toContainText('Iniciar uma concorrência não renova o contrato');
   await expect(plan).toContainText('1 contrato vigente tem aviso prévio depois de 6 meses');
   await expect(plan.locator(`[data-contract="${RW(1)}"]`).getByRole('link', { name: /Atlas Bank · Giro sazonal/ })).toHaveAttribute('href', `/finance/contracts.html?abrir=contrato#contract-${RW(1)}`);
+  await plan.getByLabel('Plano de renovações: estado').selectOption('renewing');
+  await expect(plan.locator('[data-contract]')).toHaveCount(1);
+  await expect(plan.locator(`[data-contract="${RW(4)}"]`)).toBeVisible();
+  await plan.getByLabel('Plano de renovações: estado').selectOption('');
+  await plan.getByLabel('Plano de renovações: buscar instituição ou contrato').fill('fiança');
+  await expect(plan.locator('[data-contract]')).toHaveCount(1);
+  await plan.getByLabel('Plano de renovações: buscar instituição ou contrato').fill('');
   await plan.getByLabel('Plano de renovações: responsável').selectOption('none');
   await expect(plan.locator('[data-contract]')).toHaveCount(1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);

@@ -1485,3 +1485,6 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 .studio-scenario input[type=range]{min-width:0;box-sizing:border-box}
 .weight-row input[type=range]{margin-inline:0}
 .comparison-tab{grid-template-columns:minmax(0,1fr)}
+.renewal-filters{display:flex;flex-wrap:wrap;gap:var(--s2);padding:0 var(--s4)}
+.renewal-filters .input{flex:1 1 160px;min-width:0}
+.renewal-jump .chip{text-decoration:none}
