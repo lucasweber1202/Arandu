@@ -799,3 +799,14 @@ done
 # Historical Pilot marker: interrupted atomic migration, exact resume marker,
 # guarded retirement, old/new Auth trigger and pre-existing financial data.
 ARANDU_DATABASE_TEST_URL="$base_url" node "$root_dir/scripts/pilot-upgrade-rehearse.mjs"
+
+# Arandu 10 additive commands, retained-history rollback and reapply on all paths.
+for current_db in "$clean_db" "$upgrade_db" "$fresh_db"; do
+  apply_file "$current_db" "docs/supabase-financial-arandu-10.sql"
+  apply_file "$current_db" "tests/database/financial-arandu-10.sql"
+  apply_file "$current_db" "docs/rollback/supabase-financial-arandu-10.rollback.sql"
+  apply_file "$current_db" "docs/supabase-financial-arandu-10.sql"
+  apply_file "$current_db" "docs/supabase-financial-arandu-10.sql"
+  apply_file "$current_db" "tests/database/financial-arandu-10.sql"
+done
+node "$root_dir/tests/database/arandu-10-concurrency.mjs" "$(database_url "$fresh_db")"
