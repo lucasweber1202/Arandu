@@ -173,12 +173,14 @@ begin
       ('fin_implementation_issues', 'not (organization_id = any($1))'),
       ('fin_implementation_acceptances', 'not (organization_id = any($1))'),
 
+      ('fin_decision_scenarios', 'not (organization_id = any($1))'),
+      ('fin_renewal_operations', 'not (organization_id = any($1))'),
       ('fin_crm_activities', 'not (organization_id = any($1))'),
       ('fin_crm_processes', 'not (organization_id = any($1))'),
       ('fin_governance_log', 'not (organization_id = any($1))'),
       ('fin_private_documents',  'not (organization_id = any($1) or buyer_organization_id = any($1) or (visibility = ''shared'' and rfq_id = any($2)))')
     ) t(tbl, rule) loop
-      if v_tbl in ('fin_crm_activities','fin_crm_processes') and to_regclass('public.'||v_tbl) is null then continue; end if;
+      if v_tbl in ('fin_decision_scenarios','fin_renewal_operations','fin_crm_activities','fin_crm_processes') and to_regclass('public.'||v_tbl) is null then continue; end if;
       -- Before Passport, these two tables must be absent (checked above).
       -- From financial-passport-1 on every check is mandatory, including both.
       if not v_passport and v_tbl in ('fin_company_profile_history','fin_rfq_profile_snapshots') then continue; end if;
@@ -234,6 +236,7 @@ begin
           || case when v_order >= 16 then array['fin_value_records'] else '{}'::text[] end
           || case when v_order >= 17 then array['fin_fee_schedules','fin_fee_observations','fin_fee_variances'] else '{}'::text[] end
           || case when v_order >= 18 then array['fin_opportunities'] else '{}'::text[] end
+          || case when to_regclass('public.fin_renewal_operations') is not null then array['fin_renewal_operations'] else '{}'::text[] end
           || case when to_regclass('public.fin_crm_activities') is not null then array['fin_crm_activities','fin_crm_processes'] else '{}'::text[] end loop
         execute format('select count(*) from public.%I where organization_id = $1 and not (coalesce(%s, ''00000000-0000-0000-0000-000000000000''::uuid) = any($2))',
                        v_tbl, case when v_tbl = 'fin_legal_entities' then 'id' else 'legal_entity_id' end)

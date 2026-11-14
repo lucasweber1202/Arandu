@@ -1,3 +1,17 @@
+-- Arandu 10 ACL/index/schema probes; historical markers keep their own checks.
+do $$ begin
+ if (select value from public.fin_settings where key='schema_version')='financial-arandu-10-1' then
+  if to_regclass('public.fin_decision_scenarios') is null or to_regclass('public.fin_renewal_operations') is null
+   or not (select relrowsecurity from pg_class where oid='public.fin_decision_scenarios'::regclass)
+   or has_table_privilege('authenticated','public.fin_decision_scenarios','INSERT')
+   or has_table_privilege('authenticated','public.fin_decision_scenarios','UPDATE')
+   or has_function_privilege('anon','public.fin_scenario_command(uuid,uuid,integer,text,jsonb)','EXECUTE')
+   or not exists(select 1 from pg_index where indexrelid='public.fin_contract_notice_page'::regclass and indisvalid and indisready)
+   or not exists(select 1 from pg_class where oid='public.fin_renewal_operations'::regclass and 'security_invoker=true'=any(reloptions)) then
+   raise exception 'Arandu 10 schema/ACL/index mismatch';
+  end if;
+ end if;
+end $$;
 \set ON_ERROR_STOP on
 
 do $$ declare v text; begin
