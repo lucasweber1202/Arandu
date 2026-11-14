@@ -43,3 +43,10 @@ no plano de renovações: `tests/e2e/finance-central.spec.js`,
 `finance-passport.spec.js`, `finance-procurement.spec.js`,
 `finance-relationship-center.spec.js`. Bundle e jornadas: ver
 `docs/perf/bundle-growth-log.json` (entradas de 2026-11-14).
+
+## Evidências visuais
+
+Capturas em `docs/experience/arandu-10/` (desktop 1440 px e 320 px), geradas com
+**API simulada e dados sintéticos**, não com a Demo canônica: Action Center e plano
+de renovações. A captura de 320 px revelou texto cortado nas linhas do plano
+(base flex de 280 px); corrigido neste lote.

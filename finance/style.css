@@ -1490,3 +1490,5 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 .renewal-jump .chip{text-decoration:none}
 .action-why{color:var(--text-muted)}
 .inbox-stale{display:flex;gap:var(--s1);align-items:flex-start;color:var(--danger)}
+@media (max-width:420px){.renewal-main{flex-basis:100%}.renewal-row{padding:var(--s2)}.renewal-actions .btn{white-space:normal;max-width:100%;text-align:left}.renewal-filters{padding:0}}
+.renewal-row,.renewal-main,.renewal-actions{min-width:0;max-width:100%}
