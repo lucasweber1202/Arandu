@@ -114,5 +114,20 @@ insert into a10_records values('current_approval',jsonb_build_object('id',public
 select set_config('request.jwt.claim.sub',pg_temp.a10(3)::text,true);
 do $$begin if public.fin_act_on_approval_v2(pg_temp.sid('current_approval'),'approved')<>'approved' then raise exception 'current approval failed';end if;end$$;
 reset role;
+-- Expired is a canonical lifecycle state, not only a past end date.
+set role authenticated;
+select set_config('request.jwt.claim.sub',pg_temp.a10(1)::text,true);
+insert into a10_records values('expired_contract',jsonb_build_object('id',public.fin_import_contract(pg_temp.a10(100),pg_temp.a10(300),pg_temp.a10(200),'acquiring','A10 expired renewal',current_date-100,current_date-1,30,false,'BRL','{"currency":"BRL"}',null)));
+reset role;
+select set_config('request.jwt.claim.sub','',true);
+update public.fin_contracts set status='expired',owner_id=pg_temp.a10(6) where id=pg_temp.sid('expired_contract');
+delete from public.fin_members where organization_id=pg_temp.a10(100) and user_id=pg_temp.a10(6);
+set role authenticated;
+select set_config('request.jwt.claim.sub',pg_temp.a10(3)::text,true);
+do $$begin if not exists(select 1 from public.fin_renewal_operations where id=pg_temp.sid('expired_contract') and urgency='expired' and unassigned) then raise exception 'canonical expired contract missing from renewal portfolio';end if;end$$;
+select set_config('request.jwt.claim.sub',pg_temp.a10(5)::text,true);
+do $$begin if exists(select 1 from public.fin_renewal_operations where id=pg_temp.sid('expired_contract')) then raise exception 'provider renewal leak';end if;end$$;
+select pg_temp.fail($q$select public.fin_scenario_context(pg_temp.a10(400))$q$,'forbidden');
+reset role;
 rollback;
 select 'Arandu 10 scenarios CRUD/replay/version/history/auth/tenant/entity/provider/refresh/archive passed' as result;

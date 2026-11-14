@@ -1,4 +1,4 @@
-# Arandu 10 — contrato de integração v1.1
+# Arandu 10 — contrato de integração v1.2
 
 Base: `main@cd608cb4ce804b4ede88064230ef97948b7beb78` (revalidada).
 As rotas abaixo estão **implementadas nesta branch**, com validação local em
@@ -17,7 +17,7 @@ Relationship 360 continuam canônicos. Não existe segunda fila operacional.
 
 | Método / endpoint | Entrada | Saída |
 |---|---|---|
-| GET `decision-scenarios` | `rfq_id` obrigatório; `status=active|archived` (default active), `limit=1..100` (25), `cursor?` | `{ok,rows,page,consistency}` |
+| GET `decision-scenarios` | `rfq_id` obrigatório; `status=active\|archived` (default active), `limit=1..100` (25), `cursor?` | `{ok,rows,page,consistency}` |
 | GET `decision-scenarios/detail` | `id`; `limit=1..100` (25), `cursor?` para histórico | `{ok,scenario,history,coverage:{history:page},consistency}` |
 | POST `decision-scenarios` | `{rfq_id,name,weights,request_key}` | 201 `{ok,scenario}` |
 | PATCH `decision-scenarios` | `{id,expected_version,name,weights,refresh_context?}` | 200 `{ok,scenario}` |
@@ -99,10 +99,10 @@ e segregação de funções atuais continuam obrigatórios. Visibilidade não é
 
 `GET renewal-operations?organization_id=&limit=1..50&cursor?=&owner?=&legal_entity_id?=&due_from?=&due_to?=&urgency?=`
 
-`owner` aceita UUID ou `none`. Datas ISO reais, intervalo inclusivo de aviso prévio.
+`owner` aceita UUID ou `none`; em contratos, `none` inclui responsável cuja membership já não existe. Datas ISO reais, intervalo inclusivo de aviso prévio.
 `urgency=expired|notice_due|renewing|upcoming`. Ordenação estável por `notice_on,id`.
-Retorna contratos active/renewing sob RLS, inclusive vencidos. Cada linha inclui
-IDs canônicos, `notice_on`, `days_to_end`, `days_to_notice`, `unassigned`, `urgency`,
+Retorna contratos active/renewing/expired sob RLS, inclusive vencidos. Cada linha inclui
+IDs canônicos, `notice_on`, `days_to_end`, `days_to_notice`, `unassigned`, `urgency`, `owner_status` (assigned/unassigned/member_unavailable),
 `tasks`, `milestones`, `renewal_rfqs`,
 `history:{endpoint,parent_contract_id,source_rfq_id}` e
 `actions:{can_start_renewal,endpoint,authorization,automatic_negotiation:false}`.

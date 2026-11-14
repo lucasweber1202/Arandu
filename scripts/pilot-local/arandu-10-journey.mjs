@@ -1,6 +1,6 @@
 // Real loopback-only HTTP/Auth/RLS journey. Synthetic users; no hosted access.
 import assert from 'node:assert/strict';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { decodeSessionValue } from '../../lib/session-cookie.mjs';
 const APP=process.env.PILOT_APP_URL||'https://localhost:4443',SB=process.env.SUPABASE_URL,DB=process.env.PILOT_DB_URL;
@@ -26,7 +26,7 @@ for(const name of ['buyer','viewer','other','institution']) {
 const buyer=people.buyer,viewer=people.viewer,other=people.other,institution=people.institution;
 const org=(await api(buyer,'POST','finance/organizations',{legal_name:`A10 journey ${run}`,kind:'BUYER'},201)).id;
 await api(other,'POST','finance/organizations',{legal_name:`A10 other ${run}`,kind:'BUYER'},201);
-await api(institution,'POST','finance/organizations',{legal_name:`A10 institution ${run}`,kind:'PROVIDER'},201);
+const institutionOrg=(await api(institution,'POST','finance/organizations',{legal_name:`A10 institution ${run}`,kind:'PROVIDER'},201)).id;
 sql(`insert into public.fin_members(organization_id,user_id,role) values('${org}','${viewer.id}','viewer')`);
 const rfq=(await api(buyer,'POST','finance/rfqs',{organization_id:org,product:'credit',title:'A10 persistent human analysis',demand:{amount:50000,purpose:'capital_de_giro',term_months:12}},201)).id;
 const input={rfq_id:rfq,name:'Scenario A',weights:{term_months:50},request_key:`a10-${run}-create`};
@@ -68,4 +68,34 @@ const renewal1=await api(buyer,'POST','finance/contract-renewal-rfq',{organizati
 const renewal2=await api(buyer,'POST','finance/contract-renewal-rfq',{organization_id:org,contract_id:contract},201);assert.equal(renewal1.id,renewal2.id);
 const operations=await api(buyer,'GET',`finance/renewal-operations?organization_id=${org}`);const row=operations.rows.find(r=>r.id===contract);assert(row);assert(row.tasks.length);assert(row.renewal_rfqs.some(r=>r.id===renewal1.id));assert.equal(row.actions.automatic_negotiation,false);
 await api(viewer,'POST','finance/contract-renewal-rfq',{organization_id:org,contract_id:contract},403);
+sql(`update public.fin_contracts set status='expired',owner_id='${other.id}' where id='${contract}'`);
+const expiredPortfolio=await api(viewer,'GET',`finance/renewal-operations?organization_id=${org}&urgency=expired&owner=none`);
+assert(expiredPortfolio.rows.some(r=>r.id===contract&&r.unassigned&&r.urgency==='expired'));
+
+// Real provider submission/version replacement, stale approval and withdrawal.
+const sourcedRfq=(await api(buyer,'POST','finance/rfqs',{organization_id:org,product:'credit',title:'A10 versioned sources',demand:{amount:50000,purpose:'capital_de_giro',term_months:12}},201)).id;
+const invite=randomUUID(),proposal=randomUUID(),tokenHash=randomBytes(32).toString('hex');
+sql(`update public.fin_rfqs set status='collecting' where id='${sourcedRfq}';
+ insert into public.fin_rfq_invites(id,buyer_organization_id,rfq_id,provider_id,provider_organization_id,token_hash,created_by,status,recipient_mode)
+ values('${invite}','${org}','${sourcedRfq}','${provider}','${institutionOrg}','${tokenHash}','${buyer.id}','accepted','organization_open');
+ insert into public.fin_proposals(id,invite_id,rfq_id,buyer_organization_id,provider_id,provider_organization_id,product)
+ values('${proposal}','${invite}','${sourcedRfq}','${org}','${provider}','${institutionOrg}','credit')`);
+const terms={institution:'A10 authorized institution',product_name:'Capital de giro',offered_amount:50000,interest_rate_month:1.5,term_months:12};
+await api(institution,'POST','finance/proposals',{proposal_id:proposal,terms},201);
+const sourceScenario=(await api(buyer,'POST','finance/decision-scenarios',{rfq_id:sourcedRfq,name:'Versioned analysis',weights:{term_months:70},request_key:`a10-${run}-source`},201)).scenario;
+assert.equal(sourceScenario.context.sources[0].current_version,1);
+const calculated=await api(buyer,'POST','finance/decision-scenarios/compare',{rfq_id:sourcedRfq,scenario_ids:[sourceScenario.id]});
+assert.equal(calculated.scenarios[0].weighted.results[0].id,proposal);
+await api(institution,'GET',`finance/decision-scenarios/detail?id=${sourceScenario.id}`,null,404);
+const approval=(await api(buyer,'POST','finance/approvals/request',{rfq_id:sourcedRfq,proposal_id:proposal,approver_ids:[viewer.id],rationale:'Human review of exact proposal version'},201)).id;
+let inbox=await api(viewer,'GET',`finance/approvals?organization_id=${org}&rfq_id=${sourcedRfq}`);
+assert.equal(inbox.rows[0].stale,false);assert.equal(inbox.rows[0].viewer_can_act,true);
+await api(institution,'POST','finance/proposals',{proposal_id:proposal,terms:{...terms,interest_rate_month:1.7}},201);
+inbox=await api(viewer,'GET',`finance/approvals?organization_id=${org}&rfq_id=${sourcedRfq}`);
+assert(inbox.rows[0].stale_reasons.includes('proposal_changed'));assert.equal(inbox.rows[0].viewer_can_act,false);
+await api(viewer,'POST','finance/approvals/act',{request_id:approval,action:'approved'},409);
+await api(buyer,'POST','finance/decision-scenarios/compare',{rfq_id:sourcedRfq,scenario_ids:[sourceScenario.id]},409);
+await api(institution,'DELETE','finance/proposals',{proposal_id:proposal});
+inbox=await api(viewer,'GET',`finance/approvals?organization_id=${org}&rfq_id=${sourcedRfq}`);
+assert(inbox.rows[0].stale_reasons.includes('source_ineligible'));
 console.log(`Arandu 10 real local HTTP/Auth/RLS: ${checks} checks PASS; CRUD, replay, concurrent edit, tenant/provider/viewer/anonymous isolation, direct-write denial, stale refresh, audit, work pages, canonical renewal recovery.`);

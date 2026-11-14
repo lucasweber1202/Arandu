@@ -17,7 +17,9 @@ create table if not exists public.fin_decision_scenarios (
  unique(rfq_id,created_by,request_key),
  foreign key(organization_id,rfq_id) references public.fin_rfqs(organization_id,id)
 );
-create index if not exists fin_contract_notice_page on public.fin_contracts(organization_id,(ends_on-renewal_notice_days),id) where status in ('active','renewing');
+-- Rebuild only this additive projection index on reapply; no business records change.
+drop index if exists public.fin_contract_notice_page;
+create index fin_contract_notice_page on public.fin_contracts(organization_id,(ends_on-renewal_notice_days),id) where status in ('active','renewing','expired');
 create index if not exists fin_decision_scenarios_page on public.fin_decision_scenarios(organization_id,rfq_id,status,created_at desc,id desc);
 create index if not exists fin_scenario_history on public.fin_events(organization_id,entity_id,happened_at desc,id desc) where entity_type='decision_scenario';
 alter table public.fin_decision_scenarios enable row level security;
@@ -119,9 +121,10 @@ create or replace view public.fin_renewal_operations with(security_invoker=true,
  c.ends_on-c.renewal_notice_days as notice_on,
  c.ends_on-current_date as days_to_end,
  (c.ends_on-c.renewal_notice_days)-current_date as days_to_notice,
- c.owner_id is null as unassigned,
- case when c.ends_on<current_date then 'expired' when c.ends_on-c.renewal_notice_days<=current_date then 'notice_due' when c.status='renewing' then 'renewing' else 'upcoming' end as urgency
- from public.fin_contracts c left join public.fin_decisions d on d.id=c.decision_id and d.organization_id=c.organization_id where c.status in ('active','renewing');
+ (c.owner_id is null or m.user_id is null) as unassigned,
+ case when c.status='expired' or c.ends_on<current_date then 'expired' when c.ends_on-c.renewal_notice_days<=current_date then 'notice_due' when c.status='renewing' then 'renewing' else 'upcoming' end as urgency,
+ case when c.owner_id is null then 'unassigned' when m.user_id is null then 'member_unavailable' else 'assigned' end as owner_status
+ from public.fin_contracts c left join public.fin_decisions d on d.id=c.decision_id and d.organization_id=c.organization_id left join public.fin_members m on m.organization_id=c.organization_id and m.user_id=c.owner_id where c.status in ('active','renewing','expired');
 revoke all on public.fin_renewal_operations from public,anon,authenticated,service_role;
 grant select on public.fin_renewal_operations to authenticated;
 

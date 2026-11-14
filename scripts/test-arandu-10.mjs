@@ -68,6 +68,8 @@ rows=Array.from({length:3},(_,i)=>({id:id(10+i),notice_on:`2026-11-${15+i}`,due_
 role='viewer';
 response=await call('GET',`renewal-operations?organization_id=${org}&limit=2`);assert.equal(response.page_count,2);assert.equal(response.coverage.total,null);assert.equal(response.coverage.complete,false);assert.equal(response.rows[0].actions.can_start_renewal,false);
 const cursor=response.page.next_cursor;
+await call('GET',`renewal-operations?organization_id=${org}&owner=none`);
+assert(sent.some(e=>e.url.pathname.endsWith('fin_renewal_operations')&&e.url.searchParams.get('unassigned')==='eq.true'));
 await assert.rejects(call('GET',`renewal-operations?organization_id=${org}&limit=2&owner=none&cursor=${cursor}`),e=>e.status===400);
 response=await call('GET',`work-intelligence?organization_id=${org}&section=tasks&limit=2&owner=none`);
 assert.equal(response.rows[0].actions.can_edit,false);assert.equal(response.rows[0].unassigned,true);assert.equal(response.page.has_more,true);
