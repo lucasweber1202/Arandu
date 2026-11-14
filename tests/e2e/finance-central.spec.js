@@ -433,3 +433,28 @@ test('central de ações: leitor não recebe "Assumir"', async ({ page }) => {
   await expect(page.locator('#precisa-de-voce')).toContainText('Revisar extrato');
   await expect(page.getByRole('button', { name: /Assumir tarefa/ })).toHaveCount(0);
 });
+
+// Arandu 10 — Renewal Workbench 2.0: entidade jurídica, busca, cobertura
+// incompleta e 320 px. API SIMULADA.
+const ENT = '00000000-0000-4000-8000-0000000000e9';
+test('plano de renovações filtra por entidade jurídica e busca, e avisa cobertura incompleta em 320 px', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 720 });
+  const filler = Array.from({ length: 196 }, (_, i) => ({ ...CONTRACT, id: `00000000-0000-4000-8000-0000001${String(i).padStart(5, '0')}`, title: `Longo ${i}`, ends_on: day(900) }));
+  const contracts = [...RENEWALS.slice(0, 4).map((row, i) => (i === 1 ? { ...row, legal_entity_id: ENT } : row)), ...filler];
+  await setup(page, { overview: { ...OVERVIEW, contracts, tasks: [] } });
+  await page.route('**/api/finance/entities*', (route) => route.fulfill({ json: { ok: true, rows: [{ id: ENT, legal_name: 'Vitta Varejo Ltda', short_name: 'Vitta Varejo', kind: 'subsidiary', parent_id: null, status: 'active' }], scope: 'group', can_admin: true } }));
+  await page.route('**/api/finance/contracts?*', (route) => route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'falha' }) }));
+  await page.goto('/finance/contracts.html#plano-renovacoes');
+  const plan = page.locator('#plano-renovacoes');
+  await expect(plan).toContainText('a carteira completa não foi lida');
+  await plan.getByLabel('Plano de renovações: entidade jurídica').selectOption(ENT);
+  await expect(plan.locator('[data-contract]')).toHaveCount(1);
+  await expect(plan.locator(`[data-contract="${RW(2)}"]`)).toContainText('Entidade: Vitta Varejo');
+  await plan.getByLabel('Plano de renovações: entidade jurídica').selectOption('group');
+  await expect(plan.locator(`[data-contract="${RW(2)}"]`)).toHaveCount(0);
+  await plan.getByLabel('Plano de renovações: buscar instituição ou contrato').fill('giro sazonal');
+  await expect(plan.locator('[data-contract]')).toHaveCount(1);
+  await plan.getByLabel('Plano de renovações: buscar instituição ou contrato').fill('nada-encontrado');
+  await expect(plan).toContainText('Nenhum contrato vigente neste recorte.');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+});

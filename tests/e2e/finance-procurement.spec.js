@@ -1852,3 +1852,23 @@ test('caixa de aprovações: motivo de desatualização do servidor, resumo ante
   await expect(page.getByRole('tabpanel').getByText('Nenhum pedido corresponde à busca')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
 });
+
+// Arandu 10 — Decision Studio: duplicar qualquer cenário e recalcular os
+// desatualizados de forma explícita. Persistência aguarda o backend do Codex.
+test('estúdio: duplicar cenário copia pesos sem resultado e "Recalcular" atualiza só os sem resultado atual', async ({ page }) => {
+  const studio = await openStudio(page);
+  await setWeight(studio, 'Cenário A', 'Taxa (% a.m.)', 60);
+  await studio.getByRole('button', { name: 'Calcular Cenário A' }).click();
+  await expect(studio.getByText(/Calculado\./)).toBeVisible();
+  await studio.getByRole('button', { name: 'Duplicar Cenário A' }).click();
+  await expect(studio.getByLabel('Cenário A (cópia): peso de Taxa (% a.m.)')).toHaveValue('60');
+  const recalc = studio.getByRole('button', { name: /Recalcular 1 cenário/ });
+  await expect(recalc).toBeVisible();
+  let calls = 0;
+  page.on('request', (req) => { if (req.url().endsWith('/api/finance/comparison') && req.method() === 'POST') calls += 1; });
+  await recalc.click();
+  await expect(studio.getByRole('region', { name: 'Tabela de cenários' })).toBeVisible();
+  expect(calls).toBe(1);
+  await expect(studio.getByRole('button', { name: /Recalcular .* cenário/ })).toBeHidden();
+  await expect(studio).not.toContainText(/recomend|melhor proposta/i);
+});

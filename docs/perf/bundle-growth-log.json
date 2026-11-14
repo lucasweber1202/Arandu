@@ -42,6 +42,13 @@
       "previous": 842886,
       "reason": "Arandu 10 — Renewal Workbench 2.0: filtros por estado do ciclo, entidade jurídica e busca, rótulo explícito de contrato vigente vs. renovação iniciada e atalhos por grupo, todos no chunk sob demanda renewal-workbench (5.975 → 7.966 B, só ao abrir o plano; +2.018 B no build regular). Jornadas frias/quentes medidas em Chromium dentro da baseline. Nenhum hard limit alterado.",
       "journeyBaseline": "2026-11-05"
+    },
+    {
+      "date": "2026-11-14",
+      "accepted": 855291,
+      "previous": 844904,
+      "reason": "Arandu 10 — lote de experiência (PR #346): Action Center (motivo da prioridade, filtro por tipo, 'Assumir' tarefa), Intake (pendências obrigatórias ao vivo com atalho ao campo), Approval Workspace (resumo 'Antes de decidir', motivos stale_reason, busca), Relationship 360 (cobertura e origem por fonte, atalho ao plano filtrado) e Decision Studio (duplicar cenário, recalcular desatualizados) (+10.387 B no build regular, distribuídos em chunks de rota já existentes; nenhum módulo novo carregado na abertura). Sete jornadas frias/quentes medidas em Chromium dentro da baseline; maior inicial 240.739 B (relationship360) abaixo de 250.000. Nenhum hard limit alterado.",
+      "journeyBaseline": "2026-11-05"
     }
   ]
 }

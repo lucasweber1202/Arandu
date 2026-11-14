@@ -71,6 +71,8 @@ export function renewalWorkbench(ctx, contracts, { coverage = { state: 'complete
     new Option('Qualquer entidade', ''), new Option('Nível de grupo', 'group'),
     ...entityRows.map((e) => new Option(`${e.depth ? '— ' : ''}${e.short_name || e.legal_name || 'Entidade'}`, e.id))]) : null;
   const search = el('input', { class: 'input', type: 'search', placeholder: 'Instituição ou contrato', 'aria-label': 'Plano de renovações: buscar instituição ou contrato' });
+  // Busca vinda de outra tela (ex.: Relationship 360 → ?plano_busca=<instituição>).
+  search.value = new URLSearchParams(location.search).get('plano_busca') || '';
   const entityLabel = (id) => !entities ? null : !id ? 'Nível de grupo' : (entities.byId?.get(id)?.short_name || entities.byId?.get(id)?.legal_name || 'Entidade sem acesso de leitura');
   const body = el('div', { class: 'stack renewal-plan' });
   const created = new Map(); // tarefas confirmadas nesta tela, por contrato
