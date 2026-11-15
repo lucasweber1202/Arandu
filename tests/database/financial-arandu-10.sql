@@ -39,7 +39,7 @@ insert into a10_records values('original',pg_temp.cmd('create'));
 savepoint a10_demo_operator;
 reset role;
 set role service_role;
-do $declare changed integer;begin
+do $$declare changed integer;begin
  if (select count(*) from public.fin_decision_scenarios where request_key='a10-create-0001')<>1
  then raise exception 'demo operator cannot read scenario'; end if;
  update public.fin_decision_scenarios set created_at=created_at-interval '1 day',
@@ -50,7 +50,7 @@ do $declare changed integer;begin
  get diagnostics changed=row_count;
  if changed<>1 or exists(select 1 from public.fin_decision_scenarios where request_key='a10-create-0001')
  then raise exception 'demo operator cannot clean scenario'; end if;
-end$;
+end$$;
 reset role;
 rollback to savepoint a10_demo_operator;
 release savepoint a10_demo_operator;
