@@ -23,11 +23,38 @@ create function pg_temp.sid(k text) returns uuid language sql as $$select (v->>'
 create function pg_temp.cmd(op text,id uuid default null,ver integer default null,vals jsonb default '{"name":"Human analysis","weights":{"mdr_debit":40},"request_key":"a10-create-0001"}') returns jsonb language sql as $$select public.fin_scenario_command(pg_temp.a10(400),id,ver,op,vals)$$;
 do $$begin
  if has_table_privilege('authenticated','public.fin_decision_scenarios','INSERT') or has_table_privilege('authenticated','public.fin_decision_scenarios','UPDATE')
- or has_table_privilege('anon','public.fin_decision_scenarios','SELECT') or has_function_privilege('anon','public.fin_scenario_command(uuid,uuid,integer,text,jsonb)','EXECUTE') then raise exception 'scenario privileges'; end if;
+ or has_table_privilege('authenticated','public.fin_decision_scenarios','DELETE')
+ or has_table_privilege('anon','public.fin_decision_scenarios','SELECT') or has_function_privilege('anon','public.fin_scenario_command(uuid,uuid,integer,text,jsonb)','EXECUTE')
+ or not has_table_privilege('service_role','public.fin_decision_scenarios','SELECT')
+ or not has_table_privilege('service_role','public.fin_decision_scenarios','UPDATE')
+ or not has_table_privilege('service_role','public.fin_decision_scenarios','DELETE')
+ or has_table_privilege('service_role','public.fin_decision_scenarios','INSERT') then raise exception 'scenario privileges'; end if;
 end$$;
 set role authenticated;
 select set_config('request.jwt.claim.sub',pg_temp.a10(1)::text,true);
 insert into a10_records values('original',pg_temp.cmd('create'));
+-- The canonical demo seed calls REST with service_role to read, backdate, and
+-- delete scenario rows. Exercise the actual role, then roll back its mutations
+-- so all downstream RPC, audit, version and RLS assertions remain unchanged.
+savepoint a10_demo_operator;
+reset role;
+set role service_role;
+do $declare changed integer;begin
+ if (select count(*) from public.fin_decision_scenarios where request_key='a10-create-0001')<>1
+ then raise exception 'demo operator cannot read scenario'; end if;
+ update public.fin_decision_scenarios set created_at=created_at-interval '1 day',
+   updated_at=updated_at-interval '1 day' where request_key='a10-create-0001';
+ get diagnostics changed=row_count;
+ if changed<>1 then raise exception 'demo operator cannot backdate scenario'; end if;
+ delete from public.fin_decision_scenarios where request_key='a10-create-0001';
+ get diagnostics changed=row_count;
+ if changed<>1 or exists(select 1 from public.fin_decision_scenarios where request_key='a10-create-0001')
+ then raise exception 'demo operator cannot clean scenario'; end if;
+end$;
+reset role;
+rollback to savepoint a10_demo_operator;
+release savepoint a10_demo_operator;
+set role authenticated;
 do $$declare s jsonb;begin
  s:=pg_temp.cmd('create');
  if s is distinct from (select v from a10_records where k='original') then raise exception 'idempotent replay';end if;

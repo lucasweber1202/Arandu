@@ -30,6 +30,10 @@ create policy fin_scenario_read on public.fin_decision_scenarios for select to a
  where r.id=rfq_id and r.organization_id=fin_decision_scenarios.organization_id and o.kind='BUYER'));
 revoke all on public.fin_decision_scenarios from public,anon,authenticated,service_role;
 grant select on public.fin_decision_scenarios to authenticated;
+-- The demo operator reads, backdates and removes synthetic analyses via the
+-- service-role REST client. Do not grant direct writes to authenticated users:
+-- user mutations remain restricted to the authorized fin_scenario_command RPC.
+grant select, update, delete on public.fin_decision_scenarios to service_role;
 
 -- Always verifies buyer + entity scope, even when invoked from a definer command.
 create or replace function public.fin_scenario_context(p_rfq uuid)
