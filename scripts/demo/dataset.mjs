@@ -98,10 +98,12 @@ export const RFQ_ACQUIRING = {
 
 /** RFQ 2 — crédito em negociação: propostas em estados diferentes e aprovação na etapa da CFO. */
 // Arandu 10.1: segunda análise humana salva na RFQ de crédito em avaliação,
-// feita pela tesouraria por duplicação + edição (gera histórico com autoria).
+// feita pelo analista por duplicação + edição (gera histórico com versão).
+// Quem escreve é o analista para não somar requisições à cota por usuário da
+// gestora de tesouraria, a persona mais usada do seed.
 // Pesos fictícios de demonstração; não é recomendação nem decisão.
 export const SCENARIO_ALTERNATIVE = {
-  by: 'juliana', name: 'Prazo e carência — leitura da tesouraria',
+  by: 'rafael', name: 'Prazo e carência — segunda leitura',
   weights: { grace_months: 30, term_months: 30, cet_year: 25, fees_amount: 15 }
 };
 

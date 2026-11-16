@@ -1081,13 +1081,13 @@ async function sanity() {
   // Arandu 10.1: cenários persistidos com histórico, caixa de trabalho e plano de renovações pelo servidor.
   const creditRfq = byTitle(data.RFQ_CREDIT.title);
   if (creditRfq) {
-    const scenarios = await api(juliana, 'GET', `decision-scenarios?rfq_id=${creditRfq.id}`);
+    const scenarios = await api(people.rafael, 'GET', `decision-scenarios?rfq_id=${creditRfq.id}`);
     const alternative = (scenarios.rows || []).find((row) => row.name === data.SCENARIO_ALTERNATIVE.name);
     check('Cenários salvos na RFQ em avaliação (duas análises humanas)', (scenarios.rows || []).length >= 2 && alternative?.classification === 'human_analysis', `${(scenarios.rows || []).length} cenário(s)`);
-    const history = alternative ? await api(juliana, 'GET', `decision-scenarios/detail?id=${alternative.id}`) : null;
+    const history = alternative ? await api(people.rafael, 'GET', `decision-scenarios/detail?id=${alternative.id}`) : null;
     check('Histórico do cenário com autoria e versão', alternative?.version >= 2 && (history?.history || []).length >= 2 && history.history.every((event) => event.actor_id), `${history?.history?.length || 0} evento(s), versão ${alternative?.version ?? '—'}`);
   }
-  const work = await api(juliana, 'GET', `work-intelligence?organization_id=${org.id}&section=tasks&limit=20`);
+  const work = await api(people.rafael, 'GET', `work-intelligence?organization_id=${org.id}&section=tasks&limit=20`);
   check('Caixa de trabalho lida do servidor sem total inventado', Array.isArray(work.rows) && work.coverage?.total === null, `${work.rows?.length || 0} tarefa(s) na página`);
   const renewals = await api(juliana, 'GET', `renewal-operations?organization_id=${org.id}&limit=50`);
   const workingCapital = (renewals.rows || []).find((row) => row.product === 'credit' && row.status === 'active');
