@@ -744,3 +744,28 @@ test('renegociação: instituição já no portal não recebe convite repetido; 
   await expect(viewer.block).toHaveAttribute('data-state', 'none');
   await expect(viewer.block.getByRole('button')).toHaveCount(0);
 });
+
+// Arandu 10 — Relationship 360: cobertura/origem por fonte e atalho para o plano
+// de renovações já filtrado pela instituição. API SIMULADA.
+test('relacionamento declara cobertura e origem e leva ao plano de renovações filtrado', async ({ page }) => {
+  await setup(page);
+  await page.route('**/api/finance/provider-relationship**', (route) => route.fulfill({ json: {
+    ok: true, provider: { id: P_ATLAS, name: 'Atlas Bank' }, neutrality: 'Fatos do histórico da empresa.', contracts: OVERVIEW.contracts.filter((row) => row.provider_id === P_ATLAS),
+    tasks: OVERVIEW.tasks, facilities: [], rfqs: [], invites: [], proposals: [], balances: [], contacts: [], issues: [], relationships: [], map: [], timeline: [], reviews: [], templates: [],
+    pages: { tasks: { limit: 200, has_more: true, next_cursor: 'n' }, contracts: { limit: 200, has_more: false, next_cursor: null } },
+    metrics: { invited: 0, responded: 0, response_rate: null, median_response_days: null, active_contracts: 3, open_issues: 0, median_resolution_days: null, definitions: {} } } }));
+  await page.goto(`/finance/providers.html?provider_id=${P_ATLAS}`);
+  const dialog = page.getByRole('dialog', { name: 'Atlas Bank' });
+  const coverage = dialog.locator('#rel-cobertura');
+  await expect(coverage.locator('summary')).toContainText('leitura parcial');
+  await coverage.locator('summary').click();
+  await expect(coverage.locator('[data-coverage="partial"]')).toContainText('Tarefas abertas: 1 carregado(s)');
+  await expect(coverage.locator('[data-coverage="complete"]')).toContainText('Contratos: 3 carregado(s) · Registro no Arandu');
+  await expect(coverage).toContainText('Saldos e utilização: 0 carregado(s) · Fotografia histórica com origem · nada registrado neste recorte (não é evidência de inexistência)');
+  const link = dialog.getByRole('link', { name: 'Ver no plano de renovações' });
+  await expect(link).toHaveAttribute('href', '/finance/contracts.html?plano=renovacoes&plano_busca=Atlas%20Bank');
+  await link.click();
+  await expect(page.getByLabel('Plano de renovações: buscar instituição ou contrato')).toHaveValue('Atlas Bank');
+  await expect(page.locator('#plano-renovacoes [data-contract]')).toHaveCount(2);
+  await expect(page.locator('#plano-renovacoes')).not.toContainText('Nexo Payments');
+});

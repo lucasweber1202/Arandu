@@ -151,13 +151,22 @@ export function decisionStudio(ctx, rfq, { calculate, getModel = () => null, app
     const calc = button(`Calcular ${scenario.name}`, { size: 'sm', variant: 'primary', iconName: 'scale', onClick: () => compute(scenario, node) });
     const sens = scenario.result?.applied && Object.keys(cleanWeights(scenario.weights)).length > 1
       ? button('Analisar sensibilidade', { size: 'sm', onClick: () => sensitivity(scenario) }) : null;
+    // Duplicar este cenário (não só o último): mesmos pesos, sem resultado; calcular de novo é explícito.
+    const duplicate = scenarios.length < MAX_SCENARIOS ? button('Duplicar', { size: 'sm', variant: 'ghost', iconName: 'plus', attrs: { 'aria-label': `Duplicar ${scenario.name}` }, onClick: () => {
+      if (scenarios.length >= MAX_SCENARIOS) return;
+      const used = new Set(scenarios.map((item) => item.name));
+      const base = `${scenario.name} (cópia)`.slice(0, 40);
+      scenarios.splice(index + 1, 0, { name: used.has(base) ? NAMES.find((n) => !used.has(n)) || base : base, weights: { ...scenario.weights }, result: null, sensitivity: null, seq: 0 });
+      draw();
+      list.querySelectorAll('.studio-scenario').item(index + 1)?.querySelector('input')?.focus();
+    } }) : null;
     const remove = index > 0 ? button('Remover', { size: 'sm', variant: 'ghost', onClick: () => { scenarios.splice(index, 1); draw(); } }) : null;
     const status = el('p', { class: 'studio-status muted small', role: 'status' });
     if (scenario.error) status.textContent = scenario.error;
     else if (scenario.result && !scenario.result.applied) status.textContent = scenario.result.notice;
     else if (scenario.result) status.textContent = `Calculado. Pesos: ${scenario.result.criteria.map((item) => `${item.label} ${(item.share * 100).toFixed(0)}%`).join(' · ')}`;
     const excluded = (scenario.result?.excluded_criteria || []).map((item) => el('p', { class: 'callout callout-warning compact', text: `${item.label}: fora do cálculo. ${item.reasons.join(' ')}` }));
-    node.append(el('div', { class: 'cc-head' }, [name, remove]), sliders, el('div', { class: 'form-actions' }, [calc, sens].filter(Boolean)), status, ...excluded);
+    node.append(el('div', { class: 'cc-head' }, [name, el('div', { class: 'row-actions' }, [duplicate, remove].filter(Boolean))]), sliders, el('div', { class: 'form-actions' }, [calc, sens].filter(Boolean)), status, ...excluded);
     if (scenario.sensitivity) node.append(sensitivityNode(scenario));
     return node;
   }
@@ -197,9 +206,19 @@ export function decisionStudio(ctx, rfq, { calculate, getModel = () => null, app
       mutedText(`${USER_WEIGHTS_NOTICE} "Fora da ordem": cobertura abaixo do mínimo do motor; não é a pior proposta.`));
   }
 
+  // Recalcular explicitamente todos os cenários sem resultado válido para os pesos atuais.
+  const recalc = button('Recalcular cenários desatualizados', { size: 'sm', iconName: 'refresh', onClick: async () => {
+    recalc.disabled = true;
+    const nodes = [...list.querySelectorAll('.studio-scenario')];
+    for (const [i, scenario] of [...scenarios].entries()) if (!scenario.result || scenario.computedFp !== fingerprint(scenario.weights)) await compute(scenario, nodes[i] || list.querySelectorAll('.studio-scenario').item(i));
+    recalc.disabled = false;
+  } });
   function draw() {
     list.replaceChildren(...scenarios.map(scenarioNode));
     add.hidden = scenarios.length >= MAX_SCENARIOS;
+    const stale = scenarios.filter((scenario) => !scenario.result || scenario.computedFp !== fingerprint(scenario.weights)).length;
+    recalc.hidden = !stale || stale === scenarios.length && scenarios.length === 1;
+    recalc.querySelector('.btn-label') && (recalc.querySelector('.btn-label').textContent = `Recalcular ${stale} cenário(s) sem resultado atual`);
     drawComparison();
   }
   draw();
@@ -210,7 +229,7 @@ export function decisionStudio(ctx, rfq, { calculate, getModel = () => null, app
     body: [
       reset ? el('p', { class: 'callout callout-warning compact', role: 'note', id: 'studio-reset' }, [icon('alert', { size: 14 }), textSpan('A solicitação ou as propostas mudaram desde a análise anterior: os cenários foram reiniciados para não descrever dados antigos.')]) : null,
       el('p', { class: 'callout callout-info compact', role: 'note' }, [icon('info', { size: 14 }), textSpan('Cenários são análises desta aba: não são salvos na empresa, não registram decisão nem aprovação e se perdem ao recarregar. Para guardar, baixe o dossiê.')]),
-      list, add, comparison
+      list, el('div', { class: 'form-actions' }, [add, recalc]), comparison
     ].filter(Boolean) });
 }
 

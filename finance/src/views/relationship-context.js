@@ -107,3 +107,34 @@ export function relationshipSummary(detail, options) {
     next: dated, attention
   };
 }
+
+// ------------------------------------------------------------ cobertura
+// O que este recorte cobre e a natureza de cada dado: registrado no Arandu,
+// declarado por alguém da empresa, fotografia histórica ou não carregado.
+// Nenhuma contagem vira "total da instituição"; ausência nunca vira zero.
+const NATURE = { recorded: 'Registro no Arandu', declared: 'Declarado pela empresa', snapshot: 'Fotografia histórica com origem' };
+export function relationshipCoverage(detail) {
+  const pages = detail.pages || {};
+  const rows = [
+    ['Contratos', detail.contracts, 'recorded', pages.contracts],
+    ['Tarefas abertas', detail.tasks, 'recorded', pages.tasks],
+    ['Solicitações e propostas', detail.rfqs, 'recorded', null],
+    ['Facilities e limites', detail.facilities, 'declared', null],
+    ['Saldos e utilização', detail.balances, 'snapshot', null],
+    ['Questões e follow-ups', detail.issues, 'recorded', null],
+    ['Histórico', detail.timeline, 'recorded', null]
+  ].filter(([, list]) => Array.isArray(list));
+  return rows.map(([label, list, nature, page]) => ({ label, count: list.length, nature: NATURE[nature],
+    state: page?.has_more ? 'partial' : !list.length ? 'none' : page ? 'complete' : 'bounded' }));
+}
+
+const COVERAGE_TEXT = { partial: 'há mais nesta instituição; carregue mais na lista', none: 'nada registrado neste recorte (não é evidência de inexistência)', complete: 'consulta concluída neste filtro', bounded: 'recorte inicial limitado' };
+export function relationshipCoverageSection(detail) {
+  const rows = relationshipCoverage(detail);
+  if (!rows.length) return null;
+  return el('details', { class: 'cc-section rel-more rel-coverage', id: 'rel-cobertura' }, [
+    el('summary', { text: `Cobertura e origem dos dados${rows.some((row) => row.state === 'partial') ? ' · leitura parcial' : ''}` }),
+    el('ul', { class: 'plain-list small', role: 'list' }, rows.map((row) => el('li', { dataset: { coverage: row.state } }, `${row.label}: ${row.count} carregado(s) · ${row.nature} · ${COVERAGE_TEXT[row.state]}.`))),
+    mutedText('Projeções não entram nesta visão. Abra cada registro para versões, documentos e autoria.')
+  ]);
+}
