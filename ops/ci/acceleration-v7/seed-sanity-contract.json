@@ -1,7 +1,8 @@
 {
   "source_run": 41936120694,
   "source_head": "34d5baf5e9a1b078cd6b2e03ad6a819164ca59ea",
-  "checks": 41,
-  "check_names_sha256": "b2b826450d8662bd73b5568652bea3e3e9d521063622c2ebaea7c5e2a8cfecdc",
-  "classification": "synthetic_seed_sanity_contract_no_row_contents"
+  "checks": 45,
+  "check_names_sha256": "0fbceab47a389e28d2ce498dd72f23451b49aa5dc05565961fcd56c50fd87f79",
+  "classification": "synthetic_seed_sanity_contract_no_row_contents",
+  "amended_by": "Arandu 10.2: +4 checagens (cen\u00e1rios salvos, hist\u00f3rico do cen\u00e1rio, caixa de trabalho, plano de renova\u00e7\u00f5es); hash dos nomes medido no seed local real"
 }
