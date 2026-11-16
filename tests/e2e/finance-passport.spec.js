@@ -381,3 +381,24 @@ test('intake: aceitar de novo a sugestão recusada volta o valor e a origem', as
   await expect(form.getByLabel('Faturamento anual (R$)')).toHaveValue('182000000');
   await expect(form.locator('.field-passport').filter({ hasText: 'Faturamento anual' })).toContainText('Do Financial Passport');
 });
+
+// Arandu 10 — Intake: pendências ao vivo no resumo levam ao campo; Passport
+// aparece como sugestão mantida/alterada. API SIMULADA.
+test('intake: resumo lista obrigatórios em branco, leva ao campo e conta sugestões do Passport', async ({ page }) => {
+  await mockPassport(page);
+  await page.goto('/finance/new-rfq.html?product=credit');
+  const pending = page.locator('.wizard-summary .summary-pending');
+  const mobile = page.locator('.wizard-summary-mobile > summary');
+  if ((page.viewportSize()?.width ?? 1280) < 960) { await expect(mobile).toContainText('obrigatórios em branco'); await mobile.click(); }
+  await expect(pending).toContainText('Impede a criação');
+  await expect(pending.locator('[data-goto="title"]')).toBeVisible();
+  await pending.locator('[data-goto="amount"]').click();
+  await expect(page.locator('#rfq-form').getByLabel('Valor desejado (R$)')).toBeFocused();
+  await fillCreditNeed(page);
+  await pending.locator('[data-goto="title"]').click();
+  await expect(page.locator('#rfq-form').getByLabel('Título da solicitação')).toBeFocused();
+  await page.locator('#rfq-form').getByLabel('Título da solicitação').fill('Capital de giro com pendências');
+  await expect(pending).toHaveAttribute('data-pending', '0');
+  await expect(pending).toContainText(/Passport: \d+ sugest/);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+});

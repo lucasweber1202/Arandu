@@ -36,7 +36,23 @@ export function renewalBucket(contract) {
   return null;
 }
 
-export function renewalWorkbench(ctx, contracts, { coverage = { state: 'complete' } } = {}) {
+/** Estado do ciclo de vida exibido no plano. Uma concorrência aberta não renova o contrato. Exportada para teste. */
+export function renewalLifecycle(contract) {
+  if (contract.status === 'renewing') return { key: 'renewing', label: 'Renovação iniciada', hint: 'Concorrência de renovação aberta; o contrato atual continua vigente até um novo contrato ser registrado.' };
+  return { key: 'active', label: 'Vigente', hint: 'Contrato vigente sem renovação iniciada.' };
+}
+
+/** Filtra contratos do plano por responsável, estado, entidade e texto. Exportada para teste. */
+export function filterRenewalPlan(contracts, { owner = '', stage = '', entity = '', query = '' } = {}, viewerId = null) {
+  const q = String(query || '').trim().toLocaleLowerCase('pt-BR');
+  return contracts.filter((c) => LIVE.has(c.status)
+    && (owner !== 'mine' || c.owner_id === viewerId) && (owner !== 'none' || !c.owner_id)
+    && (!stage || renewalLifecycle(c).key === stage)
+    && (!entity || (entity === 'group' ? !c.legal_entity_id : c.legal_entity_id === entity))
+    && (!q || `${c.provider_name || ''} ${c.title || ''}`.toLocaleLowerCase('pt-BR').includes(q)));
+}
+
+export function renewalWorkbench(ctx, contracts, { coverage = { state: 'complete' }, entities = null } = {}) {
   const manage = ctx.can('create_rfq');
   const sandbox = __ARANDU_DEMO__ && ctx.mode === 'demo';
   const tasks = ctx.data.tasks || [];
@@ -48,6 +64,16 @@ export function renewalWorkbench(ctx, contracts, { coverage = { state: 'complete
 
   const owner = el('select', { class: 'input', 'aria-label': 'Plano de renovações: responsável' }, [
     new Option('Qualquer responsável', ''), new Option('Meus contratos', 'mine'), new Option('Sem responsável', 'none')]);
+  const stageSelect = el('select', { class: 'input', 'aria-label': 'Plano de renovações: estado' }, [
+    new Option('Qualquer estado', ''), new Option('Vigente, sem renovação iniciada', 'active'), new Option('Renovação iniciada', 'renewing')]);
+  const entityRows = entities?.rows || [];
+  const entitySelect = entityRows.length ? el('select', { class: 'input', 'aria-label': 'Plano de renovações: entidade jurídica' }, [
+    new Option('Qualquer entidade', ''), new Option('Nível de grupo', 'group'),
+    ...entityRows.map((e) => new Option(`${e.depth ? '— ' : ''}${e.short_name || e.legal_name || 'Entidade'}`, e.id))]) : null;
+  const search = el('input', { class: 'input', type: 'search', placeholder: 'Instituição ou contrato', 'aria-label': 'Plano de renovações: buscar instituição ou contrato' });
+  // Busca vinda de outra tela (ex.: Relationship 360 → ?plano_busca=<instituição>).
+  search.value = new URLSearchParams(location.search).get('plano_busca') || '';
+  const entityLabel = (id) => !entities ? null : !id ? 'Nível de grupo' : (entities.byId?.get(id)?.short_name || entities.byId?.get(id)?.legal_name || 'Entidade sem acesso de leitura');
   const body = el('div', { class: 'stack renewal-plan' });
   const created = new Map(); // tarefas confirmadas nesta tela, por contrato
 
@@ -104,7 +130,8 @@ export function renewalWorkbench(ctx, contracts, { coverage = { state: 'complete
         el('span', { class: 'row-sub', text: deadline ? `Aviso prévio até ${formatDate(deadline)} (${relativeDays(deadline)}) · fim ${formatDate(contract.ends_on)}` : 'Fim de vigência não cadastrado' }),
         el('span', { class: 'renewal-meta' }, [
           who ? textSpan(`Responsável: ${who}`) : tag('Sem responsável', 'warning'),
-          contract.status === 'renewing' ? tag('Renovação em andamento', 'accent') : null,
+          tag(renewalLifecycle(contract).label, contract.status === 'renewing' ? 'accent' : 'neutral'),
+          entityLabel(contract.legal_entity_id) ? textSpan(`Entidade: ${entityLabel(contract.legal_entity_id)}`) : null,
           !contract.renewal_notice_days && contract.ends_on ? tag('Aviso prévio não cadastrado', 'warning') : null,
           count
         ].filter(Boolean))
@@ -114,8 +141,7 @@ export function renewalWorkbench(ctx, contracts, { coverage = { state: 'complete
   }
 
   function draw() {
-    const mine = owner.value === 'mine', none = owner.value === 'none';
-    const scoped = contracts.filter((c) => LIVE.has(c.status) && (!mine || c.owner_id === ctx.viewer?.id) && (!none || !c.owner_id));
+    const scoped = filterRenewalPlan(contracts, { owner: owner.value, stage: stageSelect.value, entity: entitySelect?.value || '', query: search.value }, ctx.viewer?.id);
     const grouped = new Map(BUCKETS.map(([key]) => [key, []]));
     let later = 0;
     for (const contract of scoped) {
@@ -123,22 +149,28 @@ export function renewalWorkbench(ctx, contracts, { coverage = { state: 'complete
       if (key) grouped.get(key).push(contract); else later += 1;
     }
     for (const list of grouped.values()) list.sort((a, b) => String(renewalStage(a).deadline || '9999').localeCompare(String(renewalStage(b).deadline || '9999')));
-    const groups = BUCKETS.filter(([key]) => grouped.get(key).length).map(([key, label, hint]) => el('section', { class: `renewal-group renewal-${key}`, 'aria-label': label }, [
+    const groups = BUCKETS.filter(([key]) => grouped.get(key).length).map(([key, label, hint]) => el('section', { class: `renewal-group renewal-${key}`, id: `renewal-group-${key}`, 'aria-label': label }, [
       el('h3', { class: 'renewal-group-title' }, [textSpan(label), el('span', { class: 'chip-count', text: String(grouped.get(key).length) })]),
       mutedText(hint), el('ul', { class: 'renewal-list', role: 'list' }, grouped.get(key).map(row))]));
+    const nav = groups.length > 1 ? el('nav', { class: 'toolbar-chips renewal-jump', 'aria-label': 'Ir para grupo do plano' },
+      BUCKETS.filter(([key]) => grouped.get(key).length).map(([key, label]) => el('a', { class: 'chip', href: `#renewal-group-${key}`, text: `${label} · ${grouped.get(key).length}` }))) : null;
     body.replaceChildren(...[
+      nav,
       ...(groups.length ? groups : [mutedText(scoped.length ? `Nenhum contrato vigente com prazo de aviso nos próximos ${HORIZON_DAYS / 30} meses neste recorte.` : 'Nenhum contrato vigente neste recorte.')]),
       later ? mutedText(`${plural(later, 'contrato vigente tem', 'contratos vigentes têm')} aviso prévio depois de ${HORIZON_DAYS / 30} meses e não entra no plano.`) : null,
       coverage.state !== 'complete' ? el('p', { class: 'callout callout-warning compact', role: 'note' }, [icon('alert', { size: 14 }), textSpan('O plano usa só os contratos carregados nesta tela; a carteira completa não foi lida.')]) : null,
+      mutedText('Iniciar uma concorrência não renova o contrato: ele segue vigente até um novo contrato ser registrado no cadastro.'),
       tasksPartial ? mutedText('Contagem de tarefas a partir das 100 tarefas abertas mais próximas; abra as tarefas do contrato para ver todas.') : null
     ].filter(Boolean));
   }
-  owner.addEventListener('change', draw);
+  for (const control of [owner, stageSelect, entitySelect].filter(Boolean)) control.addEventListener('change', draw);
+  search.addEventListener('input', draw);
   draw();
   return el('section', { class: 'renewal-workbench', id: 'plano-renovacoes', 'aria-labelledby': 'plano-renovacoes-title' }, [
     el('div', { class: 'card-head' }, [el('div', { class: 'card-head-text' }, [
       el('h2', { class: 'card-title', id: 'plano-renovacoes-title', text: 'Plano de renovações' }),
-      el('p', { class: 'card-subtitle', text: 'Contratos vigentes pelo prazo do aviso prévio, com responsável, renovação em andamento e tarefas. Datas do cadastro do contrato.' })]), owner]),
+      el('p', { class: 'card-subtitle', text: 'Contratos vigentes pelo prazo do aviso prévio, com responsável, renovação em andamento e tarefas. Datas do cadastro do contrato.' })])]),
+    el('div', { class: 'toolbar renewal-filters' }, [search, owner, stageSelect, entitySelect].filter(Boolean)),
     el('div', { class: 'card-body' }, body)
   ]);
 }

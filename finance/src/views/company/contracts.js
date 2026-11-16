@@ -190,7 +190,7 @@ function coverageNote(coverage) {
   return null;
 }
 
-function portfolioControlTower(ctx, ordered, { card, focusId, coverage = { state: 'complete' } }) {
+function portfolioControlTower(ctx, ordered, { card, focusId, entities = null, coverage = { state: 'complete' } }) {
   const today = todayIso();
   const exceptions = new Map(ordered.map((c) => [c.id, contractExceptions(c, today)]));
   const providers = [...new Map(ordered.filter((c) => c.provider_id).map((c) => [c.provider_id, { id: c.provider_id, name: c.provider_name || 'Instituição' }])).values()].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
@@ -267,7 +267,7 @@ function portfolioControlTower(ctx, ordered, { card, focusId, coverage = { state
     if (planLoaded) return;
     planLoaded = true;
     planSlot.replaceChildren(mutedText('Carregando plano…'));
-    import('../contract-center/renewal-workbench.js').then((m) => planSlot.replaceChildren(m.renewalWorkbench(ctx, ordered, { coverage })))
+    import('../contract-center/renewal-workbench.js').then((m) => planSlot.replaceChildren(m.renewalWorkbench(ctx, ordered, { coverage, entities })))
       .catch((error) => { planLoaded = false; planSlot.replaceChildren(errorState({ error, onRetry: loadPlan })); });
   };
   plan.addEventListener('toggle', () => { if (plan.open) loadPlan(); });

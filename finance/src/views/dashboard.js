@@ -106,7 +106,7 @@ export function actionItems(ctx, approvals) {
     const about = contract ? `${contract.provider_name || 'Contrato'} · ${productLabel(contract.product, { short: true })} · ` : '';
     // Tarefa sem responsável aparece para a equipe, mas não como se fosse de quem lê.
     const owner = task.assignee_id === viewer ? 'Com você · ' : 'Sem responsável · ';
-    if (days !== null && days <= 2) items.push({ rank: days < 0 ? 1 : 3, due: days, taskId: task.id, canComplete: worksTasks, tone: days < 0 ? 'danger' : 'neutral', icon: 'tasks', kind: 'Tarefa', title: task.title,
+    if (days !== null && days <= 2) items.push({ rank: days < 0 ? 1 : 3, due: days, taskId: task.id, canComplete: worksTasks, unassigned: !task.assignee_id, tone: days < 0 ? 'danger' : 'neutral', icon: 'tasks', kind: 'Tarefa', title: task.title,
       detail: `${owner}${about}${days < 0 ? `Vencida ${relativeDays(task.due_on)}` : `Prazo ${relativeDays(task.due_on)}`}`, cta: 'Ver', href: ctx.href(`/finance/tasks.html#task-${task.id}`) });
   }
   // Tarefas abertas sem responsável (qualquer prazo, inclusive sem prazo): um
@@ -123,6 +123,23 @@ export function actionItems(ctx, approvals) {
   // Mesmo nível de prioridade: o que vence antes vem primeiro.
   const due = (item) => (Number.isFinite(item.due) ? item.due : 9999);
   return items.sort((a, b) => a.rank - b.rank || due(a) - due(b));
+}
+
+/**
+ * Por que o item está nesta posição: explicação curta a partir do estado e do
+ * prazo já usados na ordenação. Não é pontuação nem recomendação.
+ */
+export function priorityReason(item) {
+  if (item.rank === 0) return 'Sua vez de decidir na aprovação';
+  if (Number.isFinite(item.due)) {
+    if (item.due < 0) return `Prazo vencido há ${plural(-item.due, 'dia', 'dias')}`;
+    if (item.due === 0) return 'Prazo hoje';
+    if (item.due <= 7) return `Prazo em ${plural(item.due, 'dia', 'dias')}`;
+    return `Prazo em ${plural(item.due, 'dia', 'dias')}`;
+  }
+  if (item.kind === 'Atribuição' || item.unassigned) return 'Sem responsável definido';
+  if (item.rank === 1) return 'Processo parado aguardando ação';
+  return 'Próximo passo do processo, sem prazo registrado';
 }
 
 /**
@@ -175,21 +192,45 @@ function actionRow(item, ctx = null) {
     }
   } }) : null;
   complete?.classList.add('action-inline');
+  // Assumir tarefa sem responsável: mesma rota da Caixa de Trabalho (PATCH
+  // assignee_id) e confirmação pela releitura do servidor.
+  const assume = ctx && item.taskId && item.canComplete && item.unassigned && ctx.viewer?.id ? button('Assumir', { size: 'sm', variant: 'ghost', attrs: { 'aria-label': `Assumir tarefa: ${item.title}` }, onClick: async () => {
+    assume.disabled = true;
+    status.textContent = 'Conferindo no servidor…';
+    try {
+      await ctx.send('tasks', { organization_id: ctx.organization.id, task_id: item.taskId, assignee_id: ctx.viewer.id }, 'PATCH');
+      const check = await ctx.api(`tasks?organization_id=${ctx.orgId}&task_id=${encodeURIComponent(item.taskId)}`);
+      if (check.rows?.find((r) => r.id === item.taskId)?.assignee_id !== ctx.viewer.id) throw Object.assign(new Error('Não confirmamos a atribuição.'), { unknown: true });
+      status.textContent = 'Atribuída a você · confirmada pelo servidor.';
+      assume.remove();
+    } catch (error) {
+      const unknown = error.unknown || !error.status || error.status >= 500;
+      status.textContent = unknown ? 'Não confirmamos a atribuição. Abra a tarefa para ver o responsável registrado.' : (error.message || 'A tarefa não foi atribuída.');
+      assume.disabled = unknown;
+    }
+  } }) : null;
+  assume?.classList.add('action-inline');
   const row = el('li', { class: `action-row tone-${item.tone}`, dataset: { source: sourceOf(item) } }, [
     el('span', { class: 'action-icon' }, icon(item.icon, { size: 16 })),
     el('div', { class: 'action-text' }, [
       el('span', { class: 'action-kind', text: item.kind }),
       el('a', { class: 'action-title stretched', href: item.href, text: item.title }),
       el('span', { class: 'action-detail', text: item.detail }),
+      el('span', { class: 'action-why small', text: `Por que aqui: ${priorityReason(item)}` }),
       item.secondary ? el('a', { class: 'action-secondary small', href: item.secondary.href, text: item.secondary.label }) : null,
       status
     ].filter(Boolean)),
     item.when ? el('span', { class: 'action-when', text: item.when }) : null,
-    complete,
+    complete, assume,
     el('span', { class: 'action-cta', 'aria-hidden': 'true' }, [textSpan(item.cta), icon('chevronRight', { size: 14 })])
   ].filter(Boolean));
   return row;
 }
+
+const KIND_GROUPS = [['decide', 'Aprovações e decisões', ['Aprovação', 'Decisão', 'Avaliação']], ['deadline', 'Prazos e convites', ['Prazo', 'Convites']],
+  ['contract', 'Contratos e renovações', ['Renovação', 'Contrato']], ['task', 'Tarefas', ['Tarefa', 'Atribuição']]];
+/** Grupo de tipo do item para o filtro do Painel (outros tipos ficam só em "Todas"). Exportada para teste. */
+export const kindGroup = (item) => KIND_GROUPS.find(([, , kinds]) => kinds.includes(item.kind))?.[0] || 'other';
 
 export async function dashboard(ctx) {
   const data = ctx.data;
@@ -247,12 +288,23 @@ export async function dashboard(ctx) {
   const counts = S ? S.sourceCounts(items) : [];
   const filtered = el('ul', { class: 'action-list', role: 'list', hidden: true });
   const chips = counts.length > 1 ? el('div', { class: 'chips attention-filter', role: 'group', 'aria-label': 'Filtrar pendências por origem' }) : null;
-  const pick = (key) => {
-    for (const chip of chips.children) chip.setAttribute('aria-pressed', String(chip.dataset.source === key));
-    const all = key === 'all';
+  const kinds = KIND_GROUPS.map(([key, label]) => ({ key, label, count: items.filter((item) => kindGroup(item) === key).length })).filter((k) => k.count);
+  const kindChips = kinds.length > 1 ? el('div', { class: 'chips attention-filter', role: 'group', 'aria-label': 'Filtrar pendências por tipo' }) : null;
+  const state = { source: 'all', kind: 'all' };
+  const apply = () => {
+    for (const chip of chips?.children || []) chip.setAttribute('aria-pressed', String(chip.dataset.source === state.source));
+    for (const chip of kindChips?.children || []) chip.setAttribute('aria-pressed', String(chip.dataset.kind === state.kind));
+    const all = state.source === 'all' && state.kind === 'all';
     list.hidden = !all; if (rest) rest.hidden = !all; filtered.hidden = all;
-    filtered.replaceChildren(...(all ? [] : items.filter((item) => sourceOf(item) === key).map(rowOf)));
+    const picked = all ? [] : items.filter((item) => (state.source === 'all' || sourceOf(item) === state.source) && (state.kind === 'all' || kindGroup(item) === state.kind));
+    filtered.replaceChildren(...(all ? [] : picked.length ? picked.map(rowOf) : [el('li', { class: 'muted small', text: 'Nenhuma pendência nesta combinação de filtros.' })]));
   };
+  const pick = (key) => { state.source = key; apply(); };
+  if (kindChips) for (const { key, label, count } of [{ key: 'all', label: 'Todos os tipos', count: items.length }, ...kinds]) {
+    const chip = el('button', { type: 'button', class: 'chip', 'aria-pressed': String(key === 'all'), dataset: { kind: key } }, [label, el('span', { class: 'chip-count', text: String(count) })]);
+    chip.addEventListener('click', () => { state.kind = key; apply(); });
+    kindChips.append(chip);
+  }
   if (chips) for (const { key, label, count } of [{ key: 'all', label: 'Todas', count: items.length }, ...counts]) {
     const chip = el('button', { type: 'button', class: 'chip', 'aria-pressed': String(key === 'all'), dataset: { source: key } }, [label, el('span', { class: 'chip-count', text: String(count) })]);
     chip.addEventListener('click', () => pick(key));
@@ -268,7 +320,7 @@ export async function dashboard(ctx) {
     textSpan(`Não conseguimos carregar ${signals.failed.join(' e ')} agora; pode haver pendência fora desta lista. `),
     signals.failed.includes('Relacionamentos') ? el('a', { href: ctx.href('/finance/providers.html#crm-agenda'), text: 'Abrir agenda comercial' }) : el('a', { href: ctx.href('/finance/fees.html'), text: 'Abrir Tarifas' })]) : null;
   const signalsOff = signals.unavailable.length ? el('p', { class: 'muted small', 'data-signals': 'unavailable', text: `${signals.unavailable.join(' e ')}: ainda não disponível neste ambiente; não entra nesta lista.` }) : null;
-  for (const node of [signalsMissing, signalsOff, chips]) if (node) attention.append(node);
+  for (const node of [signalsMissing, signalsOff, kindChips, chips]) if (node) attention.append(node);
   attention.append(items.length ? el('div', {}, [list, rest, filtered].filter(Boolean)) : approvalsMissing || signalsMissing ? mutedText('Os demais itens (prazos, renovações e tarefas) não pedem ação agora.') : emptyState({ title: 'Tudo em dia', text: ctx.can('create_rfq') ? 'Nenhuma aprovação, prazo ou renovação exige ação. Que tal estruturar a próxima necessidade?' : 'Nenhuma aprovação aguarda você.', iconName: 'checkCircle',
     action: ctx.can('create_rfq') ? linkButton('Nova solicitação', ctx.href('/finance/new-rfq.html'), { iconName: 'plus' }) : null }));
 

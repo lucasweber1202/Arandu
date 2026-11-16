@@ -5,10 +5,10 @@
 // atribui nota nem recomenda instituição; o scorecard é do cliente, com
 // critérios e pesos dele, e o resultado é rotulado assim.
 
-import { el, icon, formatDate, percent, textSpan, textStrong } from '../core.js';
+import { el, icon, formatDate, percent, textSpan, textStrong, renewalStage } from '../core.js';
 import { button, tag, field, drawer, toast, loading, errorState, onSubmit, mutedText, toastError } from '../ui.js';
 import { CONTRACT_CATEGORIES } from '../../../lib/finance/contract-terms.mjs';
-import { relationshipContext, relationshipSummary } from './relationship-context.js';
+import { relationshipContext, relationshipSummary, relationshipCoverageSection } from './relationship-context.js';
 import { entityTree } from '../../../lib/finance/entities.mjs';
 import { loadEntities, entityName } from './entities.js';
 import { crmWorkspace } from './crm-workspace.js';
@@ -113,7 +113,10 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
         textSpan('Nenhum contrato vigente registrado com esta instituição. Registre o contrato que a empresa já tem para acompanhar condições, prazo e renovação, sem depender da adesão da instituição.'),
         button('Registrar contrato existente', { size: 'sm', variant: 'primary', iconName: 'plus', onClick: async () => { const { importContractButton } = await import('./contract-center.js'); importContractButton(ctx, entities, { providerId: provider.id })?.click(); } })]) : null;
       startBox.replaceChildren(...[start].filter(Boolean));
-      attention.replaceChildren(attentionSection(summary.attention, detail), controls('tasks'));
+      const renewing = (detail.contracts || []).filter((row) => ['active', 'renewing'].includes(row.status) && ['window', 'past_notice'].includes(renewalStage(row).stage));
+      const renewalLink = renewing.length ? el('p', { class: 'small rel-renewals' }, [textSpan(`${renewing.length} contrato(s) desta instituição na janela de aviso prévio. `),
+        el('a', { href: ctx.href(`/finance/contracts.html?plano=renovacoes&plano_busca=${encodeURIComponent(provider.name || '')}`), text: 'Ver no plano de renovações' })]) : null;
+      attention.replaceChildren(...[attentionSection(summary.attention, detail), renewalLink, controls('tasks'), relationshipCoverageSection(detail)].filter(Boolean));
       if (expanded && attention.querySelector('details')) attention.querySelector('details').open = true;
       if (section !== 'tasks') records.replaceChildren(el('h3', { id: 'rel-records', text: 'Contratos, limites e negociações' }), relationshipContext(ctx, detail), controls('contracts'));
     };

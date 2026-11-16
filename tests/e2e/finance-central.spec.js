@@ -268,9 +268,17 @@ test('plano de renovações agrupa pelo prazo do aviso, mostra tarefas e quem re
   await expect(plan.locator(`.renewal-soon [data-contract="${RW(1)}"]`)).toContainText('1 tarefa aberta');
   await expect(plan.locator(`.renewal-soon [data-contract="${RW(1)}"]`).getByRole('link', { name: '1 tarefa aberta' })).toHaveAttribute('href', `/finance/tasks.html?contrato=${RW(1)}`);
   await expect(plan.locator(`.renewal-undated [data-contract="${RW(3)}"]`)).toContainText('Fim de vigência não cadastrado');
-  await expect(plan.locator(`.renewal-upcoming [data-contract="${RW(4)}"]`)).toContainText('Renovação em andamento');
+  await expect(plan.locator(`.renewal-upcoming [data-contract="${RW(4)}"]`)).toContainText('Renovação iniciada');
+  await expect(plan).toContainText('Iniciar uma concorrência não renova o contrato');
   await expect(plan).toContainText('1 contrato vigente tem aviso prévio depois de 6 meses');
   await expect(plan.locator(`[data-contract="${RW(1)}"]`).getByRole('link', { name: /Atlas Bank · Giro sazonal/ })).toHaveAttribute('href', `/finance/contracts.html?abrir=contrato#contract-${RW(1)}`);
+  await plan.getByLabel('Plano de renovações: estado').selectOption('renewing');
+  await expect(plan.locator('[data-contract]')).toHaveCount(1);
+  await expect(plan.locator(`[data-contract="${RW(4)}"]`)).toBeVisible();
+  await plan.getByLabel('Plano de renovações: estado').selectOption('');
+  await plan.getByLabel('Plano de renovações: buscar instituição ou contrato').fill('fiança');
+  await expect(plan.locator('[data-contract]')).toHaveCount(1);
+  await plan.getByLabel('Plano de renovações: buscar instituição ou contrato').fill('');
   await plan.getByLabel('Plano de renovações: responsável').selectOption('none');
   await expect(plan.locator('[data-contract]')).toHaveCount(1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
@@ -386,4 +394,67 @@ test('central de ações: renovação leva ao contrato e ao plano de renovaçõe
   await expect(row.getByRole('link', { name: /Decidir renovação/ })).toHaveAttribute('href', `/finance/contracts.html?abrir=contrato#contract-${C1}`);
   await row.getByRole('link', { name: 'Plano de renovações' }).click();
   await expect(page.locator(`#plano-renovacoes [data-contract="${C1}"]`)).toBeVisible();
+});
+
+// Arandu 10 — Action Center: motivo da prioridade, filtro por tipo e "Assumir"
+// confirmado por releitura. API SIMULADA (não é validação hospedada).
+test('central de ações: explica a prioridade, filtra por tipo e assume tarefa sem responsável só após releitura', async ({ page }) => {
+  const T_FREE = '00000000-0000-4000-8000-0000000009b1';
+  const soon = { ...CONTRACT, ends_on: day(70), renewal_notice_days: 60 };
+  const tasks = [{ id: T_FREE, title: 'Coletar certidões', status: 'open', due_on: day(1), assignee_id: null, related_type: null, related_id: null }];
+  await setup(page, { overview: { ...OVERVIEW, contracts: [soon], tasks } });
+  const patches = [];
+  let assignee = null;
+  await page.route('**/api/finance/tasks*', (route) => {
+    const req = route.request();
+    if (req.method() === 'PATCH') { const body = req.postDataJSON(); patches.push(body); assignee = body.assignee_id; return route.fulfill({ json: { ok: true } }); }
+    return route.fulfill({ json: { ok: true, rows: [{ ...tasks[0], assignee_id: assignee }], page: { limit: 1, has_more: false, next_cursor: null } } });
+  });
+  await page.goto('/finance/dashboard.html');
+  const attention = page.locator('#precisa-de-voce');
+  const taskRow = attention.locator('.action-row', { hasText: 'Coletar certidões' });
+  await expect(taskRow).toContainText('Por que aqui: Prazo em 1 dia');
+  await expect(attention.locator('.action-row', { hasText: 'Decidir renovação' })).toContainText('Por que aqui: Prazo em');
+  const kinds = attention.getByRole('group', { name: 'Filtrar pendências por tipo' });
+  await kinds.getByRole('button', { name: /Contratos e renovações/ }).click();
+  await expect(attention.locator('.action-row:visible', { hasText: 'Coletar certidões' })).toHaveCount(0);
+  await expect(attention.locator('.action-row:visible', { hasText: 'Decidir renovação' })).toHaveCount(1);
+  await kinds.getByRole('button', { name: /Todos os tipos/ }).click();
+  await taskRow.getByRole('button', { name: 'Assumir tarefa: Coletar certidões' }).click();
+  await expect(taskRow).toContainText('Atribuída a você · confirmada pelo servidor.');
+  expect(patches).toEqual([{ organization_id: ORG, task_id: T_FREE, assignee_id: 'u1' }]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test('central de ações: leitor não recebe "Assumir"', async ({ page }) => {
+  const tasks = [{ id: '00000000-0000-4000-8000-0000000009b2', title: 'Revisar extrato', status: 'open', due_on: day(1), assignee_id: 'u1' }];
+  await setup(page, { role: 'viewer', overview: { ...OVERVIEW, tasks } });
+  await page.goto('/finance/dashboard.html');
+  await expect(page.locator('#precisa-de-voce')).toContainText('Revisar extrato');
+  await expect(page.getByRole('button', { name: /Assumir tarefa/ })).toHaveCount(0);
+});
+
+// Arandu 10 — Renewal Workbench 2.0: entidade jurídica, busca, cobertura
+// incompleta e 320 px. API SIMULADA.
+const ENT = '00000000-0000-4000-8000-0000000000e9';
+test('plano de renovações filtra por entidade jurídica e busca, e avisa cobertura incompleta em 320 px', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 720 });
+  const filler = Array.from({ length: 196 }, (_, i) => ({ ...CONTRACT, id: `00000000-0000-4000-8000-0000001${String(i).padStart(5, '0')}`, title: `Longo ${i}`, ends_on: day(900) }));
+  const contracts = [...RENEWALS.slice(0, 4).map((row, i) => (i === 1 ? { ...row, legal_entity_id: ENT } : row)), ...filler];
+  await setup(page, { overview: { ...OVERVIEW, contracts, tasks: [] } });
+  await page.route('**/api/finance/entities*', (route) => route.fulfill({ json: { ok: true, rows: [{ id: ENT, legal_name: 'Vitta Varejo Ltda', short_name: 'Vitta Varejo', kind: 'subsidiary', parent_id: null, status: 'active' }], scope: 'group', can_admin: true } }));
+  await page.route('**/api/finance/contracts?*', (route) => route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'falha' }) }));
+  await page.goto('/finance/contracts.html#plano-renovacoes');
+  const plan = page.locator('#plano-renovacoes');
+  await expect(plan).toContainText('a carteira completa não foi lida');
+  await plan.getByLabel('Plano de renovações: entidade jurídica').selectOption(ENT);
+  await expect(plan.locator('[data-contract]')).toHaveCount(1);
+  await expect(plan.locator(`[data-contract="${RW(2)}"]`)).toContainText('Entidade: Vitta Varejo');
+  await plan.getByLabel('Plano de renovações: entidade jurídica').selectOption('group');
+  await expect(plan.locator(`[data-contract="${RW(2)}"]`)).toHaveCount(0);
+  await plan.getByLabel('Plano de renovações: buscar instituição ou contrato').fill('giro sazonal');
+  await expect(plan.locator('[data-contract]')).toHaveCount(1);
+  await plan.getByLabel('Plano de renovações: buscar instituição ou contrato').fill('nada-encontrado');
+  await expect(plan).toContainText('Nenhum contrato vigente neste recorte.');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
 });

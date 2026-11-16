@@ -1818,3 +1818,57 @@ test('jornada conectada: do Painel ao Estúdio, à proposta e de volta, sem perd
   await expect(page).toHaveURL(new RegExp(`id=${RFQ}#aprovacoes$`));
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
 });
+
+// Arandu 10 — Approval Workspace: resumo "Antes de decidir", motivo de
+// desatualização devolvido pelo servidor (stale_reason) e busca. API SIMULADA.
+test('caixa de aprovações: motivo de desatualização do servidor, resumo antes de decidir e busca', async ({ page }) => {
+  const data = overview();
+  const rfq = { ...data.rfqs[0], organization_id: ORG };
+  await mockSession(page, { data: overview({ rfqs: [rfq] }) });
+  const p1 = rfq.proposals[0];
+  const rows = [
+    { id: 'ap2', rfq_id: RFQ, proposal_id: p1.id, proposal_version: 1, status: 'pending', stale: false, freshness: 'current', viewer_can_act: true, requested_at: '2026-10-21T10:00:00Z', requested_by: 'u2', rationale: 'Prazo melhor', steps: [{ id: 's2', position: 1, approver_id: 'u1', status: 'pending' }] },
+    { id: 'ap1', rfq_id: RFQ, proposal_id: p1.id, proposal_version: 1, status: 'pending', stale: true, stale_reason: 'proposal_changed', freshness: 'stale', requested_at: '2026-10-20T10:00:00Z', requested_by: 'u1', rationale: 'Melhor custo', steps: [{ id: 's1', position: 1, approver_id: 'u2', status: 'pending' }] }
+  ];
+  await page.route('**/api/finance/approvals?*', (route) => route.fulfill({ json: { ok: true, viewer_id: 'u1', rows } }));
+  await page.goto('/finance/approvals.html');
+  await page.locator('#request-ap2').getByRole('button', { name: 'Ver contexto' }).click();
+  const brief = page.getByRole('dialog').locator('.approval-brief');
+  await expect(brief).toContainText('Antes de decidir');
+  await expect(brief).toContainText('versão submetida v1');
+  await expect(brief).toContainText('Sua decisão pode ser registrada');
+  await expect(page.getByRole('dialog').getByRole('button', { name: 'Aprovar' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.getByRole('tab', { name: /Solicitadas por você/ }).click();
+  const staleRow = page.locator('#request-ap1');
+  await expect(staleRow).toContainText('A proposta recebeu nova versão depois do pedido.');
+  await staleRow.getByRole('button', { name: 'Ver contexto' }).click();
+  const stale = page.getByRole('dialog').locator('.approval-brief');
+  await expect(stale).toHaveAttribute('data-freshness', 'stale');
+  await expect(stale).toContainText('Desatualizado: não aceita decisão');
+  await expect(page.getByRole('dialog').getByRole('button', { name: 'Aprovar' })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await page.getByLabel('Buscar aprovações').fill('zzz-sem-resultado');
+  await expect(page.getByRole('tabpanel').getByText('Nenhum pedido corresponde à busca')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+});
+
+// Arandu 10 — Decision Studio: duplicar qualquer cenário e recalcular os
+// desatualizados de forma explícita. Persistência aguarda o backend do Codex.
+test('estúdio: duplicar cenário copia pesos sem resultado e "Recalcular" atualiza só os sem resultado atual', async ({ page }) => {
+  const studio = await openStudio(page);
+  await setWeight(studio, 'Cenário A', 'Taxa (% a.m.)', 60);
+  await studio.getByRole('button', { name: 'Calcular Cenário A' }).click();
+  await expect(studio.getByText(/Calculado\./)).toBeVisible();
+  await studio.getByRole('button', { name: 'Duplicar Cenário A' }).click();
+  await expect(studio.getByLabel('Cenário A (cópia): peso de Taxa (% a.m.)')).toHaveValue('60');
+  const recalc = studio.getByRole('button', { name: /Recalcular 1 cenário/ });
+  await expect(recalc).toBeVisible();
+  let calls = 0;
+  page.on('request', (req) => { if (req.url().endsWith('/api/finance/comparison') && req.method() === 'POST') calls += 1; });
+  await recalc.click();
+  await expect(studio.getByRole('region', { name: 'Tabela de cenários' })).toBeVisible();
+  expect(calls).toBe(1);
+  await expect(studio.getByRole('button', { name: /Recalcular .* cenário/ })).toBeHidden();
+  await expect(studio).not.toContainText(/recomend|melhor proposta/i);
+});

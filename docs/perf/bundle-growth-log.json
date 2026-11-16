@@ -35,6 +35,20 @@
       "previous": 812814,
       "reason": "Enterprise Financial Productivity (PR #338): Decision Studio (chunk sob demanda decision-studio 14.963 B, só ao abrir a aba Comparação), plano de renovações (chunk sob demanda renewal-workbench 5.975 B, só ao abrir o plano), prontidão da demanda no assistente, ações na fila do Painel e navegação comparação↔proposta e coluna encolhível na aba de comparação para não estourar 320 px (+30.072 B no build regular). Sete jornadas frias/quentes medidas em Chromium e aprovadas sem alterar baseline; maior rota regular 159.073 B e apresentação 164.316 B, abaixo de 250.000. Build de apresentação: produto 812.704 B, sandbox 382.286 B abaixo do hard limit congelado de 382.400. Nenhum hard limit alterado.",
       "journeyBaseline": "2026-11-05"
+    },
+    {
+      "date": "2026-11-14",
+      "accepted": 844904,
+      "previous": 842886,
+      "reason": "Arandu 10 — Renewal Workbench 2.0: filtros por estado do ciclo, entidade jurídica e busca, rótulo explícito de contrato vigente vs. renovação iniciada e atalhos por grupo, todos no chunk sob demanda renewal-workbench (5.975 → 7.966 B, só ao abrir o plano; +2.018 B no build regular). Jornadas frias/quentes medidas em Chromium dentro da baseline. Nenhum hard limit alterado.",
+      "journeyBaseline": "2026-11-05"
+    },
+    {
+      "date": "2026-11-14",
+      "accepted": 855291,
+      "previous": 844904,
+      "reason": "Arandu 10 — lote de experiência (PR #346): Action Center (motivo da prioridade, filtro por tipo, 'Assumir' tarefa), Intake (pendências obrigatórias ao vivo com atalho ao campo), Approval Workspace (resumo 'Antes de decidir', motivos stale_reason, busca), Relationship 360 (cobertura e origem por fonte, atalho ao plano filtrado) e Decision Studio (duplicar cenário, recalcular desatualizados) (+10.387 B no build regular, distribuídos em chunks de rota já existentes; nenhum módulo novo carregado na abertura). Sete jornadas frias/quentes medidas em Chromium dentro da baseline; maior inicial 240.739 B (relationship360) abaixo de 250.000. Nenhum hard limit alterado.",
+      "journeyBaseline": "2026-11-05"
     }
   ]
 }
