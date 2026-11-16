@@ -132,8 +132,12 @@ export async function rfqDetail(ctx) {
     manage && ['draft', 'open', 'collecting', 'comparing'].includes(rfq.status) ? { label: 'Cancelar solicitação', icon: 'x', danger: true, onClick: () => transition('cancelled', { title: 'Cancelar esta solicitação?', description: 'O processo é encerrado sem decisão. O histórico é preservado. Esta ação não pode ser desfeita.', confirmLabel: 'Cancelar solicitação', tone: 'danger' }) } : null
   ].filter(Boolean);
   actions.push(menu('Mais ações', more, { visibleLabel: 'Mais' }));
+  const originParam = new URLSearchParams(location.search).get('contrato') || '';
+  const originContract = /^[0-9a-f-]{36}$/i.test(originParam) ? originParam : null;
   ctx.header({
-    crumbs: [{ label: 'Solicitações', href: ctx.href('/finance/rfqs.html') }, { label: rfq.title }],
+    // Chegada pelo plano de renovações / Contract 360 (?contrato=): o caminho de volta ao contrato é preservado.
+    crumbs: originContract ? [{ label: 'Contratos', href: ctx.href('/finance/contracts.html') }, { label: 'Contrato de origem', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${encodeURIComponent(originContract)}`) }, { label: rfq.title }]
+      : [{ label: 'Solicitações', href: ctx.href('/finance/rfqs.html') }, { label: rfq.title }],
     title: rfq.title,
     meta: [
       tag(productLabel(rfq.product, { short: true })), pill(pending ? { label: 'Em aprovação', tone: 'warning', icon: 'clock' } : RFQ_STATUS[rfq.status]),
@@ -220,6 +224,9 @@ function overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract,
     rfq.description ? el('p', { class: 'prose', text: rfq.description }) : null,
     definitionList(spec.demandFields, rfq.demand)
   ], actions: manage && ['draft', 'open', 'collecting'].includes(rfq.status) ? [button('Editar demanda', { size: 'sm', iconName: 'edit', onClick: () => editDrawer(ctx, rfq) })] : null });
+  // Prontidão do rascunho conferida no servidor (somente com servidor real).
+  const readinessSlot = rfq.status === 'draft' && !(__ARANDU_DEMO__ && ctx.mode === 'demo') ? el('div') : null;
+  if (readinessSlot) import('./rfq/demand-readiness.js').then((m) => readinessSlot.replaceWith(m.demandReadinessPanel(ctx, rfq, { onEditField: manage ? (key) => editDrawer(ctx, rfq, { focusKey: key }) : null }))).catch(() => readinessSlot.remove());
   const revisions = card({ title: 'Revisões publicadas', subtitle: 'Propostas ficam ligadas à revisão que o provedor viu.', id: 'revisoes', body: revisionTimeline(ctx, rfq) });
 
   const invites = rfq.invites || [];
@@ -250,7 +257,7 @@ function overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract,
     board = el('div');
     import('./negotiation-board.js').then((m) => { if (board.parentNode) board.replaceWith(m.responseBoardCard(ctx, rfq)); }).catch(() => board.remove());
   }
-  grid.append(el('div', { class: 'split-main' }, [board, demand, passportSnapshotCard(ctx, rfq), revisions, graphContextCard(ctx, { type: 'rfq', id: rfq.id })].filter(Boolean)), el('div', { class: 'split-side' }, [inviteCard, documents, reuse]));
+  grid.append(el('div', { class: 'split-main' }, [board, readinessSlot, demand, passportSnapshotCard(ctx, rfq), revisions, graphContextCard(ctx, { type: 'rfq', id: rfq.id })].filter(Boolean)), el('div', { class: 'split-side' }, [inviteCard, documents, reuse]));
   return grid;
 }
 
@@ -366,7 +373,7 @@ function inviteForm(ctx, rfq) {
   return form;
 }
 
-function editDrawer(ctx, rfq) {
+function editDrawer(ctx, rfq, { focusKey = null } = {}) {
   const spec = PRODUCTS[rfq.product];
   const form = el('form', { class: 'stack', id: 'revision-form', novalidate: true });
   const title = el('input', { name: 'title', value: rfq.title, maxlength: '200' });
@@ -382,6 +389,8 @@ function editDrawer(ctx, rfq) {
   const save = button(rfq.status === 'draft' ? 'Salvar alterações' : 'Publicar revisão', { variant: 'primary', type: 'submit', iconName: 'check' });
   const dialog = drawer({ title: 'Editar solicitação', subtitle: rfq.title, body: [status, form], footer: [button('Cancelar', { variant: 'ghost', onClick: () => dialog.close() }), save] });
   save.setAttribute('form', 'revision-form');
+  // Atalho da prontidão: leva direto ao campo pendente.
+  if (focusKey) queueMicrotask(() => { const target = form.querySelector(`[name="${CSS.escape(focusKey)}"]`); target?.scrollIntoView?.({ block: 'center' }); target?.focus(); });
   onSubmit(form, async (event) => {
     event.preventDefault();
     const entries = Object.fromEntries(new FormData(form));

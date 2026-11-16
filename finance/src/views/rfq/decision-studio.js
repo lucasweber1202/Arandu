@@ -7,14 +7,18 @@
 // já devolve — posição, pontuação, cobertura, critérios ausentes — e compara
 // cenários entre si. Nenhum cenário é decisão, nenhum é recomendação do Arandu.
 //
-// Persistência: os cenários vivem nesta aba do navegador enquanto a página está
-// aberta (memória do módulo). Não vão para storage nem para a URL. Para guardar,
-// a pessoa baixa o dossiê.
+// Persistência (Arandu 10.1): cenários salvos vivem no servidor
+// (decision-scenarios, ver scenario-library.js) com versão, autoria, histórico
+// e arquivamento. A memória do módulo guarda apenas o RASCUNHO em edição desta
+// aba (pesos ainda não salvos e prévia de cálculo). No sandbox legado não há
+// servidor: lá o rascunho continua sendo a única forma, e a tela diz isso.
 
 import { el, icon, formatDate, formatDateTime, productLabel, RFQ_STATUS, APPROVAL_STATUS, textSpan, textStrong } from '../../core.js';
 import { button, card, drawer, mutedText, tag, toast, definitionList } from '../../ui.js';
 import { PRODUCTS } from '../../../../lib/finance/products.mjs';
 import { USER_WEIGHTS_NOTICE } from '../../../../lib/finance/comparison.mjs';
+import { scenarioLibrary, sameWeights } from './scenario-library.js';
+import { operationalError } from '../shared/operational.js';
 
 const MAX_SCENARIOS = 3;
 const NAMES = ['Cenário A', 'Cenário B', 'Cenário C'];
@@ -67,6 +71,11 @@ export function decisionStudio(ctx, rfq, { calculate, getModel = () => null, app
   const reset = previous && previous.key !== dataKey;
   if (!previous || reset) sessions.set(rfq.id, { key: dataKey, list: [{ name: NAMES[0], weights: cleanWeights(initialWeights), result: null, sensitivity: null, seq: 0 }] });
   const scenarios = sessions.get(rfq.id).list;
+  const sandbox = __ARANDU_DEMO__ && ctx.mode === 'demo';
+  const canSave = !sandbox && ctx.can('edit_scenario');
+  // Resultado da comparação de cenários salvos, calculado pelo servidor.
+  let serverComparison = null;
+  const dirty = (scenario) => !scenario.persisted || scenario.persisted.name !== scenario.name.trim() || !sameWeights(scenario.persisted.weights, cleanWeights(scenario.weights));
   const fingerprint = (weights) => JSON.stringify(Object.entries(cleanWeights(weights)).sort(([a], [b]) => a.localeCompare(b)));
 
   const list = el('div', { class: 'studio-scenarios' });
@@ -133,8 +142,8 @@ export function decisionStudio(ctx, rfq, { calculate, getModel = () => null, app
 
   function scenarioNode(scenario, index) {
     const node = el('section', { class: 'studio-scenario card', 'aria-label': scenario.name });
-    const name = el('input', { class: 'input', value: scenario.name, maxlength: '40', 'aria-label': `Nome do ${NAMES[index]}` });
-    name.addEventListener('change', () => { scenario.name = name.value.trim() || NAMES[index]; drawComparison(); });
+    const name = el('input', { class: 'input', value: scenario.name, maxlength: '120', 'aria-label': `Nome do ${NAMES[index] || 'cenário'}` });
+    name.addEventListener('change', () => { scenario.name = name.value.trim() || NAMES[index] || 'Cenário'; if (scenario.saveState === 'saved') scenario.saveState = null; draw(); });
     const sliders = el('div', { class: 'weights-form' }, specs.map((spec) => {
       const value = String(scenario.weights[spec.key] || 0);
       const range = el('input', { type: 'range', min: '0', max: '100', step: '5', value, 'aria-label': `${scenario.name}: peso de ${spec.label}` });
@@ -143,6 +152,9 @@ export function decisionStudio(ctx, rfq, { calculate, getModel = () => null, app
         output.textContent = range.value;
         if (Number(range.value) > 0) scenario.weights[spec.key] = Number(range.value); else delete scenario.weights[spec.key];
         scenario.seq += 1;
+        // Estado de salvamento acompanha os pesos sem redesenhar o cartão (o foco fica no controle).
+        if (scenario.saveState === 'saved' || scenario.saveState === 'error') scenario.saveState = null;
+        if (canSave) refreshSave(scenario, node);
         // Pesos mudaram: o resultado antigo não descreve mais este cenário.
         if (scenario.result || scenario.sensitivity || node.querySelector('.studio-status').textContent) { scenario.result = null; scenario.sensitivity = null; node.querySelector('.studio-status').textContent = 'Pesos alterados: calcule de novo.'; drawComparison(); }
       });
@@ -160,13 +172,21 @@ export function decisionStudio(ctx, rfq, { calculate, getModel = () => null, app
       draw();
       list.querySelectorAll('.studio-scenario').item(index + 1)?.querySelector('input')?.focus();
     } }) : null;
-    const remove = index > 0 ? button('Remover', { size: 'sm', variant: 'ghost', onClick: () => { scenarios.splice(index, 1); draw(); } }) : null;
+    const remove = index > 0 || scenario.persisted ? button(scenario.persisted ? 'Fechar rascunho' : 'Remover', { size: 'sm', variant: 'ghost', onClick: () => {
+      scenarios.splice(index, 1);
+      if (!scenarios.length) scenarios.push({ name: NAMES[0], weights: {}, result: null, sensitivity: null, seq: 0 });
+      draw();
+    } }) : null;
+    const saveLine = canSave ? saveStateNode(scenario) : null;
+    const save = canSave ? button(scenario.persisted ? 'Salvar alterações' : 'Salvar na empresa', { size: 'sm', iconName: 'check', attrs: { 'aria-label': `Salvar ${scenario.name}` }, onClick: () => saveDraft(scenario) }) : null;
+    if (save) save.disabled = scenario.saveState === 'saving' || scenario.saveState === 'conflict' || (scenario.persisted && !dirty(scenario)) || !Object.keys(cleanWeights(scenario.weights)).length;
     const status = el('p', { class: 'studio-status muted small', role: 'status' });
     if (scenario.error) status.textContent = scenario.error;
     else if (scenario.result && !scenario.result.applied) status.textContent = scenario.result.notice;
     else if (scenario.result) status.textContent = `Calculado. Pesos: ${scenario.result.criteria.map((item) => `${item.label} ${(item.share * 100).toFixed(0)}%`).join(' · ')}`;
     const excluded = (scenario.result?.excluded_criteria || []).map((item) => el('p', { class: 'callout callout-warning compact', text: `${item.label}: fora do cálculo. ${item.reasons.join(' ')}` }));
-    node.append(el('div', { class: 'cc-head' }, [name, el('div', { class: 'row-actions' }, [duplicate, remove].filter(Boolean))]), sliders, el('div', { class: 'form-actions' }, [calc, sens].filter(Boolean)), status, ...excluded);
+    node.append(el('div', { class: 'cc-head' }, [name, el('div', { class: 'row-actions' }, [duplicate, remove].filter(Boolean))]), sliders, el('div', { class: 'form-actions' }, [calc, sens, save].filter(Boolean)), status, saveLine, ...excluded);
+    if (save) save.dataset.save = '1';
     if (scenario.sensitivity) node.append(sensitivityNode(scenario));
     return node;
   }
@@ -184,9 +204,15 @@ export function decisionStudio(ctx, rfq, { calculate, getModel = () => null, app
   }
 
   function drawComparison() {
-    const data = compareScenarioResults(scenarios);
+    const data = compareScenarioResults(serverComparison
+      ? serverComparison.scenarios.map((item) => ({ name: item.scenario.name, result: item.weighted }))
+      : scenarios);
+    // Cenários salvos que o motor não pôde pontuar: o motivo do servidor aparece, nunca um texto genérico.
+    const refused = serverComparison ? serverComparison.scenarios.filter((item) => !item.weighted?.applied).map((item) => el('p', { class: 'callout callout-warning compact', role: 'note' }, [icon('alert', { size: 14 }),
+      textSpan(`${item.scenario.name}: ${item.weighted?.notice || 'o motor não pontuou este cenário.'}${(item.weighted?.excluded_criteria || []).map((c) => ` ${c.label}: ${c.reasons.join(' ')}`).join('')}`)])) : [];
     if (data.scenarios.length < 2) {
-      comparison.replaceChildren(mutedText(data.scenarios.length ? 'Calcule um segundo cenário para comparar as ordens lado a lado.' : 'Calcule ao menos um cenário.'));
+      if (refused.length) { comparison.replaceChildren(...refused, comparisonSource()); return; }
+      comparison.replaceChildren(serverComparison && data.scenarios.length === 1 ? comparisonSource() : mutedText(data.scenarios.length ? 'Calcule um segundo cenário para comparar as ordens lado a lado (ou selecione cenários salvos).' : 'Calcule ao menos um cenário ou selecione cenários salvos para comparar.'));
       return;
     }
     const table = el('table', { class: 'data-table studio-table' }, [
@@ -203,7 +229,72 @@ export function decisionStudio(ctx, rfq, { calculate, getModel = () => null, app
       el('p', { class: data.leaderChanges ? 'callout callout-warning compact' : 'callout callout-info compact', role: 'note' }, [icon(data.leaderChanges ? 'alert' : 'info', { size: 14 }),
         textSpan(data.leaderChanges ? 'A primeira posição muda conforme os pesos: a ordem depende dos critérios escolhidos, não só das condições.' : 'A primeira posição é a mesma em todos os cenários calculados.')]),
       el('div', { class: 'matrix-scroll', tabindex: '0', role: 'region', 'aria-label': 'Tabela de cenários' }, table),
-      mutedText(`${USER_WEIGHTS_NOTICE} "Fora da ordem": cobertura abaixo do mínimo do motor; não é a pior proposta.`));
+      ...refused, mutedText(`${USER_WEIGHTS_NOTICE} "Fora da ordem": cobertura abaixo do mínimo do motor; não é a pior proposta.`), comparisonSource());
+  }
+  // De onde veio a comparação exibida: cenários salvos (servidor) ou rascunhos desta aba.
+  function comparisonSource() {
+    if (!serverComparison) return mutedText('Comparação dos rascunhos desta aba.');
+    const clear = button('Voltar aos rascunhos', { size: 'sm', variant: 'ghost', onClick: () => { serverComparison = null; drawComparison(); } });
+    return el('p', { class: 'muted small studio-source' }, [textSpan(`Comparação de cenários salvos, recalculada agora pelo motor do servidor com o contexto atual (revisão ${serverComparison.context?.rfq_revision ?? '—'}). `), clear]);
+  }
+
+  function refreshSave(scenario, node) {
+    const line = node.querySelector('.scenario-save-state');
+    if (line && scenario.saveState !== 'conflict') line.replaceWith(saveStateNode(scenario));
+    const btn = node.querySelector('[data-save]');
+    if (btn) btn.disabled = scenario.saveState === 'saving' || scenario.saveState === 'conflict' || (scenario.persisted && !dirty(scenario)) || !Object.keys(cleanWeights(scenario.weights)).length;
+  }
+
+  function saveStateNode(scenario) {
+    const text = scenario.saveState === 'saving' ? 'Salvando…'
+      : scenario.saveState === 'saved' ? `Salvo na empresa · versão ${scenario.persisted?.version}`
+      : scenario.saveState === 'unknown' ? 'Não confirmamos o salvamento. Salvar de novo confere o mesmo envio, sem duplicar.'
+      : scenario.saveState === 'error' ? `Não foi salvo. ${operationalError(scenario.saveError)}`
+      : scenario.saveState === 'conflict' ? null
+      : scenario.persisted ? (dirty(scenario) ? `Alterações não salvas (base: versão ${scenario.persisted.version})` : `Salvo · versão ${scenario.persisted.version}`)
+      : 'Rascunho não salvo';
+    if (scenario.saveState === 'conflict') {
+      const reread = button('Carregar versão atual', { size: 'sm', iconName: 'refresh', onClick: () => rereadConflict(scenario) });
+      const asNew = button('Salvar como novo cenário', { size: 'sm', variant: 'ghost', onClick: () => { scenario.persisted = null; scenario.requestKey = null; scenario.saveState = null; scenario.name = `${scenario.name} (minha versão)`.slice(0, 120); saveDraft(scenario); } });
+      return el('div', { class: 'callout callout-warning compact scenario-save-state', role: 'alert' }, [icon('alert', { size: 14 }),
+        textSpan(`${operationalError(scenario.saveError)} Suas alterações não foram gravadas e nada foi sobrescrito.`), el('div', { class: 'row-actions' }, [reread, asNew])]);
+    }
+    const tone = scenario.saveState === 'error' || scenario.saveState === 'unknown' ? ' is-error' : '';
+    return el('p', { class: `small scenario-save-state${tone}`, role: 'status', dataset: { state: scenario.saveState || (scenario.persisted ? (dirty(scenario) ? 'dirty' : 'saved') : 'draft') }, text });
+  }
+
+  async function saveDraft(scenario) {
+    if (scenario.saveState === 'saving') return;
+    scenario.saveState = 'saving';
+    draw();
+    const result = await library.save(scenario);
+    if (result.ok) {
+      scenario.persisted = { id: result.scenario.id, version: result.scenario.version, name: result.scenario.name, weights: { ...result.scenario.weights } };
+      scenario.name = result.scenario.name;
+      scenario.saveState = 'saved'; scenario.saveError = null;
+    } else { scenario.saveState = result.kind; scenario.saveError = result.error; }
+    if (scenarios.includes(scenario)) draw();
+  }
+
+  // Conflito: relê a versão atual do servidor e a carrega no rascunho (com confirmação implícita do clique).
+  async function rereadConflict(scenario) {
+    try {
+      const data = await library.detail(scenario.persisted.id);
+      loadPersisted(data.scenario, scenario);
+      library.reload();
+    } catch (error) { scenario.saveError = error; scenario.saveState = 'error'; draw(); }
+  }
+
+  function loadPersisted(saved, into = null) {
+    const draft = into || scenarios.find((item) => item.persisted?.id === saved.id) || null;
+    const value = { name: saved.name, weights: { ...saved.weights }, result: null, sensitivity: null, seq: 0, saveState: null, saveError: null,
+      persisted: { id: saved.id, version: saved.version, name: saved.name, weights: { ...saved.weights } } };
+    if (draft) Object.assign(draft, value, { seq: (draft.seq || 0) + 1 });
+    else if (scenarios.length >= MAX_SCENARIOS) scenarios.splice(scenarios.length - 1, 1, value);
+    else if (scenarios.length === 1 && !scenarios[0].persisted && !Object.keys(cleanWeights(scenarios[0].weights)).length) scenarios.splice(0, 1, value);
+    else scenarios.push(value);
+    draw();
+    list.querySelector(`.studio-scenario:nth-child(${scenarios.indexOf(draft || value) + 1}) input`)?.focus();
   }
 
   // Recalcular explicitamente todos os cenários sem resultado válido para os pesos atuais.
@@ -221,6 +312,8 @@ export function decisionStudio(ctx, rfq, { calculate, getModel = () => null, app
     recalc.querySelector('.btn-label') && (recalc.querySelector('.btn-label').textContent = `Recalcular ${stale} cenário(s) sem resultado atual`);
     drawComparison();
   }
+  const library = sandbox ? null : scenarioLibrary(ctx, rfq, { specs, onEdit: (saved) => loadPersisted(saved),
+    onCompared: (data) => { serverComparison = data; drawComparison(); comparison.scrollIntoView?.({ block: 'nearest' }); } });
   draw();
 
   return card({ title: 'Estúdio de decisão', id: 'estudio-decisao', headingLevel: 3,
@@ -228,7 +321,11 @@ export function decisionStudio(ctx, rfq, { calculate, getModel = () => null, app
     actions: [dossierButton],
     body: [
       reset ? el('p', { class: 'callout callout-warning compact', role: 'note', id: 'studio-reset' }, [icon('alert', { size: 14 }), textSpan('A solicitação ou as propostas mudaram desde a análise anterior: os cenários foram reiniciados para não descrever dados antigos.')]) : null,
-      el('p', { class: 'callout callout-info compact', role: 'note' }, [icon('info', { size: 14 }), textSpan('Cenários são análises desta aba: não são salvos na empresa, não registram decisão nem aprovação e se perdem ao recarregar. Para guardar, baixe o dossiê.')]),
+      el('p', { class: 'callout callout-info compact', role: 'note' }, [icon('info', { size: 14 }), textSpan(sandbox
+        ? 'Cenários são análises desta aba: não são salvos na empresa, não registram decisão nem aprovação e se perdem ao recarregar. Para guardar, baixe o dossiê.'
+        : 'Cenários são análises humanas: salvos na empresa guardam nome, pesos e o contexto auditado; nunca guardam pontuação, escolha de instituição ou decisão. O resultado é recalculado pelo motor a cada comparação.')]),
+      library?.node || null,
+      el('h4', { class: 'studio-drafts-title', text: sandbox ? 'Cenários desta aba' : 'Rascunhos em edição' }),
       list, el('div', { class: 'form-actions' }, [add, recalc]), comparison
     ].filter(Boolean) });
 }

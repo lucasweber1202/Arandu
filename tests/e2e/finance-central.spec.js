@@ -22,6 +22,8 @@ async function setup(page, { role = 'admin', crmFails = false, feesStatus = 200,
     calls.push({ path, method: req.method(), query: Object.fromEntries(u.searchParams) });
     const json = (v, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(v) });
     if (path === 'organizations') return json({ ok: true, rows: [{ id: ORG, kind: 'BUYER', legal_name: 'Grupo Vitta' }] });
+    // Arandu 10.1: sem a API renewal-operations (503 = schema não aplicado), o plano cai no modo local degradado que estes testes cobrem.
+    if (path === 'renewal-operations') return json({ ok: false, error: 'Indisponível', code: 'schema_incompatible' }, 503);
     if (path === 'overview') return json(overview);
     if (path === 'contract-detail') return json({ ok: true, contract: CONTRACT, effective: null, versions: [], amendments: [], milestones: [], children: [], documents: [], events: [] });
     if (path === 'members') return json({ ok: true, rows: [{ user_id: 'u1', role, display_name: 'Paula Nogueira' }], viewer_id: 'u1' });

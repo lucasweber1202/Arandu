@@ -465,7 +465,12 @@ export async function dashboard(ctx) {
   // Inteligência de valor só no produto real (a demo não simula esses SoR);
   // carregada sob demanda para não pesar no bundle do Painel.
   const valueCard = (__ARANDU_DEMO__ && ctx.mode === 'demo') ? null : await import('./executive.js').then((m) => m.executiveSection(ctx, entities)).catch(() => null);
-  root.append(attention, summary, el('div', { class: 'dash-grid' }, [
+  // Caixa de trabalho canônica (work-intelligence): só com servidor real; o
+  // sandbox legado não simula essa API e não ganha capability nova.
+  // Carregada sob demanda (orçamento de JS da jornada): o módulo só baixa ao
+  // abrir; quem deixou aberta da última vez a reencontra aberta (preferência local).
+  const workCard = (__ARANDU_DEMO__ && ctx.mode === 'demo') ? null : lazyWorkQueue(ctx);
+  root.append(...[attention, workCard, summary].filter(Boolean), el('div', { class: 'dash-grid' }, [
     // Trabalho antes de painel (Constitution §1.3, guideline §35.8): processos,
     // renovações e tarefas vêm antes dos indicadores de portfólio. No celular a
     // coluna lateral desce: a inteligência de valor fica depois dela, em largura
@@ -475,6 +480,29 @@ export async function dashboard(ctx) {
   ]), ...[valueCard].filter(Boolean));
   if (!rfqs.length) root.prepend(firstUse(ctx));
   return root;
+}
+
+const WORK_OPEN_KEY = 'arandu:caixa-de-trabalho:aberta';
+function lazyWorkQueue(ctx) {
+  const slot = el('div', { class: 'card-body' }, el('p', { class: 'muted small', text: 'Tarefas, aprovações, demandas e contratos que pedem ação, lidos do servidor.' }));
+  const box = el('details', { class: 'card work-queue-toggle', id: 'caixa-de-trabalho-toggle' }, [
+    el('summary', { class: 'card-head' }, [el('span', { class: 'card-title', text: 'Caixa de trabalho' }), el('span', { class: 'muted small', text: ' · fila operacional por seção' })]), slot]);
+  let loaded = false;
+  const load = () => {
+    if (loaded) return;
+    loaded = true;
+    slot.replaceChildren(el('p', { class: 'muted small', role: 'status', text: 'Carregando caixa de trabalho…' }));
+    import('./work-queue.js').then((m) => slot.replaceWith(m.workQueue(ctx)))
+      .catch((error) => { loaded = false; slot.replaceChildren(el('p', { class: 'muted small', role: 'alert', text: `Não foi possível carregar a caixa de trabalho. ${error?.message || ''}` })); });
+  };
+  box.addEventListener('toggle', () => {
+    try { localStorage.setItem(WORK_OPEN_KEY, box.open ? '1' : '0'); } catch { /* preferência opcional */ }
+    if (box.open) load();
+  });
+  let remembered = false;
+  try { remembered = localStorage.getItem(WORK_OPEN_KEY) === '1'; } catch { /* sem storage: fechada */ }
+  if (remembered || location.hash === '#caixa-de-trabalho') { box.open = true; load(); }
+  return box;
 }
 
 function firstUse(ctx) {

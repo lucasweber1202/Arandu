@@ -60,6 +60,8 @@ async function mockSession(page, { organizations = [{ id: ORG, kind: 'BUYER', le
     const path = url.pathname.replace('/api/finance/', '');
     calls.push(`${request.method()} ${path}`);
     const json = (body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
+    // Arandu 10.1: sem a API renewal-operations (503 = schema não aplicado), o plano cai no modo local degradado que estes testes cobrem.
+    if (path === 'renewal-operations') return json({ ok: false, error: 'Indisponível', code: 'schema_incompatible' }, 503);
     if (path === 'organizations') return json({ ok: true, rows: organizations });
     if (path === 'overview') return json(data);
     if (path === 'rfqs' && request.method() === 'GET') { const page = pagedRfqs(data.rfqs, url); return json(page.body, page.status); }
@@ -1650,7 +1652,8 @@ async function setWeight(studio, scenario, label, value) {
 
 test('estúdio: dois cenários pelo mesmo motor mostram que a primeira posição depende dos pesos', async ({ page }) => {
   const studio = await openStudio(page);
-  await expect(studio).toContainText('não são salvos na empresa, não registram decisão');
+  // 10.1: salvos guardam só nome, pesos e contexto; nada de pontuação ou decisão.
+  await expect(studio).toContainText('nunca guardam pontuação, escolha de instituição ou decisão');
   await setWeight(studio, 'Cenário A', 'Valor ofertado (R$)', 70);
   await setWeight(studio, 'Cenário A', 'Taxa (% a.m.)', 30);
   await studio.getByRole('button', { name: 'Calcular Cenário A' }).click();

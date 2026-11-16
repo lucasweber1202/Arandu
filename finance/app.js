@@ -200,8 +200,11 @@ function createContext(transport) {
       // approvalsError antes de dizer que não há pendência ou de liberar decisão.
       if (!ctx.approvalsPromise) {
         ctx.approvalsError = null;
-        ctx.approvalsPromise = ctx.api(`approvals?organization_id=${ctx.orgId}`).then((result) => result.rows || [])
-          .catch((error) => { ctx.approvalsError = error; return []; });
+        ctx.approvalsPage = null; ctx.approvalsCoverage = null;
+        ctx.approvalsPromise = ctx.api(`approvals?organization_id=${ctx.orgId}`).then((result) => {
+          ctx.approvalsPage = result.page || null; ctx.approvalsCoverage = result.coverage || null;
+          return result.rows || [];
+        }).catch((error) => { ctx.approvalsError = error; return []; });
       }
       return ctx.approvalsPromise;
     },
