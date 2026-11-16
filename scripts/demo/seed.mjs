@@ -288,6 +288,7 @@ function scopedTables(scope) {
     // Filhos antes dos pais; sem colunas aqui para o remapeamento não duplicar datas.
     ['fin_contracts', ['id'], `${org}&parent_contract_id=not.is.null`, []],
     ['fin_contracts', ['id'], org, ['created_at', 'updated_at']],
+    ['fin_decision_scenarios', ['id'], org, ['created_at', 'updated_at']],
     ['fin_decisions', ['id'], org, ['decided_at']],
     ['fin_proposal_drafts', ['proposal_id'], `proposal_id=${list(scope.proposals)}`, ['updated_at']],
     ['fin_proposal_versions', ['id'], `proposal_id=${list(scope.proposals)}`, ['submitted_at']],
@@ -473,6 +474,7 @@ async function compare(spec, person) {
   const rfq = ctx.rfq[spec.key];
   const result = await post(person, 'comparison', { rfq_id: rfq, weights: spec.weights });
   must(result.weighted?.applied, `comparação ponderada de ${spec.key} não aplicada`);
+  await post(person, 'decision-scenarios', { rfq_id:rfq, name:`Análise humana — ${spec.key}`, weights:spec.weights, request_key:`demo-analysis-${spec.key}` });
   await post(person, 'signals', { organization_id: ctx.org, event: 'comparison_viewed', entity_type: 'rfq', entity_id: rfq });
   await post(person, 'signals', { organization_id: ctx.org, event: 'weights_applied', entity_type: 'rfq', entity_id: rfq });
 }

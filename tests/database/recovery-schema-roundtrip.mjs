@@ -42,6 +42,7 @@ try {
   // migrations must not move this regression fixture past the repair itself.
   for(const file of files.slice(0,repairIndex)) apply(source,file);
   sql(source,'create table public.fp_logic(a boolean,b boolean,c boolean, constraint fp_logic_check check(a and (b or c)))');
+  sql(source,'create table public.fp_column_options(value integer default 7); alter table public.fp_column_options alter column value set (n_distinct=0.25)');
   resetTarget();
   assert.notEqual(fingerprint(source),fingerprint(target),'Pre-fix clean install must reproduce schema drift');
   const before=projection(source), beforeHash=fingerprint(source);
@@ -53,6 +54,14 @@ try {
   assert.equal(projection(source),before,'View API, RLS mode and grants preserved');
   resetTarget();
   assert.equal(fingerprint(source),fingerprint(target),'Repaired canonical schema roundtrips');
+  sql(target,'alter table public.fp_column_options alter column value set (n_distinct=0.5)');
+  assert.notEqual(fingerprint(source),fingerprint(target),'Semantic column options remain protected');
+  sql(target,'alter table public.fp_column_options alter column value set (n_distinct=0.25)');
+  assert.equal(fingerprint(source),fingerprint(target));
+  sql(target,'alter table public.fp_column_options alter column value set default 8');
+  assert.notEqual(fingerprint(source),fingerprint(target),'Column defaults remain protected');
+  sql(target,'alter table public.fp_column_options alter column value set default 7');
+  assert.equal(fingerprint(source),fingerprint(target));
   sql(target,'alter table public.fp_logic drop constraint fp_logic_check; alter table public.fp_logic add constraint fp_logic_check check((a and b) or c)');
   assert.notEqual(fingerprint(source),fingerprint(target),'Boolean grouping tamper must fail');
   sql(target,'alter table public.fp_logic drop constraint fp_logic_check; alter table public.fp_logic add constraint fp_logic_check check(a and (b or c))');
