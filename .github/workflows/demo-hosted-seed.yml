@@ -1,5 +1,12 @@
 name: Arandu — semeadura remota da Demo (manual)
-run-name: Demo seed remoto — ${{ inputs.mode }}
+run-name: Demo remota — ${{ inputs.mode }} @ ${{ inputs.expected_sha }}
+
+# Separação (Arandu 10.2): aprovar uma PR NÃO executa nada aqui. Este fluxo só
+# roda por workflow_dispatch na main. O job `preflight` é SOMENTE LEITURA
+# (scripts/demo/hosted-preflight.mjs: apenas GET/HEAD, provado em teste). O job
+# `provision` só existe no modo seed-and-provision, depende de um preflight GO
+# no MESMO commit e exige uma referência de autorização registrada. Migrations
+# hospedadas NÃO são aplicadas por este fluxo: schema pendente = NO-GO.
 
 on:
   workflow_dispatch:
@@ -10,14 +17,23 @@ on:
         type: choice
         options:
           - offgpyysgdhfemjlchod
+      expected_sha:
+        description: 'SHA completo (40) do commit revisado: igual ao HEAD da main e ao commit publicado no app Demo'
+        required: true
+        type: string
       mode:
-        description: 'Escolha preflight antes de escrever; sem auto-reset'
+        description: 'preflight-only (leitura) ou seed-and-provision (escrita; exige GO e autorização)'
         required: true
         type: choice
         default: preflight-only
         options:
           - preflight-only
           - seed-and-provision
+      authorization_reference:
+        description: 'Só para seed-and-provision: referência verificável da autorização (issue/decisão), sem segredos'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -27,33 +43,37 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  bootstrap:
+  preflight:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: demo
-    timeout-minutes: 100
+    timeout-minutes: 15
+    outputs:
+      verdict: ${{ steps.check.outputs.verdict }}
     env:
       ARANDU_ENV: demo
       ARANDU_DEMO_CONFIRM: offgpyysgdhfemjlchod
       SUPABASE_URL: https://offgpyysgdhfemjlchod.supabase.co
-      ARANDU_DEMO_APP_URL: https://arandu-demo-9fxmf7u6k-lucas-projects467.vercel.app
+      ARANDU_DEMO_APP_URL: ${{ secrets.ARANDU_DEMO_APP_URL }}
       SUPABASE_ANON_KEY: ${{ secrets.ARANDU_DEMO_SUPABASE_ANON_KEY }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.ARANDU_DEMO_SUPABASE_SERVICE_ROLE_KEY }}
       ARANDU_DEMO_PASSWORD: ${{ secrets.ARANDU_DEMO_PASSWORD }}
       CRON_SECRET: ${{ secrets.ARANDU_DEMO_CRON_SECRET }}
       USER_CONFIRMED_REF: ${{ inputs.confirm_ref }}
+      EXPECTED_SHA: ${{ inputs.expected_sha }}
     steps:
-      - name: Verificar confirmação e SHA aprovado
+      - name: Conferir ref, SHA e HEAD da main
         shell: bash
         run: |
           set -euo pipefail
           test "$USER_CONFIRMED_REF" = 'offgpyysgdhfemjlchod'
-          echo 'Ref Demo confirmado; nenhum projeto de produção será usado.'
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo 'expected_sha precisa ser um SHA completo.'; exit 1; }
+          test "$EXPECTED_SHA" = "$GITHUB_SHA" || { echo "expected_sha difere do HEAD da main deste disparo ($GITHUB_SHA): revise o commit antes."; exit 1; }
 
-      - name: Checkout apenas do commit aprovado da Demo
+      - name: Checkout do commit revisado
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: 89b1f0f68e7c2a3cdf3fa138fc683889124098dc
+          ref: ${{ inputs.expected_sha }}
           persist-credentials: false
 
       - name: Node 24
@@ -61,70 +81,115 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Instalar dependências do commit fixo
+      - name: Instalar dependências (sem scripts)
         run: npm ci --ignore-scripts --no-audit --no-fund
 
-      - name: 'Preflight seguro: guard + API + banco de destino'
+      - name: Preflight somente leitura (alvo, app, Auth, Storage, schema, dados)
+        id: check
         shell: bash
         run: |
-          set -euo pipefail
-          test "$(git rev-parse HEAD)" = '89b1f0f68e7c2a3cdf3fa138fc683889124098dc'
-          node --input-type=module <<'NODE'
-          import { assertDemoTarget, assertDemoDatabase } from './lib/finance/demo-guard.mjs';
-          import { supabaseApiKeyHeaders } from './lib/supabase-api-headers.mjs';
-          const names = ['SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'ARANDU_DEMO_PASSWORD', 'CRON_SECRET'];
-          for (const name of names) if (!process.env[name]) throw Error('Segredo ausente no GitHub Environment demo: ' + name);
-          if (process.env.CRON_SECRET.length < 32) throw Error('CRON_SECRET insuficiente, configure no Environment demo');
-          const cfg = assertDemoTarget(process.env);
-          if (cfg.target.ref !== 'offgpyysgdhfemjlchod') throw Error('Supabase incorreto');
-          if (cfg.appUrl !== 'https://arandu-demo-9fxmf7u6k-lucas-projects467.vercel.app') throw Error('URL do candidato incorreta');
-          const app = await fetch(cfg.appUrl + '/api/health', { signal: AbortSignal.timeout(30000) });
-          if (app.status !== 200) throw Error('App candidato indisponível: HTTP ' + app.status);
-          const health = await app.json();
-          if (health?.release?.environment !== 'demo' || health?.release?.datasource !== 'supabase')
-            throw Error('App candidato não confirma runtime Demo canônico');
-          const headers = supabaseApiKeyHeaders(cfg.serviceKey);
-          const st = await fetch(cfg.supabaseUrl + '/rest/v1/fin_settings?select=value&key=eq.deployment_environment', { headers, signal: AbortSignal.timeout(30000) });
-          if (!st.ok) throw Error('Supabase settings inacessível: HTTP ' + st.status);
-          const rows = await st.json();
-          const marker = rows?.[0]?.value ?? null;
-          const org = await fetch(cfg.supabaseUrl + '/rest/v1/fin_organizations?select=id&limit=1', { headers, signal: AbortSignal.timeout(30000) });
-          if (!org.ok) throw Error('Supabase fin_organizations inacessível: HTTP ' + org.status);
-          const orgRows = await org.json();
-          assertDemoDatabase({ marker, organizations: orgRows.length });
-          if (marker === 'demo' || orgRows.length !== 0)
-            throw Error('Preflight de primeiro seed exige base sem empresas; seed já iniciado? Não sobrescrever.');
-          console.log('DEMO_REMOTE_PREFLIGHT_OK: ref exclusivo, app canônico, secrets presentes, sem empresas e sem marcador');
-          NODE
+          set +e
+          node scripts/demo/hosted-preflight.mjs --expected-sha="$EXPECTED_SHA" --out=reports/demo-preflight.json
+          status=$?
+          set -e
+          if [ "$status" = 0 ]; then echo 'verdict=GO' >> "$GITHUB_OUTPUT"; elif [ "$status" = 2 ]; then echo 'verdict=NO-GO' >> "$GITHUB_OUTPUT"; else exit 1; fi
 
-      - name: Criar baseline Vitta Foods com APIs e Auth reais
-        if: inputs.mode == 'seed-and-provision'
-        run: npm run demo:seed
+      - name: Evidência do preflight (sem segredos)
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: demo-preflight-${{ inputs.expected_sha }}
+          path: reports/demo-preflight.json
+          if-no-files-found: ignore
+          retention-days: 30
 
-      - name: Validar baseline sem novas escritas
-        if: inputs.mode == 'seed-and-provision'
-        run: npm run demo:check
-
-      - name: Provisionar dois workspaces independentes
-        if: inputs.mode == 'seed-and-provision'
-        run: npm run demo:workspaces -- provision --count=2 --concurrency=1
-
-      - name: Conferir pool sem reset
-        if: inputs.mode == 'seed-and-provision'
-        run: npm run demo:workspaces -- list
-
-      - name: Resumo sem dados sensíveis
-        if: success()
+      - name: Resumo
+        if: always()
         env:
+          VERDICT: ${{ steps.check.outputs.verdict }}
           RUN_MODE: ${{ inputs.mode }}
         shell: bash
         run: |
           {
-            echo '## Arandu Demo — seed remoto'
+            echo '## Arandu Demo — preflight somente leitura'
             echo ''
-            echo 'Supabase ref: offgpyysgdhfemjlchod'
-            echo 'App candidato: https://arandu-demo-9fxmf7u6k-lucas-projects467.vercel.app'
-            echo 'SHA executado: 89b1f0f68e7c2a3cdf3fa138fc683889124098dc'
-            echo "Modo solicitado: $RUN_MODE"
-            echo 'Não foi promovido nenhum domínio nem alterado o Supabase de produção.'
+            echo "Supabase ref: offgpyysgdhfemjlchod · commit: $EXPECTED_SHA · modo pedido: $RUN_MODE"
+            echo "Veredito: ${VERDICT:-erro}"
+            if [ -f reports/demo-preflight.json ]; then
+              node -e "const r=require('./reports/demo-preflight.json');for(const c of r.checks)console.log('- '+c.id+': '+c.code+(c.detail?' ('+c.detail+')':''));if(r.schema&&r.schema.pending.length)console.log('\nMigrations pendentes (aplicação hospedada exige autorização separada):\n'+r.schema.pending.map(f=>'- '+f).join('\n'))"
+            fi
+            echo ''
+            echo 'Nenhuma escrita foi feita neste job.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: NO-GO interrompe o fluxo
+        if: steps.check.outputs.verdict != 'GO'
+        run: |
+          echo 'Preflight NO-GO: nenhuma escrita será feita. Ver o resumo e o artefato demo-preflight.'
+          exit 1
+
+  provision:
+    needs: preflight
+    if: github.ref == 'refs/heads/main' && inputs.mode == 'seed-and-provision' && needs.preflight.outputs.verdict == 'GO'
+    runs-on: ubuntu-latest
+    environment: demo
+    timeout-minutes: 100
+    env:
+      ARANDU_ENV: demo
+      ARANDU_DEMO_CONFIRM: offgpyysgdhfemjlchod
+      SUPABASE_URL: https://offgpyysgdhfemjlchod.supabase.co
+      ARANDU_DEMO_APP_URL: ${{ secrets.ARANDU_DEMO_APP_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.ARANDU_DEMO_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.ARANDU_DEMO_SUPABASE_SERVICE_ROLE_KEY }}
+      ARANDU_DEMO_PASSWORD: ${{ secrets.ARANDU_DEMO_PASSWORD }}
+      CRON_SECRET: ${{ secrets.ARANDU_DEMO_CRON_SECRET }}
+      EXPECTED_SHA: ${{ inputs.expected_sha }}
+      AUTHORIZATION_REFERENCE: ${{ inputs.authorization_reference }}
+    steps:
+      - name: Exigir referência de autorização
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$AUTHORIZATION_REFERENCE" =~ ^[A-Za-z0-9#/:._-]{6,200}$ ]] || { echo 'authorization_reference ausente ou inválida: escrita hospedada exige autorização registrada.'; exit 1; }
+
+      - name: Checkout do mesmo commit do preflight
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_sha }}
+          persist-credentials: false
+
+      - name: Node 24
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '24'
+
+      - name: Instalar dependências (sem scripts)
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Repetir o preflight imediatamente antes de escrever
+        run: node scripts/demo/hosted-preflight.mjs --expected-sha="$EXPECTED_SHA" --out=reports/demo-preflight-before-write.json
+
+      - name: Criar baseline Vitta Foods com APIs e Auth reais
+        run: npm run demo:seed
+
+      - name: Validar baseline sem novas escritas
+        run: npm run demo:check
+
+      - name: Provisionar dois workspaces independentes
+        run: npm run demo:workspaces -- provision --count=2 --concurrency=1
+
+      - name: Conferir pool sem reset
+        run: npm run demo:workspaces -- list
+
+      - name: Resumo sem dados sensíveis
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '## Arandu Demo — provisionamento'
+            echo ''
+            echo "Supabase ref: offgpyysgdhfemjlchod · commit: $EXPECTED_SHA"
+            echo "Autorização: $AUTHORIZATION_REFERENCE"
+            echo "Resultado do job: ${{ job.status }}"
+            echo 'Nenhum domínio foi promovido e nenhum projeto de produção foi usado.'
           } >> "$GITHUB_STEP_SUMMARY"

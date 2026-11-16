@@ -140,25 +140,32 @@ export async function rfqList(ctx) {
     }
   }
 
+  // Linha e próximo passo memorizados por objeto carregado: "Carregar mais" e
+  // filtros reaproveitam o que já foi montado em vez de reconstruir a tabela
+  // inteira a cada página (230 linhas custavam ~1.150 construções no WebKit).
+  // Recarregar cria objetos novos, então nada antigo é reaproveitado.
+  const rowCache = new WeakMap();
+  const stepCache = new WeakMap();
+  const stepOf = (rfq) => { if (!rfq.contextLoaded) return null; if (!stepCache.has(rfq)) stepCache.set(rfq, negotiationNextStep(rfq, today)); return stepCache.get(rfq); };
   function draw() {
     const term = fold(search.value.trim());
-    const steps = new Map(loaded.filter((rfq) => rfq.contextLoaded).map((rfq) => [rfq.id, negotiationNextStep(rfq, today)]));
     const visible = loaded.filter((rfq) => (!activeStatus || rfq.status === activeStatus)
       && (!product.value || rfq.product === product.value) && (!owner.value || rfq.owner_id === owner.value)
       && (!term || fold(`${rfq.title} ${rfq.description || ''}`).includes(term))
       && (!entitySelect || inContext(entities, rfq, entitySelect.value))
-      && (!actor.value || steps.get(rfq.id)?.actor === actor.value));
+      && (!actor.value || stepOf(rfq)?.actor === actor.value));
     const responses = (rfq) => (rfq.proposals || []).length;
     visible.sort((a, b) => sort.value === 'recent' ? String(b.created_at).localeCompare(String(a.created_at))
       : sort.value === 'responses' ? responses(b) - responses(a)
         : String(['open', 'collecting', 'comparing', 'draft'].includes(a.status) ? a.response_deadline || '9999' : 'z').localeCompare(String(['open', 'collecting', 'comparing', 'draft'].includes(b.status) ? b.response_deadline || '9999' : 'z')));
-    body.replaceChildren();
+    const rows = [];
     for (const rfq of visible) {
+      if (rowCache.has(rfq)) { rows.push(rowCache.get(rfq)); continue; }
       const days = daysUntil(rfq.response_deadline);
       const live = ['open', 'collecting'].includes(rfq.status);
       const invited = (rfq.invites || []).length || rfq.invites_count || 0;
-      const step = steps.get(rfq.id);
-      body.append(el('tr', { class: 'row-link', dataset: { entity: 'rfq', id: rfq.id } }, [
+      const step = stepOf(rfq);
+      const tr = el('tr', { class: 'row-link', dataset: { entity: 'rfq', id: rfq.id } }, [
         el('td', { 'data-label': 'Solicitação', class: 'cell-primary' }, [
           el('a', { class: 'row-title stretched', href: ctx.href(`/finance/rfq.html?id=${encodeURIComponent(rfq.id)}`), text: rfq.title }),
           el('span', { class: 'row-sub', text: `${productLabel(rfq.product, { short: true })} · ${demandHeadline(rfq)} · rev. ${rfq.revision || 1}${entities.rows.length ? ` · ${entityName(entities, rfq.legal_entity_id)}` : ''}` })
@@ -174,8 +181,11 @@ export async function rfqList(ctx) {
           el('span', { class: 'next-action-text' }, [textSpan(step.text), step.detail ? el('span', { class: 'row-sub', text: step.detail }) : null]),
           step.actor !== 'none' ? tag(ACTOR_LABEL[step.actor], ACTOR_TONE[step.actor]) : null, icon('chevronRight', { size: 14 })]
           : [el('span', { class: 'next-action-text' }, textSpan('Abra a solicitação para ver o próximo passo')), icon('chevronRight', { size: 14 })])
-      ]));
+      ]);
+      rowCache.set(rfq, tr);
+      rows.push(tr);
     }
+    body.replaceChildren(...rows);
     const unscoped = !activeStatus && !product.value && !owner.value && !actor.value && !search.value.trim() && !entityValue();
     localNote.hidden = true;
     if (firstFailure) {

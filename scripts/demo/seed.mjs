@@ -470,11 +470,22 @@ async function approveAndDecide(spec, { requestDay, steps, decideDay, contract }
   return request;
 }
 
-async function compare(spec, person) {
+async function compare(spec, person, { alternative = null } = {}) {
   const rfq = ctx.rfq[spec.key];
   const result = await post(person, 'comparison', { rfq_id: rfq, weights: spec.weights });
   must(result.weighted?.applied, `comparação ponderada de ${spec.key} não aplicada`);
-  await post(person, 'decision-scenarios', { rfq_id:rfq, name:`Análise humana — ${spec.key}`, weights:spec.weights, request_key:`demo-analysis-${spec.key}` });
+  const saved = (await post(person, 'decision-scenarios', { rfq_id:rfq, name:`Análise humana — ${spec.key}`, weights:spec.weights, request_key:`demo-analysis-${spec.key}` })).scenario;
+  // Arandu 10.1: segunda leitura humana sobre a mesma RFQ, de outra pessoa —
+  // duplicação (request_key idempotente) e edição versionada geram histórico
+  // com autoria. Só pesos e nome; nenhuma pontuação ou decisão é gravada.
+  if (alternative) {
+    const owner = people[alternative.by];
+    const copy = (await post(owner, 'decision-scenarios/duplicate', { id: saved.id, name: alternative.name, request_key: `demo-analysis-${spec.key}-alt` })).scenario;
+    const edited = (await api(owner, 'PATCH', 'decision-scenarios', { id: copy.id, expected_version: copy.version, name: alternative.name, weights: alternative.weights })).scenario;
+    must(edited.version === copy.version + 1, `cenário alternativo de ${spec.key} sem nova versão`);
+    const compared = await post(owner, 'decision-scenarios/compare', { rfq_id: rfq, scenario_ids: [saved.id, edited.id] });
+    must(compared.scenarios?.length === 2 && compared.scenarios.every((row) => row.weighted?.applied), `comparação de cenários salvos de ${spec.key} não aplicada pelo motor`);
+  }
   await post(person, 'signals', { organization_id: ctx.org, event: 'comparison_viewed', entity_type: 'rfq', entity_id: rfq });
   await post(person, 'signals', { organization_id: ctx.org, event: 'weights_applied', entity_type: 'rfq', entity_id: rfq });
 }
@@ -620,7 +631,7 @@ async function seedStory() {
 
   await at(s2.deadline + 1, '09:10');
   await post(juliana, 'transition', { kind: 'rfq', id: credit, from: 'collecting', status: 'comparing' });
-  await compare(s2, rafael);
+  await compare(s2, rafael, { alternative: data.SCENARIO_ALTERNATIVE });
   await at(s2.deadline + 1, '15:30');
   await upload('rafael', 'credit', 'internal', data.DOCUMENTS[1].title);
   await approveAndDecide(s2, {
@@ -1067,6 +1078,20 @@ async function sanity() {
     const opportunities = await page('opportunities');
     check('Oportunidades detectadas pelas regras da empresa', (opportunities.rows || []).length >= 1, `${(opportunities.rows || []).length} oportunidade(s)`);
   }
+  // Arandu 10.1: cenários persistidos com histórico, caixa de trabalho e plano de renovações pelo servidor.
+  const creditRfq = byTitle(data.RFQ_CREDIT.title);
+  if (creditRfq) {
+    const scenarios = await api(juliana, 'GET', `decision-scenarios?rfq_id=${creditRfq.id}`);
+    const alternative = (scenarios.rows || []).find((row) => row.name === data.SCENARIO_ALTERNATIVE.name);
+    check('Cenários salvos na RFQ em avaliação (duas análises humanas)', (scenarios.rows || []).length >= 2 && alternative?.classification === 'human_analysis', `${(scenarios.rows || []).length} cenário(s)`);
+    const history = alternative ? await api(juliana, 'GET', `decision-scenarios/detail?id=${alternative.id}`) : null;
+    check('Histórico do cenário com autoria e versão', alternative?.version >= 2 && (history?.history || []).length >= 2 && history.history.every((event) => event.actor_id), `${history?.history?.length || 0} evento(s), versão ${alternative?.version ?? '—'}`);
+  }
+  const work = await api(juliana, 'GET', `work-intelligence?organization_id=${org.id}&section=tasks&limit=20`);
+  check('Caixa de trabalho lida do servidor sem total inventado', Array.isArray(work.rows) && work.coverage?.total === null, `${work.rows?.length || 0} tarefa(s) na página`);
+  const renewals = await api(juliana, 'GET', `renewal-operations?organization_id=${org.id}&limit=50`);
+  const workingCapital = (renewals.rows || []).find((row) => row.product === 'credit' && row.status === 'active');
+  check('Plano de renovações com contrato de crédito vigente e ação canônica', workingCapital?.actions?.can_start_renewal === true && workingCapital.actions.automatic_negotiation === false, workingCapital ? `aviso prévio ${workingCapital.notice_on}` : 'ausente');
   const environment = (await api(juliana, 'GET', 'organizations')).environment;
   check('Aplicação em ARANDU_ENV=demo', environment === 'demo', String(environment));
   const marker = (await service(`fin_settings?select=value&key=eq.${DEMO_MARKER_KEY}`)).payload?.[0]?.value;

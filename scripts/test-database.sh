@@ -810,3 +810,7 @@ for current_db in "$clean_db" "$upgrade_db" "$fresh_db"; do
   apply_file "$current_db" "tests/database/financial-arandu-10.sql"
 done
 node "$root_dir/tests/database/arandu-10-concurrency.mjs" "$(database_url "$fresh_db")"
+
+# Arandu 10.2: reconciliação de schema (compatible/incremental/partial/divergent)
+# contra PostgreSQL real, num banco próprio e descartável.
+ARANDU_DATABASE_TEST_URL="$base_url" bash "$root_dir/scripts/test-demo-schema-reconcile.sh"

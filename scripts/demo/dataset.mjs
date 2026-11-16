@@ -97,6 +97,14 @@ export const RFQ_ACQUIRING = {
 };
 
 /** RFQ 2 — crédito em negociação: propostas em estados diferentes e aprovação na etapa da CFO. */
+// Arandu 10.1: segunda análise humana salva na RFQ de crédito em avaliação,
+// feita pela tesouraria por duplicação + edição (gera histórico com autoria).
+// Pesos fictícios de demonstração; não é recomendação nem decisão.
+export const SCENARIO_ALTERNATIVE = {
+  by: 'juliana', name: 'Prazo e carência — leitura da tesouraria',
+  weights: { grace_months: 30, term_months: 30, cet_year: 25, fees_amount: 15 }
+};
+
 export const RFQ_CREDIT = {
   key: 'credit', product: 'credit', start: -21,
   // Criada a partir do Financial Passport: a RFQ guarda a fotografia destes campos.

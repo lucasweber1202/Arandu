@@ -49,7 +49,9 @@ test('dois visitantes simultâneos: workspaces, escritas, aprovações e sessõe
   // Cada módulo, inclusive o pós-contrato, nega a organização de outro tenant pela API.
   for (const resource of ['rfqs', 'contracts', 'approvals', 'decisions', 'tasks', 'members', 'events', 'profile', 'portfolio', 'covenants',
     'spend', 'opportunities', 'qualifications', 'performance', 'implementations', 'extractions', 'approval-policies',
-    'fees?start=2026-01-01&end=2026-12-31', 'value?start=2026-01-01&end=2026-12-31']) {
+    'fees?start=2026-01-01&end=2026-12-31', 'value?start=2026-01-01&end=2026-12-31',
+    // Arandu 10: caixa de trabalho e plano de renovações também negam outro tenant.
+    'work-intelligence?section=tasks', 'work-intelligence?section=approvals', 'renewal-operations']) {
     const [name, extra] = resource.split('?');
     const denied = await api(a, 'GET', `${name}?organization_id=${orgB.id}${extra ? `&${extra}` : ''}`);
     expect(denied.status, `A lê ${name} de B`).toBe(403);
@@ -63,6 +65,23 @@ test('dois visitantes simultâneos: workspaces, escritas, aprovações e sessõe
     expect(JSON.stringify(probe.body), `IDOR em ${path.split('?')[0]}`).not.toContain(rfqB.id);
     expect(JSON.stringify(probe.body)).not.toContain(orgB.id);
   }
+
+  // Arandu 10: cenários, histórico e prontidão de B não vazam para A, nem por escrita.
+  const rfqsWithScenarios = (await api(b, 'GET', `rfqs?organization_id=${orgB.id}`)).body.rows;
+  let scenarioB = null;
+  for (const row of rfqsWithScenarios) {
+    scenarioB = (await api(b, 'GET', `decision-scenarios?rfq_id=${row.id}`)).body.rows?.[0] || null;
+    if (scenarioB) break;
+  }
+  expect(scenarioB?.id, 'baseline com cenário salvo em B').toBeTruthy();
+  for (const path of [`decision-scenarios?rfq_id=${scenarioB.rfq_id}`, `decision-scenarios/detail?id=${scenarioB.id}`, `demand-readiness?rfq_id=${scenarioB.rfq_id}`]) {
+    const probe = await api(a, 'GET', path);
+    expect(probe.status, `A lê ${path.split('?')[0]} de B`).toBeGreaterThanOrEqual(400);
+    expect(JSON.stringify(probe.body)).not.toContain(scenarioB.id);
+  }
+  const forgedEdit = await api(a, 'PATCH', 'decision-scenarios', { id: scenarioB.id, expected_version: scenarioB.version, name: 'Invasão', weights: scenarioB.weights });
+  expect(forgedEdit.status, 'A não edita cenário de B').toBeGreaterThanOrEqual(400);
+  expect((await api(b, 'GET', `decision-scenarios/detail?id=${scenarioB.id}`)).body.scenario.version, 'cenário de B intacto').toBe(scenarioB.version);
 
   // A cria uma RFQ; B não a vê.
   const title = `Isolamento A ${Date.now()}`;
