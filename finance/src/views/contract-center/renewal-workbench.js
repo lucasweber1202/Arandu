@@ -259,8 +259,10 @@ export function renewalOperations(ctx, { entities = null, contracts = [], fallba
       const seen = new Set(state.rows.map((row) => row.id));
       state.rows = [...state.rows, ...(data.rows || []).filter((row) => !seen.has(row.id))];
       state.page = data.page || null; state.coverage = data.coverage || null;
+      toolbar.hidden = false;
     } catch (error) {
       if (!reads.isCurrent(token)) return;
+      if (error.status !== 503) toolbar.hidden = false;
       // Modo degradado: serviço ausente neste ambiente (schema do Arandu 10 não
       // aplicado = 503). O plano local sobre os contratos carregados volta, com
       // aviso explícito de que não é a carteira lida pelo servidor.
@@ -328,11 +330,14 @@ export function renewalOperations(ctx, { entities = null, contracts = [], fallba
     ].filter(Boolean));
   }
 
+  // Filtros só aparecem depois da primeira resposta do servidor: se ela for 503
+  // e o plano cair no modo local, nenhum controle do plano do servidor fica visível.
+  const toolbar = el('div', { class: 'toolbar renewal-filters', hidden: true }, [search, owner, urgency, entity, from, to].filter(Boolean));
   const section = el('section', { class: 'renewal-workbench', id: 'plano-renovacoes', 'aria-labelledby': 'plano-renovacoes-title' }, [
     el('div', { class: 'card-head' }, [el('div', { class: 'card-head-text' }, [
       el('h2', { class: 'card-title', id: 'plano-renovacoes-title', text: 'Plano de renovações' }),
       el('p', { class: 'card-subtitle', text: 'Contratos vigentes, em renovação ou vencidos, ordenados pelo aviso prévio. Datas, urgência e vínculos calculados pelo servidor.' })])]),
-    el('div', { class: 'toolbar renewal-filters' }, [search, owner, urgency, entity, from, to].filter(Boolean)),
+    toolbar,
     el('div', { class: 'card-body' }, body)
   ]);
   load();
