@@ -49,6 +49,13 @@
       "previous": 844904,
       "reason": "Arandu 10 — lote de experiência (PR #346): Action Center (motivo da prioridade, filtro por tipo, 'Assumir' tarefa), Intake (pendências obrigatórias ao vivo com atalho ao campo), Approval Workspace (resumo 'Antes de decidir', motivos stale_reason, busca), Relationship 360 (cobertura e origem por fonte, atalho ao plano filtrado) e Decision Studio (duplicar cenário, recalcular desatualizados) (+10.387 B no build regular, distribuídos em chunks de rota já existentes; nenhum módulo novo carregado na abertura). Sete jornadas frias/quentes medidas em Chromium dentro da baseline; maior inicial 240.739 B (relationship360) abaixo de 250.000. Nenhum hard limit alterado.",
       "journeyBaseline": "2026-11-05"
+    },
+    {
+      "date": "2026-11-16",
+      "accepted": 868307,
+      "previous": 855291,
+      "reason": "Arandu 10 — integração do contrato v1.2 (PR #346): cenários salvos do Decision Studio (novo chunk sob demanda scenario-library 10.191 B, só ao abrir a aba Comparação fora da demonstração isolada), vínculo de RFQ de renovação via renewal-operations no plano (chunk sob demanda renewal-workbench), stale_reasons/context_coverage nas aprovações em módulo separado approval-brief carregado só pela rota Aprovações (+13.016 B no build regular). JS inicial da jornada buyer caiu de 159.124 B para 156.813 B ao tirar o resumo de aprovação do Painel. Sete jornadas medidas em Chromium dentro da baseline. Nenhum hard limit alterado.",
+      "journeyBaseline": "2026-11-05"
     }
   ]
 }

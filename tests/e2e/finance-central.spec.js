@@ -458,3 +458,16 @@ test('plano de renovações filtra por entidade jurídica e busca, e avisa cober
   await expect(plan).toContainText('Nenhum contrato vigente neste recorte.');
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
 });
+
+test('plano de renovações mostra a concorrência vinculada (renewal-operations) sem tratá-la como contrato renovado', async ({ page }) => {
+  const R = '00000000-0000-4000-8000-0000000000d7';
+  await setup(page, { overview: { ...OVERVIEW, contracts: RENEWALS, tasks: [] } });
+  const queries = [];
+  await page.route('**/api/finance/renewal-operations*', (route) => { queries.push(Object.fromEntries(new URL(route.request().url()).searchParams)); return route.fulfill({ json: { ok: true, rows: [{ id: RW(4), renewal_rfqs: [{ id: R, title: 'Renovação antecipação', status: 'collecting', revision: 1 }] }], page: { limit: 50, has_more: false, next_cursor: null } } }); });
+  await page.goto('/finance/contracts.html#plano-renovacoes');
+  const row = page.locator(`#plano-renovacoes [data-contract="${RW(4)}"]`);
+  await expect(row.getByRole('link', { name: /Concorrência: Renovação antecipação · .*\(negociação em andamento\)/ })).toHaveAttribute('href', `/finance/rfq.html?id=${R}`);
+  await expect(row).toContainText('Renovação iniciada');
+  await expect(row).not.toContainText(/renovado|renovada com sucesso/i);
+  expect(queries[0]).toMatchObject({ organization_id: ORG, urgency: 'renewing', limit: '50' });
+});

@@ -7,9 +7,10 @@
 // já devolve — posição, pontuação, cobertura, critérios ausentes — e compara
 // cenários entre si. Nenhum cenário é decisão, nenhum é recomendação do Arandu.
 //
-// Persistência: os cenários vivem nesta aba do navegador enquanto a página está
-// aberta (memória do módulo). Não vão para storage nem para a URL. Para guardar,
-// a pessoa baixa o dossiê.
+// Persistência: os cenários de trabalho vivem nesta aba (memória do módulo). No
+// produto real, o painel "Cenários salvos" (scenario-library.js, carregado sob
+// demanda) guarda nome, pesos e contexto na empresa via decision-scenarios, com
+// autoria e histórico. A demonstração isolada não tem essa API.
 
 import { el, icon, formatDate, formatDateTime, productLabel, RFQ_STATUS, APPROVAL_STATUS, textSpan, textStrong } from '../../core.js';
 import { button, card, drawer, mutedText, tag, toast, definitionList } from '../../ui.js';
@@ -189,6 +190,14 @@ export function decisionStudio(ctx, rfq, { calculate, getModel = () => null, app
       comparison.replaceChildren(mutedText(data.scenarios.length ? 'Calcule um segundo cenário para comparar as ordens lado a lado.' : 'Calcule ao menos um cenário.'));
       return;
     }
+    comparison.replaceChildren(
+      el('p', { class: data.leaderChanges ? 'callout callout-warning compact' : 'callout callout-info compact', role: 'note' }, [icon(data.leaderChanges ? 'alert' : 'info', { size: 14 }),
+        textSpan(data.leaderChanges ? 'A primeira posição muda conforme os pesos: a ordem depende dos critérios escolhidos, não só das condições.' : 'A primeira posição é a mesma em todos os cenários calculados.')]),
+      comparisonTable(data),
+      mutedText(`${USER_WEIGHTS_NOTICE} "Fora da ordem": cobertura abaixo do mínimo do motor; não é a pior proposta.`));
+  }
+
+  function comparisonTable(data, label = 'Tabela de cenários') {
     const table = el('table', { class: 'data-table studio-table' }, [
       el('thead', {}, el('tr', {}, [el('th', { scope: 'col', text: 'Proposta' }), ...data.scenarios.map((scenario) => el('th', { scope: 'col', text: scenario.name })), el('th', { scope: 'col', text: 'Muda entre cenários' })])),
       el('tbody', {}, data.rows.map((row) => el('tr', { dataset: { proposal: row.id } }, [
@@ -199,11 +208,7 @@ export function decisionStudio(ctx, rfq, { calculate, getModel = () => null, app
         el('td', {}, row.changes ? tag('Posição muda', 'warning') : el('span', { class: 'muted', text: 'não' }))
       ])))
     ]);
-    comparison.replaceChildren(
-      el('p', { class: data.leaderChanges ? 'callout callout-warning compact' : 'callout callout-info compact', role: 'note' }, [icon(data.leaderChanges ? 'alert' : 'info', { size: 14 }),
-        textSpan(data.leaderChanges ? 'A primeira posição muda conforme os pesos: a ordem depende dos critérios escolhidos, não só das condições.' : 'A primeira posição é a mesma em todos os cenários calculados.')]),
-      el('div', { class: 'matrix-scroll', tabindex: '0', role: 'region', 'aria-label': 'Tabela de cenários' }, table),
-      mutedText(`${USER_WEIGHTS_NOTICE} "Fora da ordem": cobertura abaixo do mínimo do motor; não é a pior proposta.`));
+    return el('div', { class: 'matrix-scroll', tabindex: '0', role: 'region', 'aria-label': label }, table);
   }
 
   // Recalcular explicitamente todos os cenários sem resultado válido para os pesos atuais.
@@ -213,7 +218,28 @@ export function decisionStudio(ctx, rfq, { calculate, getModel = () => null, app
     for (const [i, scenario] of [...scenarios].entries()) if (!scenario.result || scenario.computedFp !== fingerprint(scenario.weights)) await compute(scenario, nodes[i] || list.querySelectorAll('.studio-scenario').item(i));
     recalc.disabled = false;
   } });
+  // Cenários salvos na empresa (API decision-scenarios). Fora da demonstração isolada.
+  const librarySlot = el('div');
+  const serverComparison = el('div', { class: 'studio-comparison', role: 'region', 'aria-label': 'Comparação de cenários salvos', 'aria-live': 'polite' });
+  let library = null;
+  if (!(__ARANDU_DEMO__ && ctx.mode === 'demo')) import('./scenario-library.js').then((m) => {
+    library = m.scenarioLibrary(ctx, rfq, {
+      sessionScenarios: () => scenarios,
+      onLoad: (weights, name) => {
+        const slot = scenarios.length < MAX_SCENARIOS ? (scenarios.push({ name, weights, result: null, sensitivity: null, seq: 0 }), scenarios.at(-1)) : Object.assign(scenarios.at(-1), { name, weights, result: null, sensitivity: null, seq: scenarios.at(-1).seq + 1 });
+        draw();
+        list.querySelectorAll('.studio-scenario').item(scenarios.indexOf(slot))?.querySelector('input')?.focus();
+      },
+      onCompared: (computed) => {
+        const data = compareScenarioResults(computed);
+        serverComparison.replaceChildren(el('h4', { text: 'Cenários salvos, recalculados no servidor' }), comparisonTable(data, 'Tabela de cenários salvos'), mutedText(USER_WEIGHTS_NOTICE));
+      }
+    });
+    librarySlot.replaceChildren(library.node);
+  }).catch(() => librarySlot.replaceChildren(mutedText('Cenários salvos indisponíveis no momento; a análise desta aba continua disponível.')));
+
   function draw() {
+    library?.refreshSave();
     list.replaceChildren(...scenarios.map(scenarioNode));
     add.hidden = scenarios.length >= MAX_SCENARIOS;
     const stale = scenarios.filter((scenario) => !scenario.result || scenario.computedFp !== fingerprint(scenario.weights)).length;
@@ -228,8 +254,10 @@ export function decisionStudio(ctx, rfq, { calculate, getModel = () => null, app
     actions: [dossierButton],
     body: [
       reset ? el('p', { class: 'callout callout-warning compact', role: 'note', id: 'studio-reset' }, [icon('alert', { size: 14 }), textSpan('A solicitação ou as propostas mudaram desde a análise anterior: os cenários foram reiniciados para não descrever dados antigos.')]) : null,
-      el('p', { class: 'callout callout-info compact', role: 'note' }, [icon('info', { size: 14 }), textSpan('Cenários são análises desta aba: não são salvos na empresa, não registram decisão nem aprovação e se perdem ao recarregar. Para guardar, baixe o dossiê.')]),
-      list, el('div', { class: 'form-actions' }, [add, recalc]), comparison
+      el('p', { class: 'callout callout-info compact', role: 'note' }, [icon('info', { size: 14 }), textSpan((__ARANDU_DEMO__ && ctx.mode === 'demo')
+        ? 'Cenários são análises desta aba: não são salvos na empresa, não registram decisão nem aprovação e se perdem ao recarregar. Para guardar, baixe o dossiê.'
+        : 'Cenários desta aba são rascunhos de análise e se perdem ao recarregar; use "Salvar na empresa" para guardar nome, pesos e contexto com autoria. Nenhum cenário registra decisão ou aprovação.')]),
+      list, el('div', { class: 'form-actions' }, [add, recalc]), comparison, librarySlot, serverComparison
     ].filter(Boolean) });
 }
 

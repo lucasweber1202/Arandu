@@ -9,7 +9,7 @@
 // como "sem data para planejar" — nunca como tranquilo. Nada aqui é risco,
 // recomendação ou renovação executada.
 
-import { el, icon, formatDate, relativeDays, productLabel, plural, renewalStage, textSpan } from '../../core.js';
+import { el, icon, formatDate, relativeDays, productLabel, plural, renewalStage, textSpan, RFQ_STATUS } from '../../core.js';
 import { button, confirmDialog, mutedText, tag, toast } from '../../ui.js';
 import { renewalButton } from './renewal.js';
 
@@ -76,6 +76,21 @@ export function renewalWorkbench(ctx, contracts, { coverage = { state: 'complete
   const entityLabel = (id) => !entities ? null : !id ? 'Nível de grupo' : (entities.byId?.get(id)?.short_name || entities.byId?.get(id)?.legal_name || 'Entidade sem acesso de leitura');
   const body = el('div', { class: 'stack renewal-plan' });
   const created = new Map(); // tarefas confirmadas nesta tela, por contrato
+  // Concorrências de renovação vinculadas (renewal-operations, contrato Arandu 10):
+  // vínculo canônico pelo evento renewal_rfq_started. Uma RFQ aberta não renova o contrato.
+  const links = new Map();
+  let linksState = sandbox ? 'off' : 'loading';
+  if (!sandbox) ctx.api(`renewal-operations?${new URLSearchParams({ organization_id: ctx.organization.id, urgency: 'renewing', limit: '50' })}`)
+    .then((result) => { for (const row of result.rows || []) links.set(row.id, row.renewal_rfqs || []); linksState = result.page?.has_more ? 'partial' : 'complete'; draw(); })
+    .catch(() => { linksState = 'failed'; draw(); });
+  function renewalLinks(contract) {
+    if (contract.status !== 'renewing' || linksState === 'off') return null;
+    if (linksState === 'loading') return el('span', { class: 'small muted', text: 'Conferindo concorrência vinculada…' });
+    const rfqs = links.get(contract.id);
+    if (!rfqs?.length) return el('span', { class: 'small muted', text: linksState === 'failed' ? 'Vínculo com a concorrência não pôde ser consultado agora.' : linksState === 'partial' ? 'Concorrência vinculada fora da página consultada.' : 'Nenhuma concorrência vinculada encontrada.' });
+    return el('span', { class: 'renewal-rfqs small' }, rfqs.map((rfq) => el('a', { href: ctx.href(`/finance/rfq.html?id=${encodeURIComponent(rfq.id)}`), dataset: { rfq: rfq.id },
+      text: `Concorrência: ${rfq.title || 'sem título'} · ${RFQ_STATUS[rfq.status]?.label || 'estado não informado'}${['collecting', 'comparing'].includes(rfq.status) ? ' (negociação em andamento)' : ''}` })));
+  }
 
   function taskAction(contract, deadline, countNode) {
     if (!manage || sandbox) return null;
@@ -133,7 +148,8 @@ export function renewalWorkbench(ctx, contracts, { coverage = { state: 'complete
           tag(renewalLifecycle(contract).label, contract.status === 'renewing' ? 'accent' : 'neutral'),
           entityLabel(contract.legal_entity_id) ? textSpan(`Entidade: ${entityLabel(contract.legal_entity_id)}`) : null,
           !contract.renewal_notice_days && contract.ends_on ? tag('Aviso prévio não cadastrado', 'warning') : null,
-          count
+          count,
+          renewalLinks(contract)
         ].filter(Boolean))
       ]),
       el('div', { class: 'renewal-actions' }, [renewalButton(ctx, contract), taskAction(contract, deadline, count)].filter(Boolean))

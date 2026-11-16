@@ -1650,7 +1650,7 @@ async function setWeight(studio, scenario, label, value) {
 
 test('estúdio: dois cenários pelo mesmo motor mostram que a primeira posição depende dos pesos', async ({ page }) => {
   const studio = await openStudio(page);
-  await expect(studio).toContainText('não são salvos na empresa, não registram decisão');
+  await expect(studio).toContainText('Nenhum cenário registra decisão ou aprovação');
   await setWeight(studio, 'Cenário A', 'Valor ofertado (R$)', 70);
   await setWeight(studio, 'Cenário A', 'Taxa (% a.m.)', 30);
   await studio.getByRole('button', { name: 'Calcular Cenário A' }).click();
@@ -1871,4 +1871,110 @@ test('estúdio: duplicar cenário copia pesos sem resultado e "Recalcular" atual
   expect(calls).toBe(1);
   await expect(studio.getByRole('button', { name: /Recalcular .* cenário/ })).toBeHidden();
   await expect(studio).not.toContainText(/recomend|melhor proposta/i);
+});
+
+// Arandu 10 — Decision Studio persistente (contrato v1.2 decision-scenarios).
+// API SIMULADA com o formato do contrato; não substitui o teste SQL/HTTP do backend.
+async function scenarioApi(page, { role = 'finance_manager', stale = false, firstCreateFails = false } = {}) {
+  const data = overview();
+  await mockSession(page, { data, viewerRole: role });
+  const rfq = data.rfqs[0];
+  const store = []; const calls = []; let createAttempts = 0;
+  const dto = (s) => ({ ...s, stale: s.stale ?? false, stale_reasons: s.stale ? ['proposals_changed'] : [], classification: 'human_analysis' });
+  await page.route('**/api/finance/decision-scenarios**', async (route) => {
+    const req = route.request(); const u = new URL(req.url()); const sub = u.pathname.split('/decision-scenarios')[1].replace('/', '');
+    const body = req.postData() ? req.postDataJSON() : null;
+    calls.push({ method: req.method(), sub, body });
+    const json = (v, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(v) });
+    if (req.method() === 'GET' && !sub) return json({ ok: true, rows: store.filter((s) => s.status === (u.searchParams.get('status') || 'active')).map(dto), page: { limit: 25, has_more: false, next_cursor: null }, consistency: 'live_reads_not_transaction_snapshot' });
+    if (req.method() === 'GET' && sub === 'detail') return json({ ok: true, scenario: dto(store[0]), history: [{ id: 'e1', event_type: 'decision_scenario_created', actor_id: 'u1', happened_at: '2026-11-15T10:00:00Z', metadata: { version: 1, name: store[0].name } }], coverage: { history: { has_more: false } } });
+    if (req.method() === 'POST' && !sub) {
+      createAttempts += 1;
+      if (firstCreateFails && createAttempts === 1) return json({ ok: false, error: 'Indisponível' }, 503);
+      const existing = store.find((s) => s.request_key === body.request_key);
+      if (existing) return json({ ok: true, scenario: dto(existing) }, 201);
+      const s = { id: `00000000-0000-4000-8000-00000000c${String(store.length + 1).padStart(3, '0')}`, rfq_id: body.rfq_id, name: body.name, weights: body.weights, version: 1, status: 'active', created_by: 'u1', updated_by: 'u1', created_at: '2026-11-15T10:00:00Z', updated_at: '2026-11-15T10:00:00Z', request_key: body.request_key, stale };
+      store.push(s); return json({ ok: true, scenario: dto(s) }, 201);
+    }
+    if (req.method() === 'PATCH') { const s = store.find((x) => x.id === body.id); if (s.version !== body.expected_version) return json({ ok: false, code: 'scenario_conflict', error: 'versão' }, 409); Object.assign(s, { version: s.version + 1, stale: body.refresh_context ? false : s.stale }); return json({ ok: true, scenario: dto(s) }); }
+    if (sub === 'archive') { const s = store.find((x) => x.id === body.id); s.status = 'archived'; s.version += 1; return json({ ok: true, scenario: dto(s) }); }
+    if (sub === 'compare') {
+      const picked = store.filter((s) => body.scenario_ids.includes(s.id));
+      if (picked.some((s) => s.stale)) return json({ ok: false, code: 'scenario_stale', error: 'Atualize explicitamente o contexto antes de recalcular.' }, 409);
+      return json({ ok: true, classification: 'human_analysis', notice: 'Análise humana.', scenarios: picked.map((s) => ({ scenario: dto(s), weighted: applyUserWeights(rfq.product, rfq.proposals, s.weights) })) });
+    }
+    return json({ ok: false, error: 'não simulado' }, 404);
+  });
+  const studio = page.locator('#estudio-decisao');
+  await page.goto(`/finance/rfq.html?id=${RFQ}#comparacao`);
+  await page.getByRole('tab', { name: 'Comparação' }).click();
+  await expect(page.locator('#cenarios-salvos')).toBeVisible();
+  return { studio, library: page.locator('#cenarios-salvos'), store, calls };
+}
+
+test('estúdio persistente: salva com chave idempotente, reenvia a mesma chave após falha incerta, compara no servidor e mostra histórico', async ({ page }) => {
+  const { studio, library, store, calls } = await scenarioApi(page, { firstCreateFails: true });
+  await setWeight(studio, 'Cenário A', 'Taxa (% a.m.)', 60);
+  await library.getByRole('button', { name: 'Salvar “Cenário A” na empresa' }).click();
+  await expect(library).toContainText('Não confirmamos o salvamento');
+  await library.getByRole('button', { name: 'Conferir envio de “Cenário A”' }).click();
+  await expect(library.locator('[data-scenario]')).toHaveCount(1);
+  const creates = calls.filter((c) => c.method === 'POST' && !c.sub);
+  expect(creates).toHaveLength(2);
+  expect(creates[1].body.request_key).toBe(creates[0].body.request_key);
+  expect(creates[0].body).toMatchObject({ rfq_id: RFQ, name: 'Cenário A', weights: { interest_rate_month: 60 } });
+  expect(store).toHaveLength(1);
+  await library.getByRole('checkbox', { name: 'Selecionar Cenário A para comparar' }).check();
+  await library.getByRole('button', { name: /Comparar 1 salvo/ }).click();
+  await expect(studio.getByRole('region', { name: 'Tabela de cenários salvos' })).toBeVisible();
+  await library.getByRole('button', { name: 'Histórico de Cenário A' }).click();
+  await expect(page.getByRole('dialog')).toContainText('Criado');
+  await expect(page.getByRole('dialog')).toContainText('Paula');
+  await expect(studio).not.toContainText(/recomend|melhor proposta/i);
+});
+
+test('estúdio persistente: cenário desatualizado não compara (409) até atualizar o contexto explicitamente; arquivar pede confirmação', async ({ page }) => {
+  const { library, calls } = await scenarioApi(page, { stale: true });
+  await setWeight(page.locator('#estudio-decisao'), 'Cenário A', 'Taxa (% a.m.)', 40);
+  await library.getByRole('button', { name: 'Salvar “Cenário A” na empresa' }).click();
+  const row = library.locator('[data-scenario]');
+  await expect(row).toHaveAttribute('data-stale', 'true');
+  await expect(row).toContainText('propostas mudaram');
+  await library.getByRole('checkbox', { name: 'Selecionar Cenário A para comparar' }).check();
+  await library.getByRole('button', { name: /Comparar 1 salvo/ }).click();
+  await expect(library).toContainText('nenhum resultado parcial foi exibido');
+  await expect(page.getByRole('region', { name: 'Tabela de cenários salvos' })).toHaveCount(0);
+  await library.getByRole('button', { name: 'Atualizar contexto de Cenário A' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Atualizar contexto' }).click();
+  await expect(row).toHaveAttribute('data-stale', 'false');
+  const patch = calls.find((c) => c.method === 'PATCH');
+  expect(patch.body).toMatchObject({ expected_version: 1, refresh_context: true });
+  await library.getByRole('button', { name: 'Arquivar Cenário A' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Arquivar' }).click();
+  await expect(library).toContainText('Nenhum cenário salvo nesta solicitação ainda.');
+  expect(calls.find((c) => c.sub === 'archive').body).toMatchObject({ expected_version: 2 });
+});
+
+test('estúdio persistente: leitor consulta cenários salvos sem salvar, duplicar ou arquivar', async ({ page }) => {
+  const { library } = await scenarioApi(page, { role: 'viewer' });
+  await expect(library).toContainText('Sua função consulta cenários salvos');
+  await expect(library.getByRole('button', { name: /Salvar|Arquivar|Duplicar/ })).toHaveCount(0);
+});
+
+test('caixa de aprovações: stale_reasons e cobertura incompleta do contrato v1.2 bloqueiam a decisão com motivo legível', async ({ page }) => {
+  const data = overview();
+  const rfq = { ...data.rfqs[0], organization_id: ORG };
+  await mockSession(page, { data: overview({ rfqs: [rfq] }) });
+  const rows = [{ id: 'ap9', rfq_id: RFQ, proposal_id: rfq.proposals[0].id, proposal_version: 1, status: 'pending', stale: true, stale_reason: 'process_ineligible', stale_reasons: ['process_ineligible', 'rfq_changed'], freshness: 'unknown', context_coverage: 'incomplete', viewer_can_act: false,
+    context_reference: { recorded: { rfq_revision: 1, proposal_version: 1 }, current: { proposal_version: 2 } }, requested_at: '2026-11-15T10:00:00Z', requested_by: 'u1', rationale: 'x', steps: [{ id: 's9', position: 1, approver_id: 'u2', status: 'pending' }] }];
+  await page.route('**/api/finance/approvals?*', (route) => route.fulfill({ json: { ok: true, viewer_id: 'u1', rows, page: { limit: 100, has_more: false, next_cursor: null } } }));
+  await page.goto('/finance/approvals.html');
+  await page.getByRole('tab', { name: /Solicitadas por você/ }).click();
+  await page.locator('#request-ap9').getByRole('button', { name: 'Ver contexto' }).click();
+  const brief = page.getByRole('dialog').locator('.approval-brief');
+  await expect(brief.getByRole('list', { name: 'Motivos de desatualização' }).locator('li')).toHaveCount(2);
+  await expect(brief).toContainText('O estado do processo não admite mais esta aprovação');
+  await expect(brief.locator('[data-coverage="incomplete"]')).toBeVisible();
+  await expect(brief).toContainText('proposta v1 · atual: proposta v2');
+  await expect(page.getByRole('dialog').getByRole('button', { name: 'Aprovar' })).toHaveCount(0);
 });
