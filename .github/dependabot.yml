@@ -17,8 +17,6 @@ updates:
         dependency-type: "production"
       development-dependencies:
         dependency-type: "development"
-    labels:
-      - "dependencies"
     commit-message:
       prefix: "deps"
 
@@ -36,7 +34,6 @@ updates:
         patterns:
           - "*"
     labels:
-      - "dependencies"
       - "github-actions"
     commit-message:
       prefix: "ci"
