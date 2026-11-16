@@ -29,7 +29,8 @@ export function relationshipContext(ctx, detail) {
     section('Solicitações, convites e propostas', rfqs, rfq => {
       const invites = (detail.invites || []).filter(row => row.rfq_id === rfq.id);
       const proposals = (detail.proposals || []).filter(row => row.rfq_id === rfq.id);
-      return el('li', {}, [el('a', { href: href(`/finance/rfq.html?id=${rfq.id}`), text: rfq.title || 'Solicitação' }), el('p', { class: 'small muted', text: `${RFQ_STATUS[rfq.status]?.label || 'Estado não informado'} · prazo ${date(rfq.response_deadline)} · ${invites.length} convite(s) carregado(s) · ${proposals.filter(row => row.current_version > 0 && row.status !== 'withdrawn').length} proposta(s) submetida(s) não retirada(s). Abra o processo para revisão, decisão e contratação.` })]);
+      return el('li', {}, [el('a', { href: href(`/finance/rfq.html?id=${rfq.id}`), text: rfq.title || 'Solicitação' }),
+        ['comparing', 'decided', 'contracted'].includes(rfq.status) ? el('a', { class: 'small', href: href(`/finance/rfq.html?id=${rfq.id}#comparacao`), text: ' · comparação e cenários' }) : null, el('p', { class: 'small muted', text: `${RFQ_STATUS[rfq.status]?.label || 'Estado não informado'} · prazo ${date(rfq.response_deadline)} · ${invites.length} convite(s) carregado(s) · ${proposals.filter(row => row.current_version > 0 && row.status !== 'withdrawn').length} proposta(s) submetida(s) não retirada(s). Abra o processo para revisão, decisão e contratação.` })]);
     }, 'Nenhuma solicitação disponível neste recorte.'),
     (__ARANDU_DEMO__ && ctx.mode === 'demo') ? null : el('nav', { class: 'row-actions', 'aria-label': 'Jornadas desta instituição' }, quickLinks.map(([page, text]) => el('a', { href: href(`/finance/${page}.html?provider_id=${encodeURIComponent(provider.id)}`), text }))),
     graphContextCard(ctx, { type: 'provider', id: provider.id, title: 'Garantias, documentos e relações financeiras' })

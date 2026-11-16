@@ -3,9 +3,11 @@
 
 import { PRODUCTS } from '../../../../lib/finance/products.mjs';
 import { el, icon, formatDate, productLabel, demandHeadline, timeAgo, textSpan } from '../../core.js';
-import { pill, button, linkButton, emptyState, errorState, tabs, definitionList, drawer, mutedText } from '../../ui.js';
+import { pill, button, linkButton, toastError, emptyState, errorState, tabs, definitionList, drawer, mutedText } from '../../ui.js';
 import { memberName } from '../shared/people.js';
-import { currentStep, approvalSummaryLine, approvalActions, approvalSteps, isViewerTurn, approvalBrief, staleReasons } from '../shared/approvals.js';
+import { currentStep, approvalSummaryLine, approvalActions, approvalSteps, isViewerTurn, contextBlocked } from '../shared/approvals.js';
+import { approvalBrief, staleReasons } from '../shared/approval-brief.js';
+import { coverageText } from '../shared/operational.js';
 import { comparisonMatrix } from '../shared/comparison.js';
 import { revisionTimeline } from '../shared/collaboration.js';
 import { keyTerms } from '../shared/terms.js';
@@ -43,6 +45,7 @@ export async function approvalsInbox(ctx) {
         el('p', { class: 'inbox-proposal' }, [icon('inbox', { size: 14 }), textSpan(proposal ? `${proposal.provider_name} — proposta selecionada (v${request.proposal_version})` : 'Proposta selecionada')]),
         // Quem decide vê valor, taxa e prazo antes do botão, sem abrir outra tela.
         isMine && !request.stale && proposal ? keyTerms(rfq.product, proposal.terms) : null,
+        request.status === 'pending' && !request.stale && contextBlocked(request) ? el('p', { class: 'inbox-stale small', role: 'note' }, [icon('alert', { size: 14 }), textSpan('Contexto não pôde ser conferido: decisão bloqueada.')]) : null,
         request.status === 'pending' && request.stale ? el('p', { class: 'inbox-stale small', role: 'note' }, [icon('alert', { size: 14 }), textSpan(staleReasons(request).join(' '))]) : null,
         request.status === 'pending' && step && !isMine ? el('p', { class: 'inbox-meta', text: `Etapa atual com ${memberName(ctx.members, step.approver_id)}` }) : null,
         el('p', { class: 'inbox-progress' }, [dots, textSpan(request.status === 'pending' ? `${approvalSummaryLine(request)} · ${(request.steps || []).filter((item) => item.status === 'approved').length} de ${total} aprovadores` : `${(request.steps || []).filter((item) => item.status === 'approved').length} de ${total} aprovaram`)])
@@ -83,7 +86,13 @@ export async function approvalsInbox(ctx) {
   search.addEventListener('input', () => { query = search.value.trim().toLocaleLowerCase('pt-BR'); for (const box of set.node.querySelectorAll('.inbox')) box.dispatchEvent(new Event('approvals:filter')); });
   const wanted = location.hash.startsWith('#request-') ? approvals.find((item) => `#request-${item.id}` === location.hash) : null;
   if (wanted && rfqs.get(wanted.rfq_id)) queueMicrotask(() => approvalContext(ctx, wanted, rfqs.get(wanted.rfq_id)));
-  return el('div', { class: 'stack' }, [el('div', { class: 'toolbar' }, [el('div', { class: 'toolbar-search' }, [icon('search'), search])]), set.node]);
+  // Paginação (Arandu 10): contagens das abas são desta leitura, não da organização.
+  const page = ctx.approvalsPage;
+  const more = page?.has_more ? el('p', { class: 'callout callout-info compact', role: 'note', id: 'approvals-coverage' }, [icon('info', { size: 14 }),
+    textSpan(`${coverageText({ shown: approvals.length, page })} As contagens das abas referem-se só aos pedidos carregados. `),
+    button('Carregar mais pedidos', { size: 'sm', iconName: 'chevronDown', onClick: async (event) => { event.currentTarget.disabled = true; await loadMoreApprovals(ctx); ctx.rerender(); } })]) : null;
+  const assignments = ctx.approvalsCoverage?.assignments === 'incomplete' ? el('p', { class: 'callout callout-warning compact', role: 'note' }, [icon('alert', { size: 14 }), textSpan('Parte das etapas não pôde ser lida por completo; nesses pedidos a decisão fica bloqueada até a releitura.')]) : null;
+  return el('div', { class: 'stack' }, [el('div', { class: 'toolbar' }, [el('div', { class: 'toolbar-search' }, [icon('search'), search])]), assignments, more, set.node].filter(Boolean));
 }
 
 /** Contexto completo para o aprovador decidir sem sair da caixa. */
@@ -102,7 +111,7 @@ function approvalContext(ctx, request, rfq) {
     el('section', { class: 'drawer-section' }, [el('h3', { text: request.policy_snapshot ? 'Fluxo pela policy' : 'Etapas de aprovação' }),
       request.policy_snapshot ? mods.policy.policyTimeline(ctx, request, { onChange: () => ctx.reload() }) : approvalSteps(request, ctx.members)])
   ].filter(Boolean);
-  const footer = (request.viewer_can_act ?? step?.approver_id === ctx.viewer?.id) && !request.stale
+  const footer = (request.viewer_can_act ?? step?.approver_id === ctx.viewer?.id) && !request.stale && !contextBlocked(request)
     ? [approvalActions(ctx, request, { onDone: () => { dialog.close(); ctx.reload(); } })]
     : [linkButton('Abrir a solicitação', ctx.href(`/finance/rfq.html?id=${rfq.id}#aprovacoes`), { iconName: 'arrowRight' })];
   const dialog = drawer({ title: rfq.title, subtitle: `${approvalSummaryLine(request)} · ${proposal?.provider_name || ''}`, body, footer,
@@ -110,3 +119,19 @@ function approvalContext(ctx, request, rfq) {
 }
 
 // -------------------------------------------------------------- propostas
+
+// Próxima página de aprovações (cursor opaco, mesmos filtros). Falha não apaga o que já foi lido.
+async function loadMoreApprovals(ctx) {
+  const current = await ctx.loadApprovals();
+  const cursor = ctx.approvalsPage?.next_cursor;
+  if (!cursor) return current;
+  try {
+    const result = await ctx.api(`approvals?organization_id=${ctx.orgId}&cursor=${encodeURIComponent(cursor)}`);
+    const seen = new Set(current.map((row) => row.id));
+    const merged = [...current, ...(result.rows || []).filter((row) => !seen.has(row.id))];
+    ctx.approvalsPage = result.page || null;
+    if (result.coverage?.assignments === 'incomplete') ctx.approvalsCoverage = result.coverage;
+    ctx.approvalsPromise = Promise.resolve(merged);
+    return merged;
+  } catch (error) { toastError(error); return current; }
+}

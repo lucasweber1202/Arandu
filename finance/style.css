@@ -1492,3 +1492,21 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 .inbox-stale{display:flex;gap:var(--s1);align-items:flex-start;color:var(--danger)}
 @media (max-width:420px){.renewal-main{flex-basis:100%}.renewal-row{padding:var(--s2)}.renewal-actions .btn{white-space:normal;max-width:100%;text-align:left}.renewal-filters{padding:0}}
 .renewal-row,.renewal-main,.renewal-actions{min-width:0;max-width:100%}
+/* Arandu 10.1 — caixa de trabalho, cenários salvos, plano no servidor, prontidão */
+.work-tabs{margin-bottom:var(--s3)}
+.work-toolbar{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center;justify-content:space-between;margin-bottom:var(--s2)}
+.work-list,.scenario-saved-list{list-style:none;margin:0;padding:0;display:grid;gap:var(--s2)}
+.work-row,.scenario-saved{display:flex;flex-wrap:wrap;gap:var(--s2);justify-content:space-between;align-items:flex-start;padding:var(--s3);border:1px solid var(--border);border-radius:var(--r-md);min-width:0}
+.work-main,.scenario-saved-main{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 260px;overflow-wrap:anywhere}
+.scenario-saved-main{flex-direction:row;align-items:flex-start;gap:var(--s2)}
+.scenario-saved-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.work-title{font-weight:600}
+.work-side{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center;min-width:0}
+.pager-footer{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center;justify-content:space-between;margin-top:var(--s2)}
+.scenario-library{display:grid;gap:var(--s2);margin-bottom:var(--s4)}
+.scenario-stale{flex-basis:100%;margin:0}
+.renewal-links{display:flex;flex-wrap:wrap;gap:var(--s1) var(--s3);margin-top:var(--s1)}
+.readiness-missing li{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center;justify-content:space-between}
+.scenario-save-state{margin:var(--s1) 0 0}
+@media (max-width:420px){.work-row,.scenario-saved{padding:var(--s2)}.work-side .btn{white-space:normal}}
+.scenario-save-state.is-error{color:var(--danger)}

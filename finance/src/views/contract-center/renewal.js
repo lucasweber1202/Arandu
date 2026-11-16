@@ -17,7 +17,7 @@ export function renewalButton(ctx, contract, { variant = 'secondary' } = {}) {
     try {
       const result = await ctx.send('contract-renewal-rfq', { organization_id: ctx.organization.id, contract_id: contract.id });
       toast('Abrindo a concorrência de renovação.');
-      location.assign(ctx.href(`/finance/rfq.html?id=${encodeURIComponent(result.id)}`));
+      location.assign(ctx.href(`/finance/rfq.html?id=${encodeURIComponent(result.id)}&contrato=${encodeURIComponent(contract.id)}`));
     } catch (error) { toastError(error); target.disabled = false; }
   } });
 }

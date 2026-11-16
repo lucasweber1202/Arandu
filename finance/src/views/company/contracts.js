@@ -1,3 +1,4 @@
+/* global __ARANDU_DEMO__ */
 // Contratos: ciclo de vida, próxima ação e entrada para o centro de contrato.
 // Extraído de company.js (v7.0): uma capability por módulo e rota.
 
@@ -267,11 +268,20 @@ function portfolioControlTower(ctx, ordered, { card, focusId, entities = null, c
     if (planLoaded) return;
     planLoaded = true;
     planSlot.replaceChildren(mutedText('Carregando plano…'));
-    import('../contract-center/renewal-workbench.js').then((m) => planSlot.replaceChildren(m.renewalWorkbench(ctx, ordered, { coverage, entities })))
+    // Servidor real: plano pela API renewal-operations (cursor, filtros e vínculos canônicos).
+    // Sandbox legado: cálculo local sobre os contratos carregados, como antes.
+    import('../contract-center/renewal-workbench.js').then((m) => planSlot.replaceChildren((__ARANDU_DEMO__ && ctx.mode === 'demo')
+      ? m.renewalWorkbench(ctx, ordered, { coverage, entities })
+      : m.renewalOperations(ctx, { entities, contracts: ctx.data.contracts || ordered, fallback: () => {
+        const local = m.renewalWorkbench(ctx, ordered, { coverage, entities });
+        local.querySelector('.card-body')?.prepend(el('p', { class: 'callout callout-warning compact', role: 'note', id: 'plano-modo-local' }, [icon('alert', { size: 14 }),
+          el('span', { text: 'Plano calculado neste navegador: o serviço de operações de renovação não está disponível neste ambiente. Usa só os contratos carregados.' })]));
+        return local;
+      } })))
       .catch((error) => { planLoaded = false; planSlot.replaceChildren(errorState({ error, onRetry: loadPlan })); });
   };
   plan.addEventListener('toggle', () => { if (plan.open) loadPlan(); });
-  if (location.hash === '#plano-renovacoes' || new URLSearchParams(location.search).get('plano') === 'renovacoes') { plan.open = true; loadPlan(); }
+  if (location.hash === '#plano-renovacoes' || new URLSearchParams(location.search).get('plano') === 'renovacoes' || /[?&]plano_(dono|urgencia|entidade|de|ate|busca)=/.test(location.search)) { plan.open = true; loadPlan(); }
   const root = el('div', { class: 'stack contracts-tower' }, [coverageNote(coverage), plan,
     el('div', { class: 'toolbar' }, [el('div', { class: 'toolbar-search' }, [icon('search'), search]), ...Object.values(controls), count]),
     el('div', { class: 'toolbar-chips' }, chips), summary, list].filter(Boolean));
