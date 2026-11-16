@@ -85,7 +85,8 @@
     "docs/supabase-financial-fee-ingestion.sql",
     "docs/supabase-financial-crm-view-roundtrip.sql",
     "docs/supabase-financial-operating-context.sql",
-    "docs/supabase-financial-contract-email-links.sql"
+    "docs/supabase-financial-contract-email-links.sql",
+    "docs/supabase-financial-arandu-10.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -172,6 +173,7 @@
     "docs/supabase-financial-fee-ingestion.sql",
     "docs/supabase-financial-crm-view-roundtrip.sql",
     "docs/supabase-financial-operating-context.sql",
-    "docs/supabase-financial-contract-email-links.sql"
+    "docs/supabase-financial-contract-email-links.sql",
+    "docs/supabase-financial-arandu-10.sql"
   ]
 }
