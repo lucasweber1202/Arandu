@@ -23,6 +23,7 @@ Há um workflow manual no GitHub Actions: `.github/workflows/demo-hosted-seed.ym
 
 - Um ref diferente, secret ausente/incompatível, runtime que não declara `demo/supabase`, `/api/health` diferente de HTTP 200, banco marcado como outro ambiente, ou organização sem marcador **interrompem antes da primeira escrita**.
 - Se o seed começou e falhou, **não rodar `seed-and-provision` novamente automaticamente**, pois o preflight exige banco vazio e não faz reset. Inspecionar logs e dados parciais. Uma rotina de recuperação explícita exigirá revisão separada.
+- **Migrations não são executadas por este workflow**. Quando houver `SCHEMA_PENDING`, conferir o procedimento de `docs/demo/ARANDU_10_2_DEMO_READINESS.md`: selecionar somente arquivos após o marker observado, preservar backup/restore e executar no ref Demo em processo separado autorizado. É proibido executar `migrations:release` sem `--after-schema` ou usar `staging` como atalho para a Demo.
 - `expected_sha` precisa ser igual ao HEAD da `main` no disparo e ao commit publicado no app; código diferente do revisado interrompe antes de escrever.
 - O preflight é somente leitura (apenas GET/HEAD, testado em `scripts/test-demo-hosted-preflight.mjs`) e roda também imediatamente antes da escrita.
 - GitHub e Vercel usam cofres diferentes: os Environment secrets do GitHub não aparecem automaticamente só porque existem na Vercel.

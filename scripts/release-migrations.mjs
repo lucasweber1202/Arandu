@@ -4,6 +4,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { inspectBackupArtifact, inspectRestoreEvidence, validOperationalReference } from '../lib/backup-evidence.mjs';
+import { DEMO_REF, assertSingleTransaction, demoConnectionProblems, guardPrefix, sanitizedChildEnv, selectPendingSections } from '../lib/release-migration-guard.mjs';
 
 const root = process.cwd();
 const args = new Map(process.argv.slice(2).map((argument) => {
@@ -14,6 +15,7 @@ const dryRun = args.has('--dry-run');
 const apply = args.has('--apply');
 const flow = String(args.get('--flow') || 'existingDatabase');
 const environment = String(args.get('--environment') || 'staging');
+const afterSchema = String(args.get('--after-schema') || '').trim();
 const backupReference = String(args.get('--backup-reference') || '').trim();
 const operator = String(args.get('--operator') || '').trim();
 const databaseUrl = String(process.env.ARANDU_DATABASE_URL || '').trim();
@@ -21,11 +23,13 @@ const backupPath = String(process.env.ARANDU_BACKUP_PATH || '').trim();
 const restoreReference = String(args.get('--restore-reference') || '').trim();
 const restoreEvidencePath = path.resolve(String(args.get('--restore-evidence') || 'reports/backup-restore-verification.json'));
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'docs/supabase-migrations.json'), 'utf8'));
-const files = manifest[flow];
+let files = manifest[flow];
+let pending = null;
 const report = {
   generatedAt: new Date().toISOString(),
   environment,
   flow,
+  afterSchema: afterSchema || null,
   mode: dryRun ? 'dry-run' : apply ? 'apply' : 'preflight',
   operator: operator || null,
   backupReference: backupReference || null,
@@ -46,7 +50,7 @@ function fail(message) {
 function run(binary, commandArgs, options = {}) {
   const result = spawnSync(binary, commandArgs, {
     cwd: root,
-    env: process.env,
+    env: sanitizedChildEnv(process.env),
     encoding: 'utf8',
     input: options.input,
     stdio: options.capture === false ? 'inherit' : 'pipe'
@@ -67,7 +71,22 @@ function writeReport() {
 }
 
 if (!Array.isArray(files)) fail(`Fluxo inválido. Use: ${Object.keys(manifest).join(', ')}.`);
-if (!['staging', 'production'].includes(environment)) fail('Ambiente deve ser staging ou production.');
+if (!['demo', 'staging', 'production'].includes(environment)) fail('Ambiente deve ser demo, staging ou production.');
+if (dryRun && apply) fail('--dry-run e --apply não podem ser combinados.');
+if (environment === 'demo' && flow !== 'existingDatabase') fail('Demo só aceita --flow=existingDatabase; instalação limpa é proibida no banco hospedado.');
+if (environment === 'demo' && !afterSchema) fail('Demo exige --after-schema obtido do preflight e conferido contra o banco.');
+if (afterSchema) {
+  if (flow !== 'existingDatabase' || !/^financial-[a-z0-9-]+$/.test(afterSchema)) {
+    fail('--after-schema exige --flow=existingDatabase e marcador financeiro válido.');
+  }
+  try {
+    pending = selectPendingSections(files.map((file) => ({
+      file, content: fs.readFileSync(path.join(root, file), 'utf8').trim()
+    })), afterSchema);
+    for (const section of pending) assertSingleTransaction(section.content, section.file);
+  } catch (error) { fail(error.message); }
+  files = pending.map((section) => section.file);
+}
 if (!dryRun && !operator) fail('Informe --operator com um papel operacional, sem PII.');
 if (!dryRun && !validOperationalReference(backupReference)) {
   fail('Informe --backup-reference com protocolo, hash ou ticket auditável; valores vagos não são aceitos.');
@@ -77,6 +96,27 @@ if (apply && !validOperationalReference(restoreReference)) {
 }
 if (environment === 'production' && args.get('--confirm-production') !== 'ARANDU-PRODUCTION') {
   fail('Produção exige --confirm-production=ARANDU-PRODUCTION.');
+}
+
+// A Demo não herda autorização de staging/production: host, usuário, porta,
+// banco e parâmetros são validados antes de qualquer SQL (lib/release-migration-guard.mjs).
+if (!dryRun && environment === 'demo') {
+  if (args.get('--confirm-demo') !== 'ARANDU-DEMO' || process.env.ARANDU_DEMO_CONFIRM !== DEMO_REF) {
+    fail('Demo exige --confirm-demo=ARANDU-DEMO e ARANDU_DEMO_CONFIRM com o ref exato da Demo.');
+  }
+  for (const name of ['ARANDU_STAGING_DATABASE_URL', 'ARANDU_PRODUCTION_DATABASE_URL']) {
+    if (databaseUrl && String(process.env[name] || '').trim() === databaseUrl) {
+      fail(`Variáveis contraditórias: ARANDU_DATABASE_URL coincide com ${name}.`);
+    }
+  }
+  if (process.env.ARANDU_ENV && process.env.ARANDU_ENV !== 'demo') {
+    fail('ARANDU_ENV não corresponde à Demo: operação bloqueada.');
+  }
+  if (!databaseUrl || !process.env.ARANDU_DEMO_DATABASE_URL ||
+      databaseUrl !== String(process.env.ARANDU_DEMO_DATABASE_URL).trim() ||
+      demoConnectionProblems(databaseUrl).length > 0) {
+    fail('Conexão PostgreSQL não corresponde ao Supabase Demo confirmado.');
+  }
 }
 
 const sections = files.map((file) => {
@@ -134,6 +174,9 @@ try {
   report.schemaVersion = schemaVersion || null;
   report.steps.push({ name: 'schema-preflight', ok: /^financial-[a-z0-9-]+$/.test(schemaVersion), detail: { schema_version: schemaVersion || null } });
   if (!/^financial-[a-z0-9-]+$/.test(schemaVersion)) fail('Banco sem marker financeiro em fin_settings.schema_version: confirme o ambiente antes de aplicar.');
+  if (afterSchema && schemaVersion !== afterSchema) {
+    fail('Marcador real do banco não coincide com --after-schema: abortado antes de qualquer escrita.');
+  }
 
   if (apply) {
     if (!backupPath || !path.isAbsolute(backupPath)) fail('Aplicação exige ARANDU_BACKUP_PATH absoluto fora do repositório.');
@@ -182,8 +225,31 @@ try {
     process.exit(0);
   }
 
-  run('psql', [databaseUrl, '-X', '-v', 'ON_ERROR_STOP=1', '-1'], { input: bundle });
-  report.steps.push({ name: 'apply', ok: true, detail: { bundleSha256: report.bundleSha256 } });
+  if (pending) {
+    // Uma transação por migration: advisory lock + marcador real conferido no
+    // mesmo BEGIN; falha intermediária reverte o arquivo inteiro e interrompe.
+    for (const section of pending) {
+      const sha256 = sections.find((item) => item.file === section.file).sha256;
+      try {
+        run('psql', [databaseUrl, '-X', '-v', 'ON_ERROR_STOP=1', '-1'],
+          { input: `${guardPrefix(section.expectedBefore)}\n-- ${section.file}\n-- sha256: ${sha256}\n${section.content}\n` });
+      } catch (error) {
+        report.steps.push({ name: 'apply', ok: false, detail: { file: section.file, sha256 } });
+        fail(`Migration ${section.file} falhou e foi revertida: ${error.message}`);
+      }
+      const actualSchema = run('psql', [databaseUrl, '-XAt', '-v', 'ON_ERROR_STOP=1', '-c',
+        "select value from public.fin_settings where key='schema_version';"]).trim();
+      if (actualSchema !== section.expectedAfter) {
+        report.steps.push({ name: 'apply', ok: false, detail: { file: section.file, sha256, schema_version: actualSchema || null } });
+        fail('Marcador final não corresponde ao esperado após a migration.');
+      }
+      report.steps.push({ name: 'apply', ok: true, detail: { file: section.file, sha256, schema_version: actualSchema } });
+    }
+    report.steps.push({ name: 'schema-postflight', ok: true, detail: { schema_version: pending.at(-1).expectedAfter } });
+  } else {
+    run('psql', [databaseUrl, '-X', '-v', 'ON_ERROR_STOP=1', '-1'], { input: bundle });
+    report.steps.push({ name: 'apply', ok: true, detail: { bundleSha256: report.bundleSha256 } });
+  }
 
   run('psql', [
     databaseUrl,
