@@ -51,8 +51,6 @@ Plano de aplicação (quando autorizado):
 4. Aplicação hospedada **somente com autorização distinta**, via executor aprovado contendo `psql`/backup/restore: `--flow=existingDatabase --environment=demo --after-schema=<schema_version_observado> --apply --operator=<papel> --backup-reference=<protocolo> --restore-reference=<protocolo> --restore-evidence=<arquivo> --confirm-demo=ARANDU-DEMO`. A execução exige `ARANDU_DATABASE_URL` idêntica a `ARANDU_DEMO_DATABASE_URL`, `ARANDU_DEMO_CONFIRM=offgpyysgdhfemjlchod` e conexão PostgreSQL identificando o ref Demo; nunca colocar senha em logs, chat, PR ou artefato. O script verifica o marker real antes da escrita e o marker final depois.
 5. Repetir `preflight-only`: esperado `schema=compatible`. Só depois executar `seed-and-provision` com autorização própria.
 6. Em falha, `partial` ou `divergent`: parar, investigar e usar rollback documentado ou restore verificado; nunca reaplicar todo o histórico.
-4. Repetir `preflight-only`: esperado `schema=compatible`.
-5. Falha no meio: o estado vira `partial`; não reaplicar às cegas — usar o rollback documentado em `docs/rollback/` da migration interrompida.
 
 Testes: `scripts/test-demo-schema-reconcile.sh` (PostgreSQL real, agora parte do
 `npm run test:database`): banco vazio → incremental; estado pré-Arandu 10 →
