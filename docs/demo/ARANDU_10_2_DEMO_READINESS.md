@@ -47,7 +47,10 @@ como `partial`.
 Plano de aplicação (quando autorizado):
 1. `preflight-only` no commit revisado → resumo lista `pending` e o `schema_version`.
 2. Backup verificável do Supabase Demo (procedimento de recovery existente).
-3. `node scripts/release-migrations.mjs --flow=existingDatabase --environment=demo --dry-run` e, autorizado, `--apply` com `ARANDU_DATABASE_URL` do Demo (fora deste workflow; nunca a URL do legado).
+3. Plano estrito das migrations pendentes (sem rede/SQL): `npm run migrations:release -- --flow=existingDatabase --environment=demo --after-schema=<schema_version_observado> --dry-run`. O relatório `canonical-order` deve conter somente os arquivos pendentes. Exemplo verificado em 18/11/2026: `financial-contract-email-links-1` → apenas `docs/supabase-financial-arandu-10.sql`.
+4. Aplicação hospedada **somente com autorização distinta**, via executor aprovado contendo `psql`/backup/restore: `--flow=existingDatabase --environment=demo --after-schema=<schema_version_observado> --apply --operator=<papel> --backup-reference=<protocolo> --restore-reference=<protocolo> --restore-evidence=<arquivo> --confirm-demo=ARANDU-DEMO`. A execução exige `ARANDU_DATABASE_URL` idêntica a `ARANDU_DEMO_DATABASE_URL`, `ARANDU_DEMO_CONFIRM=offgpyysgdhfemjlchod` e conexão PostgreSQL identificando o ref Demo; nunca colocar senha em logs, chat, PR ou artefato. O script verifica o marker real antes da escrita e o marker final depois.
+5. Repetir `preflight-only`: esperado `schema=compatible`. Só depois executar `seed-and-provision` com autorização própria.
+6. Em falha, `partial` ou `divergent`: parar, investigar e usar rollback documentado ou restore verificado; nunca reaplicar todo o histórico.
 4. Repetir `preflight-only`: esperado `schema=compatible`.
 5. Falha no meio: o estado vira `partial`; não reaplicar às cegas — usar o rollback documentado em `docs/rollback/` da migration interrompida.
 

@@ -14,6 +14,7 @@ const dryRun = args.has('--dry-run');
 const apply = args.has('--apply');
 const flow = String(args.get('--flow') || 'existingDatabase');
 const environment = String(args.get('--environment') || 'staging');
+const afterSchema = String(args.get('--after-schema') || '').trim();
 const backupReference = String(args.get('--backup-reference') || '').trim();
 const operator = String(args.get('--operator') || '').trim();
 const databaseUrl = String(process.env.ARANDU_DATABASE_URL || '').trim();
@@ -21,11 +22,12 @@ const backupPath = String(process.env.ARANDU_BACKUP_PATH || '').trim();
 const restoreReference = String(args.get('--restore-reference') || '').trim();
 const restoreEvidencePath = path.resolve(String(args.get('--restore-evidence') || 'reports/backup-restore-verification.json'));
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'docs/supabase-migrations.json'), 'utf8'));
-const files = manifest[flow];
+let files = manifest[flow];
 const report = {
   generatedAt: new Date().toISOString(),
   environment,
   flow,
+  afterSchema: afterSchema || null,
   mode: dryRun ? 'dry-run' : apply ? 'apply' : 'preflight',
   operator: operator || null,
   backupReference: backupReference || null,
@@ -67,7 +69,23 @@ function writeReport() {
 }
 
 if (!Array.isArray(files)) fail(`Fluxo inválido. Use: ${Object.keys(manifest).join(', ')}.`);
-if (!['staging', 'production'].includes(environment)) fail('Ambiente deve ser staging ou production.');
+if (!['demo', 'staging', 'production'].includes(environment)) fail('Ambiente deve ser demo, staging ou production.');
+if (dryRun && apply) fail('--dry-run e --apply não podem ser combinados.');
+if (environment === 'demo' && flow !== 'existingDatabase') fail('Demo só aceita --flow=existingDatabase; instalação limpa é proibida no banco hospedado.');
+if (environment === 'demo' && !afterSchema) fail('Demo exige --after-schema obtido do preflight e conferido contra o banco.');
+if (afterSchema) {
+  if (flow !== 'existingDatabase' || !/^financial-[a-z0-9-]+$/.test(afterSchema)) {
+    fail('--after-schema exige --flow=existingDatabase e marcador financeiro válido.');
+  }
+  const matches = files.flatMap((file, index) => {
+    const sql = fs.readFileSync(path.join(root, file), 'utf8');
+    const markers = [...sql.matchAll(/\(\s*'schema_version'\s*,\s*'([^']+)'\s*\)/g)];
+    return markers.at(-1)?.[1] === afterSchema ? [index] : [];
+  });
+  if (matches.length !== 1) fail('Marcador --after-schema desconhecido ou ambíguo: nenhuma migration selecionada.');
+  files = files.slice(matches[0] + 1);
+  if (files.length === 0) fail('Nenhuma migration pendente: não executar release novamente.');
+}
 if (!dryRun && !operator) fail('Informe --operator com um papel operacional, sem PII.');
 if (!dryRun && !validOperationalReference(backupReference)) {
   fail('Informe --backup-reference com protocolo, hash ou ticket auditável; valores vagos não são aceitos.');
@@ -77,6 +95,33 @@ if (apply && !validOperationalReference(restoreReference)) {
 }
 if (environment === 'production' && args.get('--confirm-production') !== 'ARANDU-PRODUCTION') {
   fail('Produção exige --confirm-production=ARANDU-PRODUCTION.');
+}
+
+// A Demo não herda autorização de staging/production. Validar o ref no
+// hostname direto ou no nome de usuário do pooler antes de qualquer SQL.
+const DEMO_REF = 'offgpyysgdhfemjlchod';
+function pointsToDemoDatabase(connectionString) {
+  try {
+    const parsed = new URL(connectionString);
+    if (!['postgres:', 'postgresql:'].includes(parsed.protocol)) return false;
+    const host = parsed.hostname.toLowerCase();
+    const username = decodeURIComponent(parsed.username).toLowerCase();
+    return (host === 'db.' + DEMO_REF + '.supabase.co' && username === 'postgres')
+      || (host.endsWith('.pooler.supabase.com') && username === 'postgres.' + DEMO_REF);
+  } catch { return false; }
+}
+if (!dryRun && environment === 'demo') {
+  if (args.get('--confirm-demo') !== 'ARANDU-DEMO' || process.env.ARANDU_DEMO_CONFIRM !== DEMO_REF) {
+    fail('Demo exige --confirm-demo=ARANDU-DEMO e ARANDU_DEMO_CONFIRM com o ref exato da Demo.');
+  }
+  if (process.env.ARANDU_ENV && process.env.ARANDU_ENV !== 'demo') {
+    fail('ARANDU_ENV não corresponde à Demo: operação bloqueada.');
+  }
+  if (!databaseUrl || !process.env.ARANDU_DEMO_DATABASE_URL ||
+      databaseUrl !== String(process.env.ARANDU_DEMO_DATABASE_URL).trim() ||
+      !pointsToDemoDatabase(databaseUrl)) {
+    fail('Conexão PostgreSQL não corresponde ao Supabase Demo confirmado.');
+  }
 }
 
 const sections = files.map((file) => {
@@ -134,6 +179,9 @@ try {
   report.schemaVersion = schemaVersion || null;
   report.steps.push({ name: 'schema-preflight', ok: /^financial-[a-z0-9-]+$/.test(schemaVersion), detail: { schema_version: schemaVersion || null } });
   if (!/^financial-[a-z0-9-]+$/.test(schemaVersion)) fail('Banco sem marker financeiro em fin_settings.schema_version: confirme o ambiente antes de aplicar.');
+  if (afterSchema && schemaVersion !== afterSchema) {
+    fail('Marcador real do banco não coincide com --after-schema: abortado antes de qualquer escrita.');
+  }
 
   if (apply) {
     if (!backupPath || !path.isAbsolute(backupPath)) fail('Aplicação exige ARANDU_BACKUP_PATH absoluto fora do repositório.');
@@ -184,6 +232,15 @@ try {
 
   run('psql', [databaseUrl, '-X', '-v', 'ON_ERROR_STOP=1', '-1'], { input: bundle });
   report.steps.push({ name: 'apply', ok: true, detail: { bundleSha256: report.bundleSha256 } });
+  if (afterSchema) {
+    const markers = [...(sections.at(-1)?.content || '').matchAll(/\(\s*'schema_version'\s*,\s*'([^']+)'\s*\)/g)];
+    const targetSchema = markers.at(-1)?.[1];
+    if (!targetSchema) fail('Migration sem marcador final verificável.');
+    const actualSchema = run('psql', [databaseUrl, '-XAt', '-v', 'ON_ERROR_STOP=1', '-c',
+      "select value from public.fin_settings where key='schema_version';"]).trim();
+    if (actualSchema !== targetSchema) fail('Marcador final não corresponde ao esperado após a migration.');
+    report.steps.push({ name: 'schema-postflight', ok: true, detail: { schema_version: targetSchema } });
+  }
 
   run('psql', [
     databaseUrl,
