@@ -170,7 +170,13 @@ await ok('workflow: só dispatch na main; preflight sem escrita; provisionamento
   const yml = fs.readFileSync('.github/workflows/demo-hosted-seed.yml', 'utf8');
   const triggers = yml.slice(yml.indexOf('\non:'), yml.indexOf('\npermissions:'));
   assert(/workflow_dispatch:/.test(triggers) && !/\b(push|pull_request|schedule|workflow_run):/.test(triggers), 'nenhum gatilho automático');
-  const preflight = yml.slice(yml.indexOf('\n  preflight:'), yml.indexOf('\n  provision:'));
+  const preflight = yml.slice(yml.indexOf('\n  preflight:'), yml.indexOf('\n  recover:'));
+  const recover = yml.slice(yml.indexOf('\n  recover:'), yml.indexOf('\n  provision:'));
+  assert(!/execute|verify-plan/.test(preflight) && /baseline-state\.mjs inspect/.test(preflight), 'preflight só inspeciona a baseline');
+  assert(/needs\.preflight\.outputs\.verdict == 'GO'/.test(recover) && /inputs\.mode == 'recover-and-provision'/.test(recover), 'recuperação depende de GO e do modo explícito');
+  assert(/AUTHORIZATION_REFERENCE/.test(recover) && /test "\$APPROVED_PLAN" = "\$INSPECTED_PLAN"/.test(recover), 'recuperação exige autorização e o plano aprovado igual ao inspecionado');
+  assert(recover.indexOf('Exigir autorização') < recover.indexOf('baseline-state.mjs execute'), 'autorização antes de qualquer escrita');
+  assert(/execute --plan-sha256="\$APPROVED_PLAN"/.test(recover) && /verify-after/.test(recover) && /--phase=status/.test(recover));
   const provision = yml.slice(yml.indexOf('\n  provision:'));
   assert(!/demo:seed|demo:workspaces|--reset|release-migrations|psql|supabase db/.test(preflight), 'preflight não chama escrita');
   assert(/hosted-preflight\.mjs/.test(preflight));
@@ -179,5 +185,14 @@ await ok('workflow: só dispatch na main; preflight sem escrita; provisionamento
   assert(!/release-migrations|--apply|psql/.test(yml), 'migrations hospedadas não são aplicadas por este fluxo');
   assert(!/89b1f0f68e7c2a3cdf3fa138fc683889124098dc|9fxmf7u6k/.test(yml), 'sem SHA/URL de preview fixos');
   assert(/cancel-in-progress: false/.test(yml) && /group: arandu-demo-pool/.test(yml), 'sem execução concorrente no mesmo alvo');
+});
+await ok('fase recovery: dados da própria Demo não bloqueiam; dados estranhos continuam NO-GO', async () => {
+  const marked = await runHostedPreflight({ env: env(), phase: 'recovery', plan, fetchImpl: fake({ marker: 'demo', organizations: 6 }).impl });
+  assert.equal(marked.verdict, 'GO', JSON.stringify(marked.checks));
+  const before = await runHostedPreflight({ env: env(), plan, fetchImpl: fake({ marker: 'demo', organizations: 6 }).impl });
+  assert(before.codes.includes('DATA_PRESENT'), 'before-seed continua exigindo banco vazio');
+  const foreign = await runHostedPreflight({ env: env(), phase: 'recovery', plan, fetchImpl: fake({ organizations: 3 }).impl });
+  assert(foreign.codes.includes('MARKER_MISMATCH'), 'organizações sem marcador Demo continuam recusadas');
+  await assert.rejects(runHostedPreflight({ env: env(), phase: 'apply', plan, fetchImpl: fake().impl }));
 });
 console.log(`${count} testes do preflight da Demo e da reconciliação de schema OK (rede simulada).`);

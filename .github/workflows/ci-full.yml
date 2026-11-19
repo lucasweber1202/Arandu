@@ -34,7 +34,7 @@ jobs:
       - name: PostgreSQL client
         run: |
           if ! command -v psql >/dev/null 2>&1; then
-            sudo apt-get update && sudo apt-get install -y postgresql-client
+            sudo "$(command -v node)" scripts/configure-ci-apt.mjs && sudo "$(command -v node)" scripts/ci/apt-install.mjs postgresql-client
           fi
           psql --version
 
@@ -236,7 +236,9 @@ jobs:
         timeout-minutes: 25
         env:
           DEBIAN_FRONTEND: noninteractive
-        run: npx playwright install-deps chromium firefox webkit
+        run: |
+          sudo "$(command -v node)" scripts/ci/apt-install.mjs --update-only
+          npx playwright install-deps chromium firefox webkit
 
       - name: Verify and install Chromium, Firefox and WebKit
         timeout-minutes: 10

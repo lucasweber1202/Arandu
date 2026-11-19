@@ -63,7 +63,7 @@ jobs:
           cache: npm
 
       - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+        run: sudo "$(command -v node)" scripts/configure-ci-apt.mjs && sudo "$(command -v node)" scripts/ci/apt-install.mjs postgresql-client
 
       - name: Install dependencies
         run: npm ci --include=optional

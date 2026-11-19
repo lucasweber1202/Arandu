@@ -78,15 +78,26 @@ jobs:
       - name: Validate installation path before provisioning
         run: node scripts/local-migration-plan.mjs > /dev/null
 
+      # Pré-requisitos separados da execução e com classe de falha explícita
+      # (scripts/ci/apt-install.mjs: 20 dependência externa, 21 segurança,
+      # 22 instalação, 23 capacidade). age vem do release oficial com SHA-256
+      # fixado, sem apt; o psql já vem na imagem e só cai no apt se faltar.
+      - name: Prerequisites (pinned age, psql)
+        id: prerequisites
+        timeout-minutes: 8
+        run: |
+          if ! command -v age >/dev/null 2>&1 || ! command -v age-keygen >/dev/null 2>&1; then
+            bash scripts/ci/install-age.sh
+          fi
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo "$(command -v node)" scripts/configure-ci-apt.mjs
+            sudo "$(command -v node)" scripts/ci/apt-install.mjs postgresql-client
+          fi
+
       - name: Preflight (memory, disk, Docker, psql)
         id: preflight
         timeout-minutes: 3
-        run: |
-          if ! command -v psql >/dev/null 2>&1 || ! command -v age >/dev/null 2>&1 || ! command -v age-keygen >/dev/null 2>&1; then
-            sudo "$(command -v node)" scripts/configure-ci-apt.mjs
-            sudo apt-get update && sudo apt-get install -y postgresql-client age
-          fi
-          bash scripts/ci-demo/run.sh preflight
+        run: bash scripts/ci-demo/run.sh preflight
 
       # Defesa em profundidade: mesmo uma URL errada não alcança um Supabase
       # hospedado conhecido (refs de lib/deployment-topology.mjs).
@@ -230,6 +241,7 @@ jobs:
           TESTED_SHA: ${{ steps.tested_commit.outputs.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           TESTED_COMMIT: ${{ steps.tested_commit.outcome }}
+          PREREQUISITES: ${{ steps.prerequisites.outcome }}
           PREFLIGHT: ${{ steps.preflight.outcome }}
           BLOCK_HOSTED: ${{ steps.block_hosted.outcome }}
           INSTALL: ${{ steps.install.outcome }}
