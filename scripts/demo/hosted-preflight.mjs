@@ -12,6 +12,7 @@ const expectedSha = arg('expected-sha');
 if (expectedSha && !/^[0-9a-f]{40}$/.test(expectedSha)) { console.error('--expected-sha precisa ser um SHA completo.'); process.exit(1); }
 const out = arg('out') || 'reports/demo-preflight.json';
 const phase = arg('phase') || 'before-seed';
+if (!['before-seed', 'recovery', 'status'].includes(phase)) { console.error('--phase precisa ser before-seed, recovery ou status.'); process.exit(1); }
 try {
   const report = await runHostedPreflight({ env: process.env, expectedSha, phase });
   const document = { generated_at: new Date().toISOString(), expected_sha: expectedSha, target_ref: report.checks.find((c) => c.id === 'target')?.detail || null, ...report,

@@ -22,15 +22,22 @@ on:
         required: true
         type: string
       mode:
-        description: 'preflight-only (leitura) ou seed-and-provision (escrita; exige GO e autorização)'
+        description: 'preflight-only / inspect-baseline (leitura) · seed-and-provision (banco vazio) · recover-and-provision (plano aprovado); escrita exige GO e autorização'
         required: true
         type: choice
         default: preflight-only
         options:
           - preflight-only
+          - inspect-baseline
           - seed-and-provision
+          - recover-and-provision
       authorization_reference:
         description: 'Só para seed-and-provision: referência verificável da autorização (issue/decisão), sem segredos'
+        required: false
+        type: string
+        default: ''
+      approved_plan_sha256:
+        description: 'Só para recover-and-provision: plan_sha256 revisado, emitido por inspect-baseline no MESMO estado'
         required: false
         type: string
         default: ''
@@ -50,6 +57,8 @@ jobs:
     timeout-minutes: 15
     outputs:
       verdict: ${{ steps.check.outputs.verdict }}
+      baseline_state: ${{ steps.baseline.outputs.state }}
+      plan_sha256: ${{ steps.baseline.outputs.plan_sha256 }}
     env:
       ARANDU_ENV: demo
       ARANDU_DEMO_CONFIRM: offgpyysgdhfemjlchod
@@ -61,6 +70,10 @@ jobs:
       CRON_SECRET: ${{ secrets.ARANDU_DEMO_CRON_SECRET }}
       USER_CONFIRMED_REF: ${{ inputs.confirm_ref }}
       EXPECTED_SHA: ${{ inputs.expected_sha }}
+      RUN_MODE: ${{ inputs.mode }}
+      # Banco vazio usa before-seed (DATA_PRESENT = NO-GO). Inspeção/recuperação
+      # aceitam dados da própria Demo; a decisão fica com baseline-state.
+      PREFLIGHT_PHASE: ${{ (inputs.mode == 'inspect-baseline' || inputs.mode == 'recover-and-provision') && 'recovery' || 'before-seed' }}
     steps:
       - name: Conferir ref, SHA e HEAD da main
         shell: bash
@@ -89,17 +102,33 @@ jobs:
         shell: bash
         run: |
           set +e
-          node scripts/demo/hosted-preflight.mjs --expected-sha="$EXPECTED_SHA" --out=reports/demo-preflight.json
+          node scripts/demo/hosted-preflight.mjs --expected-sha="$EXPECTED_SHA" --phase="$PREFLIGHT_PHASE" --out=reports/demo-preflight.json
           status=$?
           set -e
           if [ "$status" = 0 ]; then echo 'verdict=GO' >> "$GITHUB_OUTPUT"; elif [ "$status" = 2 ]; then echo 'verdict=NO-GO' >> "$GITHUB_OUTPUT"; else exit 1; fi
+
+      # Somente leitura (GET): classifica a baseline e emite o plano com plan_sha256.
+      - name: Classificar baseline e plano de recuperação (somente leitura)
+        id: baseline
+        if: inputs.mode == 'inspect-baseline' || inputs.mode == 'recover-and-provision'
+        shell: bash
+        run: |
+          set +e
+          node scripts/demo/baseline-state.mjs inspect --out=reports/demo-baseline-inspect.json | tee reports/demo-baseline-inspect.txt
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "state=$(sed -n 's/^DEMO_BASELINE_STATE=//p' reports/demo-baseline-inspect.txt)" >> "$GITHUB_OUTPUT"
+          echo "plan_sha256=$(sed -n 's/^DEMO_BASELINE_PLAN_SHA256=//p' reports/demo-baseline-inspect.txt)" >> "$GITHUB_OUTPUT"
+          [ "$status" = 0 ] || [ "$status" = 2 ] || exit 1
 
       - name: Evidência do preflight (sem segredos)
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: demo-preflight-${{ inputs.expected_sha }}
-          path: reports/demo-preflight.json
+          path: |
+            reports/demo-preflight.json
+            reports/demo-baseline-inspect.json
           if-no-files-found: ignore
           retention-days: 30
 
@@ -118,6 +147,14 @@ jobs:
             if [ -f reports/demo-preflight.json ]; then
               node -e "const r=require('./reports/demo-preflight.json');for(const c of r.checks)console.log('- '+c.id+': '+c.code+(c.detail?' ('+c.detail+')':''));if(r.schema&&r.schema.pending.length)console.log('\nMigrations pendentes (aplicação hospedada exige autorização separada):\n'+r.schema.pending.map(f=>'- '+f).join('\n'))"
             fi
+            if [ -f reports/demo-baseline-inspect.txt ]; then
+              echo ''
+              echo '### Baseline'
+              echo ''
+              echo '```'
+              cat reports/demo-baseline-inspect.txt
+              echo '```'
+            fi
             echo ''
             echo 'Nenhuma escrita foi feita neste job.'
           } >> "$GITHUB_STEP_SUMMARY"
@@ -127,6 +164,72 @@ jobs:
         run: |
           echo 'Preflight NO-GO: nenhuma escrita será feita. Ver o resumo e o artefato demo-preflight.'
           exit 1
+
+  # Recuperação de baseline parcial/estado conhecido: só com o plano revisado
+  # (plan_sha256 de inspect-baseline) E referência de autorização. O plano é
+  # recalculado imediatamente antes de escrever; se o estado mudou, nada é escrito.
+  recover:
+    needs: preflight
+    if: github.ref == 'refs/heads/main' && inputs.mode == 'recover-and-provision' && needs.preflight.outputs.verdict == 'GO'
+    runs-on: ubuntu-latest
+    environment: demo
+    timeout-minutes: 120
+    env:
+      ARANDU_ENV: demo
+      ARANDU_DEMO_CONFIRM: offgpyysgdhfemjlchod
+      SUPABASE_URL: https://offgpyysgdhfemjlchod.supabase.co
+      ARANDU_DEMO_APP_URL: ${{ secrets.ARANDU_DEMO_APP_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.ARANDU_DEMO_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.ARANDU_DEMO_SUPABASE_SERVICE_ROLE_KEY }}
+      ARANDU_DEMO_PASSWORD: ${{ secrets.ARANDU_DEMO_PASSWORD }}
+      CRON_SECRET: ${{ secrets.ARANDU_DEMO_CRON_SECRET }}
+      EXPECTED_SHA: ${{ inputs.expected_sha }}
+      AUTHORIZATION_REFERENCE: ${{ inputs.authorization_reference }}
+      APPROVED_PLAN: ${{ inputs.approved_plan_sha256 }}
+      INSPECTED_PLAN: ${{ needs.preflight.outputs.plan_sha256 }}
+    steps:
+      - name: Exigir autorização e plano aprovado
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$AUTHORIZATION_REFERENCE" =~ ^[A-Za-z0-9#/:._-]{6,200}$ ]] || { echo 'authorization_reference ausente ou inválida: escrita hospedada exige autorização registrada.'; exit 1; }
+          [[ "$APPROVED_PLAN" =~ ^[0-9a-f]{64}$ ]] || { echo 'approved_plan_sha256 ausente: rode inspect-baseline, revise o plano e aprove o hash.'; exit 1; }
+          test "$APPROVED_PLAN" = "$INSPECTED_PLAN" || { echo 'O plano inspecionado agora difere do aprovado: o estado mudou. Nada foi escrito.'; exit 1; }
+
+      - name: Checkout do mesmo commit do preflight
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_sha }}
+          persist-credentials: false
+
+      - name: Node 24
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '24'
+
+      - name: Instalar dependências (sem scripts)
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Repetir o preflight imediatamente antes de escrever
+        run: node scripts/demo/hosted-preflight.mjs --expected-sha="$EXPECTED_SHA" --phase=recovery --out=reports/demo-preflight-before-write.json
+
+      - name: Executar somente o plano aprovado (recalculado e comparado)
+        run: node scripts/demo/baseline-state.mjs execute --plan-sha256="$APPROVED_PLAN" --authorization="$AUTHORIZATION_REFERENCE" --out=reports/demo-baseline-execute.json
+
+      - name: Verificar baseline e workspaces (somente leitura)
+        run: node scripts/demo/baseline-state.mjs verify-after --out=reports/demo-baseline-verify.json
+
+      - name: Readiness pós-provisionamento (somente leitura)
+        run: node scripts/demo/hosted-preflight.mjs --expected-sha="$EXPECTED_SHA" --phase=status --out=reports/demo-status.json
+
+      - name: Evidência da recuperação (sem segredos)
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: demo-recovery-${{ inputs.expected_sha }}
+          path: reports/demo-*.json
+          if-no-files-found: ignore
+          retention-days: 30
 
   provision:
     needs: preflight
