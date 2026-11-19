@@ -43,6 +43,12 @@ try {
   assert.equal(response.body.rows.length, 1); assert(response.body.next);
   assert.equal(response.body.notice, CRM_NOTICE);
   assert.equal(calls.at(-1).q.get('name'), 'ilike.*Pessoa*');
+  // Vercel appends unused rewrite captures to the original request query.
+  const hosted = await call(`crm-activities?organization_id=${org}&aranduScope=finance&aranduRest=crm-activities`);
+  assert.equal(hosted.statusCode, 200);
+  assert.equal(calls.at(-1).q.has('aranduScope'), false);
+  assert.equal(calls.at(-1).q.has('aranduRest'), false);
+  await assert.rejects(() => call(`crm-activities?organization_id=${org}&aranduScope=finance&aranduRest=crm-activities&unknown=1`), e => e.status === 400);
   const after = response.body.next;
   await call(`crm-contacts?organization_id=${org}&search=Pessoa&limit=1&after=${after}`);
   assert.equal(calls.at(-1).q.get('id'), `gt.${id(10)}`);
