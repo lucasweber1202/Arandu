@@ -63,6 +63,13 @@
       "previous": 896928,
       "reason": "Arandu 10.2 — lista de solicitações memoriza linha e próximo passo por objeto carregado: 'Carregar mais' deixa de reconstruir a tabela inteira (causa do timeout WebKit de 'escala: 230 solicitações' na main). +94 B no chunk rfqs; com CPU 6x mais lenta o teste caiu de 14,9 s para 11,5 s. Jornadas frias/quentes medidas em Chromium dentro da baseline. Nenhum hard limit alterado.",
       "journeyBaseline": "2026-11-05"
+    },
+    {
+      "date": "2026-11-19",
+      "accepted": 905785,
+      "previous": 897022,
+      "reason": "Arandu 11 — ativação de produto (PR #358): painel de primeiro valor por objetivo em chunk sob demanda (first-value, carregado só pela empresa sem solicitação), renegociação contextual no Relationship 360 extraída para módulo compartilhado (shared/renegotiation, usado pela fila e pela gaveta) e aviso de demonstração do site institucional (financial-public-demo, só nas páginas públicas, decidido em runtime por /api/health). +8.763 B no build regular; nenhum módulo novo no carregamento inicial de rotas estabelecidas. Jornadas medidas em Chromium: só a do comprador (fixture sem solicitação, que renderiza o painel) teve baseline atualizada com motivo em 2026-11-19; as demais dentro da baseline anterior. Nenhum hard limit alterado.",
+      "journeyBaseline": "2026-11-19"
     }
   ]
 }
