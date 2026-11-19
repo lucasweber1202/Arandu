@@ -112,12 +112,13 @@ test('CFO: aprovação pendente chega a ela, com contexto', async ({ page }) => 
 });
 
 // Relationship 360 no backend real: o contrato de crédito da Atlas está na janela
-// de renovação do dataset e a gestora vê a ação contextual (o leitor sem ação está
-// coberto no E2E com API simulada). Só leitura: nenhum clique em "Iniciar/Retomar",
-// para não alterar o baseline compartilhado; um único login, para não pressionar a cota.
-test('relacionamento com a Atlas: prazo do contrato traz a renegociação para a gestora', async ({ page }) => {
+// de renovação do dataset e a administradora vê a ação contextual (o leitor sem ação
+// está coberto no E2E com API simulada). Só leitura: nenhum clique em "Iniciar/Retomar",
+// para não alterar o baseline compartilhado. Usa a Helena, não a Juliana: a cota de API
+// é por pessoa e a jornada de responsáveis (Juliana, com escritas) vem depois.
+test('relacionamento com a Atlas: prazo do contrato traz a renegociação para a administradora', async ({ page }) => {
   const problems = watch(page);
-  await login(page, 'juliana');
+  await login(page, 'helena');
   // Com solicitações no dataset, os primeiros passos não aparecem no Início.
   await expect(page.locator('#buyer-onboarding')).toHaveCount(0);
   await page.goto('/finance/providers.html');
