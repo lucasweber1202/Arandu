@@ -223,3 +223,67 @@ jobs:
           FULL_RESULT: ${{ needs.full.result }}
           DEMO_RESULT: ${{ needs.integration.result }}
         run: node scripts/ci/check-result.mjs
+  # Gate de observabilidade na main, sem segredos e sem escrita no Supabase.
+  # O branch CI valida funcionalidade; este job prova que a URL pública serve o SHA aprovado.
+  # Não substitui Playwright autenticado nem promove Production.
+  demo-hosted-smoke:
+    name: Demo pública / smoke somente leitura
+    needs: [database, deploy-boundaries, validate, presentation]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.database.result == 'success' && needs.deploy-boundaries.result == 'success' && needs.validate.result == 'success' && needs.presentation.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+      - name: Validar release pública, personas e frontend no SHA da main
+        run: |
+          node --input-type=module <<'NODE'
+          const origin = 'https://arandu-demo.vercel.app';
+          const expectedSha = process.env.GITHUB_SHA;
+          if (!/^[a-f0-9]{40}$/.test(expectedSha || '')) throw new Error('SHA de CI ausente ou inválido');
+          const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+          const get = async (path) => {
+            const response = await fetch(new URL(path, origin), {
+              headers: { 'Cache-Control': 'no-cache' },
+              redirect: 'error',
+              signal: AbortSignal.timeout(12000),
+            });
+            if (!response.ok) throw new Error(path + ': HTTP ' + response.status);
+            return response;
+          };
+          for (let attempt = 1; attempt <= 20; attempt++) {
+            let health;
+            try {
+              health = await (await get('/api/health')).json();
+            } catch (error) {
+              console.log('Tentativa ' + attempt + ': health indisponível (' + error.message + ')');
+              if (attempt < 20) { await sleep(15000); continue; }
+              throw error;
+            }
+            if (health.release?.commit !== expectedSha) {
+              console.log('Tentativa ' + attempt + ': domínio publica ' + (health.release?.commit || 'sem commit') + ', esperado ' + expectedSha);
+              if (attempt < 20) { await sleep(15000); continue; }
+              throw new Error('Demo pública não recebeu o commit validado pela main');
+            }
+            const release = health.release;
+            if (!health.ok || release.environment !== 'demo' || release.datasource !== 'supabase' || release.misconfigured) {
+              throw new Error('Deploy atual não é a Demo canônica saudável');
+            }
+            const personaResponse = await (await get('/api/auth/demo-personas')).json();
+            if (!personaResponse.ok || !Array.isArray(personaResponse.personas) || personaResponse.personas.length !== 9) {
+              throw new Error('Catálogo de personas indisponível ou incompleto');
+            }
+            const login = await (await get('/login.html')).text();
+            if (!login.includes('data-finance-auth="login"')) throw new Error('Página de login ausente');
+            const authScriptPath = login.match(/src="(\/assets\/financial-auth-[A-Za-z0-9_-]+\.js)"/)?.[1];
+            if (!authScriptPath) throw new Error('Script de login não encontrado no HTML publicado');
+            const authScript = await (await get(authScriptPath)).text();
+            const demoModuleName = authScript.match(/financial-demo-entry-[A-Za-z0-9_-]+\.js/)?.[0];
+            if (!demoModuleName) throw new Error('Bundle de entrada por persona não referenciado');
+            await get('/assets/' + demoModuleName);
+            console.log('DEMO_POST_MERGE=READY sha=' + expectedSha + ' personas=9 login=ok assets=ok');
+            process.exit(0);
+          }
+          throw new Error('Demo não ficou pronta após 20 verificações');
+          NODE
