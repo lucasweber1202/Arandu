@@ -49,6 +49,15 @@ try {
   assert.equal(calls.at(-1).q.has('aranduScope'), false);
   assert.equal(calls.at(-1).q.has('aranduRest'), false);
   await assert.rejects(() => call(`crm-activities?organization_id=${org}&aranduScope=finance&aranduRest=crm-activities&unknown=1`), e => e.status === 400);
+  // Query exata que a função recebe na Vercel (rotas geradas por `vercel build` com o
+  // vercel.json atual): rewrite -> /api/dispatch?aranduScope&aranduRest e, em seguida, a
+  // rota do catch-all api/[...path].js acrescenta `...path=dispatch` (run 44537446675).
+  const vercelQuery = `organization_id=${org}&aranduScope=finance&aranduRest=crm-activities&...path=dispatch`;
+  const viaVercel = await call(`crm-activities?${vercelQuery}`);
+  assert.equal(viaVercel.statusCode, 200);
+  assert.equal([...calls.at(-1).q.keys()].some(key => /arandu|path/.test(key)), false);
+  await assert.rejects(() => call(`crm-activities?${vercelQuery}&unknown=1`), e => e.status === 400 && e.code === 'invalid_crm');
+  await assert.rejects(() => call(`crm-activities?${vercelQuery}&path=x`), e => e.status === 400, 'só o nome reservado `...path` é transporte');
   const after = response.body.next;
   await call(`crm-contacts?organization_id=${org}&search=Pessoa&limit=1&after=${after}`);
   assert.equal(calls.at(-1).q.get('id'), `gt.${id(10)}`);
