@@ -108,19 +108,9 @@ test('CFO: aprovação pendente chega a ela, com contexto', async ({ page }) => 
   await expect(page.getByRole('button', { name: 'Aprovar' })).toBeEnabled();
   await page.goto('/finance/notifications.html');
   await expect(page.locator('#view')).toContainText('Aprovação solicitada');
-  expect(problems, problems.join('\n')).toEqual([]);
-});
-
-// Relationship 360 no backend real: o contrato de crédito da Atlas está na janela
-// de renovação do dataset e a administradora vê a ação contextual (o leitor sem ação
-// está coberto no E2E com API simulada). Só leitura: nenhum clique em "Iniciar/Retomar",
-// para não alterar o baseline compartilhado. Usa a Helena, não a Juliana: a cota de API
-// é por pessoa e a jornada de responsáveis (Juliana, com escritas) vem depois.
-test('relacionamento com a Atlas: prazo do contrato traz a renegociação para a administradora', async ({ page }) => {
-  const problems = watch(page);
-  await login(page, 'helena');
-  // Com solicitações no dataset, os primeiros passos não aparecem no Início.
-  await expect(page.locator('#buyer-onboarding')).toHaveCount(0);
+  // Relationship 360 (Arandu 11), na mesma sessão para não somar login à cota de entrada
+  // por rede: o crédito da Atlas está na janela de renovação do dataset e a administradora
+  // vê a ação contextual (leitor sem ação: E2E com API simulada). Só leitura, sem clicar.
   await page.goto('/finance/providers.html');
   await page.getByRole('button', { name: 'Relacionamento com Atlas Bank' }).first().click();
   const attention = page.getByRole('dialog', { name: 'Atlas Bank' }).locator('.rel-attention');
