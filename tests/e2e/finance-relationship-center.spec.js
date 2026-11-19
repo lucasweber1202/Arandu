@@ -128,6 +128,41 @@ test('workspace da instituição separa término, marco de aviso prévio e taref
   await expect(attention.getByRole('link', { name: 'Abrir tarefa' })).toHaveAttribute('href', /\/finance\/tasks\.html#task-[\w-]+$/);
 });
 
+const atlasRelationship = () => (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+  ok: true, provider: { id: P_ATLAS, name: 'Atlas Bank' }, neutrality: 'Fatos do histórico da empresa.', contracts: OVERVIEW.contracts.filter((row) => row.provider_id === P_ATLAS),
+  tasks: [], facilities: [], rfqs: [], invites: [], proposals: [], balances: [], contacts: [], issues: [], relationships: [], map: [], timeline: [], reviews: [], templates: [],
+  metrics: { invited: 0, responded: 0, response_rate: null, median_response_days: null, active_contracts: 3, open_issues: 0, median_resolution_days: null, definitions: {} } }) });
+
+test('relacionamento da instituição: prazo de renovação inicia a renegociação sem sair do contexto', async ({ page }) => {
+  const RENEWAL = '00000000-0000-4000-8000-0000000000da';
+  await setup(page);
+  const posted = [];
+  await page.route('**/api/finance/provider-relationship**', atlasRelationship());
+  await page.route('**/api/finance/contract-renewal-rfq', (route) => { posted.push(route.request().postDataJSON()); return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ ok: true, id: RENEWAL }) }); });
+  await page.goto(`/finance/providers.html?provider_id=${P_ATLAS}`);
+  const attention = page.getByRole('dialog', { name: 'Atlas Bank' }).locator('.rel-attention');
+  const row = attention.locator('.milestone-row', { hasText: 'Capital de giro 2025' });
+  await expect(row.getByRole('link', { name: 'Abrir contrato' })).toBeVisible();
+  // Só o contrato de crédito com prazo ganha a ação; "término não informado" (pacote de serviços) não.
+  await expect(attention.getByRole('button', { name: /renegociação/ })).toHaveCount(1);
+  await row.getByRole('button', { name: /Iniciar renegociação: Capital de giro 2025/ }).click();
+  await expect(page.getByRole('dialog', { name: /Iniciar renegociação/ })).toContainText('Nenhuma instituição é convidada automaticamente');
+  await page.getByRole('dialog', { name: /Iniciar renegociação/ }).getByRole('button', { name: 'Criar rascunho' }).click();
+  await page.waitForURL(new RegExp(`rfq\\.html\\?id=${RENEWAL}&de=relacionamento$`));
+  expect(posted).toHaveLength(1);
+  expect(posted[0]).toEqual({ organization_id: ORG, contract_id: '00000000-0000-4000-8000-0000000000c1' });
+});
+
+test('relacionamento da instituição: leitor vê o prazo sem a ação de renegociar', async ({ page }) => {
+  const calls = await setup(page, { role: 'viewer' });
+  await page.route('**/api/finance/provider-relationship**', atlasRelationship());
+  await page.goto(`/finance/providers.html?provider_id=${P_ATLAS}`);
+  const attention = page.getByRole('dialog', { name: 'Atlas Bank' }).locator('.rel-attention');
+  await expect(attention).toContainText(/Decidir renovação até .*: Capital de giro 2025/);
+  await expect(attention.getByRole('button', { name: /renegociação/ })).toHaveCount(0);
+  expect(calls.filter((c) => c.path === 'contract-renewal-rfq')).toHaveLength(0);
+});
+
 test('workspace da instituição sem contrato vigente oferece registrar o existente', async ({ page }) => {
   await setup(page);
   await page.route('**/api/finance/provider-relationship**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({

@@ -2084,3 +2084,12 @@ grants. Evidência e limites: [Mission F](evidence/codex-backend-platform-2026-1
 Contrato aditivo: [Lifecycle API](FINANCIAL_CONTRACT_LIFECYCLE_API.md).
 Não promove M3: identidade canônica hospedada, recovery e provas de Auth/Storage
 continuam dependentes de acesso e autorização específicos.
+
+### Arandu 11 — ativação de produto, 19/11/2026 (evidência local; M1/M2, não M3)
+
+| Capability | Mudança | Maturidade | Evidência |
+| --- | --- | --- | --- |
+| Primeiro valor por objetivo | `lib/finance/first-value.mjs` + painel no Início; estado só do servidor, `unknown` nunca concluído | M1 → M2 após CI no HEAD | `scripts/test-finance-first-value.mjs`; E2E `finance-contracts`/`finance-procurement` |
+| Relationship 360 → renegociação | Ação contextual na gaveta da instituição via caminho único `shared/renegotiation.js` | M1 → M2 após CI | E2E `finance-relationship-center`; leitura real em `demo-baseline` |
+| Site institucional na Demo | `financial-public-demo.js` (runtime via `/api/health`) | M1 → M2 após CI; hospedado não verificado | E2E `demo-persona-entry` |
+| Prévia de convite no portal | **Não implementada** (exige migration; ver `docs/ARANDU_11_PRODUCT_ACTIVATION.md` §4) | — | — |

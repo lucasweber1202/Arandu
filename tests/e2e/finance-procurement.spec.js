@@ -667,7 +667,7 @@ test('primeiros passos levam a registrar um contrato existente, com o formulári
   await mockSession(page, { data });
   await page.goto('/finance/dashboard.html');
   const steps = page.locator('#buyer-onboarding');
-  await steps.getByRole('link', { name: 'Registre um contrato que já existe' }).click();
+  await steps.getByRole('link', { name: 'Registre o contrato vigente' }).click();
   await page.waitForURL(/\/finance\/contracts\.html$/);
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.getByRole('dialog')).toContainText(/contrato/i);
