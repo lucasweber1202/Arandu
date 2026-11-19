@@ -113,6 +113,17 @@ assert.equal(res.payload.page.has_more, true);
 assert.equal(res.headers['X-Correlation-Id'], 'erp-run-0001');
 assert.deepEqual(seen[0], ['fin_api_list_rfqs', { p_key_hash: issued.hash, p_limit: 2, p_after_created: null, p_after_id: null, p_status: 'collecting', p_entity: null, p_updated_since: null }]);
 assert.ok(!JSON.stringify(seen).includes(issued.token), 'token não sai da borda');
+const firstPage = res;
+// Hospedado: a Vercel acrescenta as capturas do rewrite (/api/:aranduScope/:aranduRest+).
+// Antes da correção isto respondia 400 invalid_query "Parâmetro não suportado: aranduScope".
+seen = [];
+res = await call('GET', 'rfqs?limit=2&status=collecting&aranduScope=v1&aranduRest=rfqs', { headers: AUTH, rpc: recorder(() => rows) });
+assert.equal(res.statusCode, 200, JSON.stringify(res.payload));
+assert.deepEqual(seen[0][1], { p_key_hash: issued.hash, p_limit: 2, p_after_created: null, p_after_id: null, p_status: 'collecting', p_entity: null, p_updated_since: null });
+res = await call('GET', 'rfqs?aranduScope=v1&aranduRest=rfqs&organization_id=x', { headers: AUTH, rpc: recorder(() => rows) });
+assert.equal(res.statusCode, 400, 'parâmetro desconhecido continua recusado mesmo junto das capturas');
+assert.equal(res.payload.error.code, 'invalid_query');
+res = firstPage;
 seen = [];
 await call('GET', `rfqs?limit=2&cursor=${res.payload.page.next_cursor}`, { headers: AUTH, rpc: recorder(() => []) });
 assert.equal(seen[0][1].p_after_id, 'r2');

@@ -6,6 +6,7 @@ import { handleFinance } from '../lib/api/domains/finance.mjs';
 import { handleFinanceJobs } from '../lib/api/domains/finance-jobs.mjs';
 import { handlePublicApi } from '../lib/api/domains/public-api.mjs';
 import { reportError } from '../lib/observability.mjs';
+import { stripRewriteQuery } from '../lib/api/rewrite-metadata.mjs';
 import { crossOriginRejection } from '../lib/http-security.mjs';
 import { clientAddress } from '../lib/client-address.mjs';
 import { restrictedDeployment, routeAllowed, rejectClosedRoute } from '../lib/deployment-surface.mjs';
@@ -132,6 +133,8 @@ export default async function handler(req, res) {
   const requestId = safeRequestId(req.headers?.['x-request-id']);
   req.aranduRequestId = requestId;
   res.setHeader('X-Request-ID', requestId);
+  // Uma vez, para todos os domínios (finance, v1, SSO, jobs): só as capturas reservadas saem.
+  req.url = stripRewriteQuery(req.url);
   try {
     enforceSameOrigin(req);
     const route = routeFrom(req);
