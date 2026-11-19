@@ -1,0 +1,167 @@
+name: Arandu Production — Manual Release (guarded)
+
+# No push/pull_request/schedule: production only moves after explicit human action.
+# Demo is published separately from main through the arandu-demo Vercel project.
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: plan (sem escrita) ou stage (build de produção SEM domínio)
+        required: true
+        type: choice
+        options:
+          - plan
+          - stage
+        default: plan
+      release_sha:
+        description: SHA completo da main, revisado e aprovado
+        required: true
+        type: string
+      confirmation:
+        description: Para stage, digite ARANDU-PRODUCTION-STAGE; plan pode ficar vazio
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: arandu-production-manual-release
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: Plano e gates (somente leitura)
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    outputs:
+      stage_authorized: ${{ steps.gate.outputs.stage_authorized }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+      - name: Identidade, CI e topologia de produção
+        id: gate
+        env:
+          OPERATION: ${{ inputs.operation }}
+          REVIEWED_SHA: ${{ inputs.release_sha }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { appendFileSync } from 'node:fs';
+          import { ACTIVE_SUPABASE_ASSIGNMENTS, permanentSupabaseAssignmentProblem } from './lib/deployment-topology.mjs';
+
+          const { OPERATION: operation, REVIEWED_SHA: sha, CONFIRMATION: confirmation } = process.env;
+          const expected = process.env.GITHUB_SHA;
+          const repository = process.env.GITHUB_REPOSITORY;
+          if (!['plan','stage'].includes(operation)) throw new Error('Operação desconhecida');
+          if (!/^[a-f0-9]{40}$/.test(sha || '') || sha !== expected) {
+            throw new Error('SHA revisado precisa ser o HEAD exato de main para esta execução');
+          }
+          const assignments = ACTIVE_SUPABASE_ASSIGNMENTS.production;
+          const prod = Array.isArray(assignments) && assignments.length === 1 ? assignments[0] : null;
+          const topologyProblem = permanentSupabaseAssignmentProblem('production', prod);
+          const overlap = prod && ['demo', 'legacy', 'pilot'].some((slot) => ACTIVE_SUPABASE_ASSIGNMENTS[slot]?.includes(prod));
+          let ciOk = false;
+          let ciReason = '';
+          try {
+            const api = 'https://api.github.com/repos/' + repository + '/actions/runs?head_sha=' + sha + '&event=push&per_page=50';
+            const response = await fetch(api, {
+              headers: { Authorization: 'Bearer ' + process.env.GH_TOKEN, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
+              signal: AbortSignal.timeout(12000)
+            });
+            if (!response.ok) throw new Error('GitHub Actions HTTP ' + response.status);
+            const data = await response.json();
+            ciOk = data.workflow_runs?.some((run) =>
+              run.name === 'Arandu CI' && run.head_sha === sha && run.head_branch === 'main' && run.conclusion === 'success') === true;
+            if (!ciOk) ciReason = 'CI completo da main ainda não aprovado neste SHA';
+          } catch (error) {
+            ciReason = 'Não foi possível comprovar CI: ' + error.message;
+          }
+          const ready = ciOk && !topologyProblem && !overlap;
+          const summary = [
+            '## Arandu — plano de release manual',
+            '',
+            '- SHA revisado: `' + sha + '`',
+            '- Operação solicitada: `' + operation + '`',
+            '- CI na main: ' + (ciOk ? 'PASS' : 'NO-GO: ' + ciReason),
+            '- Banco de production atribuído: ' + (prod && !overlap ? 'identidade única em código' : 'NO-GO'),
+            '- Topologia: ' + (topologyProblem || (overlap ? 'identidade partilhada com ambiente protegido' : 'OK')),
+            '- Publicação de domínio nesta execução: NÃO',
+            '- DDL / seed / limpeza nesta execução: NÃO',
+            '',
+            ready ? 'Preflight de código: GO para análise operacional (não é autorização de publicação).' : 'Preflight de código: NO-GO',
+          ].join('\n');
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary + '\n');
+          console.log('PRODUCTION_RELEASE_PLAN=' + (ready ? 'GO' : 'NO-GO') + ' ci=' + ciOk);
+          if (operation === 'stage') {
+            if (confirmation !== 'ARANDU-PRODUCTION-STAGE') throw new Error('Confirmação de stage ausente/incorreta');
+            if (!ready) throw new Error('Release bloqueado: corrigir os gates antes de stage');
+            appendFileSync(process.env.GITHUB_OUTPUT, 'stage_authorized=true\n');
+          } else {
+            appendFileSync(process.env.GITHUB_OUTPUT, 'stage_authorized=false\n');
+          }
+          NODE
+
+  stage:
+    name: Preparar artefato sem publicar domínio
+    needs: plan
+    if: needs.plan.outputs.stage_authorized == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    # Configure required reviewers and branch restriction main in this environment
+    # before the first stage; a newly auto-created environment is NOT an approval.
+    environment: production
+    env:
+      VERCEL_ORG_ID: team_BBpDcLVx5izJjXz5qBEq2cRy
+      VERCEL_PROJECT_ID: prj_lW4anlfqzftRUF6vaIuN29MBQuGl
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+          cache: npm
+      - name: Credenciais CI autorizadas
+        run: |
+          test -n "$VERCEL_TOKEN" || { echo 'VERCEL_TOKEN ausente em GitHub Environment production'; exit 1; }
+          test "$VERCEL_PROJECT_ID" = 'prj_lW4anlfqzftRUF6vaIuN29MBQuGl'
+          test "$VERCEL_ORG_ID" = 'team_BBpDcLVx5izJjXz5qBEq2cRy'
+      - name: Instalar dependências do commit revisado
+        run: npm ci --include=optional
+      - name: Gates explícitos de release (evidências, segurança, readiness)
+        run: npm run release:check
+      - name: Instalar Vercel CLI fixado
+        run: npm install --global vercel@39.1.1
+      - name: Carregar configuração exclusiva de Production
+        run: vercel pull --yes --environment=production
+      - name: Compilar artefato com fronteiras do ambiente de Production
+        run: vercel build --prod
+      - name: Stage - deploy imutável sem associar domínio
+        id: deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          deployment_url="$(vercel deploy --prebuilt --prod --skip-domain)"
+          DEPLOYMENT_URL="$deployment_url" node --input-type=module <<'NODE'
+          import { appendFileSync } from 'node:fs';
+          const raw = process.env.DEPLOYMENT_URL?.trim();
+          const url = new URL(raw);
+          if (url.protocol !== 'https:' || url.origin !== raw || !url.hostname.endsWith('.vercel.app')) {
+            throw new Error('Vercel retornou endereço de deployment inesperado');
+          }
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+            '\n## Stage produzido (sem promoção)\n\n- Artefato: ' + url.origin +
+            '\n- Commit: `' + process.env.GITHUB_SHA + '`' +
+            '\n- Projeto: `arandu` (production)\n- Domínios públicos: NÃO associados\n' +
+            '- Próximo passo: verificar a URL imutável e solicitar autorização SEPARADA de promoção na Vercel.\n');
+          NODE
