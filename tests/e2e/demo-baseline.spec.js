@@ -111,6 +111,23 @@ test('CFO: aprovação pendente chega a ela, com contexto', async ({ page }) => 
   expect(problems, problems.join('\n')).toEqual([]);
 });
 
+// Relationship 360 no backend real: o contrato de crédito da Atlas está na janela
+// de renovação do dataset e a gestora vê a ação contextual (o leitor sem ação está
+// coberto no E2E com API simulada). Só leitura: nenhum clique em "Iniciar/Retomar",
+// para não alterar o baseline compartilhado; um único login, para não pressionar a cota.
+test('relacionamento com a Atlas: prazo do contrato traz a renegociação para a gestora', async ({ page }) => {
+  const problems = watch(page);
+  await login(page, 'juliana');
+  // Com solicitações no dataset, os primeiros passos não aparecem no Início.
+  await expect(page.locator('#buyer-onboarding')).toHaveCount(0);
+  await page.goto('/finance/providers.html');
+  await page.getByRole('button', { name: 'Relacionamento com Atlas Bank' }).first().click();
+  const attention = page.getByRole('dialog', { name: 'Atlas Bank' }).locator('.rel-attention');
+  await expect(attention.locator('.milestone-row').first()).toBeVisible();
+  await expect(attention.getByRole('button', { name: /(Iniciar|Retomar) renegociação/ })).toHaveCount(1);
+  expect(problems, problems.join('\n')).toEqual([]);
+});
+
 test('provedor: entra pelo login comum e cai no próprio portal, sem ver concorrentes', async ({ page }) => {
   const problems = watch(page);
   await login(page, 'eduardo');
