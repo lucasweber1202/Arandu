@@ -229,7 +229,9 @@ jobs:
   demo-hosted-smoke:
     name: Demo pública / smoke somente leitura
     needs: [database, deploy-boundaries, validate, presentation]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.database.result == 'success' && needs.deploy-boundaries.result == 'success' && needs.validate.result == 'success' && needs.presentation.result == 'success'
+    # Os gates têm ancestrais pulados por classificação de risco; status explícito evita o skip implícito do GitHub.
+    # !cancelled() preserva cancelamento e só permite smoke quando TODOS os quatro gates concluírem em success.
+    if: ${{ !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.database.result == 'success' && needs.deploy-boundaries.result == 'success' && needs.validate.result == 'success' && needs.presentation.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
