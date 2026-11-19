@@ -146,7 +146,7 @@ jobs:
         run: vercel pull --yes --environment=production
       - name: Compilar artefato com fronteiras do ambiente de Production
         run: vercel build --prod
-      - name: Stage: deploy imutável sem associar domínio
+      - name: Stage - deploy imutável sem associar domínio
         id: deploy
         shell: bash
         run: |
