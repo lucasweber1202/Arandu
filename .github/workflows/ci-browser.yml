@@ -63,7 +63,9 @@ jobs:
         timeout-minutes: 25
         env:
           DEBIAN_FRONTEND: noninteractive
-        run: npx playwright install-deps $BROWSER_ENGINES
+        run: |
+          sudo "$(command -v node)" scripts/ci/apt-install.mjs --update-only
+          npx playwright install-deps $BROWSER_ENGINES
 
       - name: Verify and install every engine required by this group
         timeout-minutes: 10

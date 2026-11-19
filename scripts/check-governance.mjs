@@ -122,7 +122,7 @@ if (exists('.github/workflows/ci.yml')) {
     }
     const steps = section.split(/      - name:/).slice(1);
     const binarySteps = steps.filter((step) => (job==='presentation'?/run: npx playwright install (?:--with-deps )?chromium firefox webkit/:/run: npx playwright install \$BROWSER_ENGINES/).test(step));
-    const depsSteps = steps.filter((step) => (job==='presentation'?/run: npx playwright install(?:-deps| --with-deps) chromium firefox webkit/:/run: npx playwright install-deps \$BROWSER_ENGINES/).test(step));
+    const depsSteps = steps.filter((step) => (job==='presentation'?/(?:run: |run: \|\n(?:\s+.*\n)*?\s+)npx playwright install(?:-deps| --with-deps) chromium firefox webkit/:/(?:run: |run: \|\n(?:\s+.*\n)*?\s+)npx playwright install-deps \$BROWSER_ENGINES/).test(step));
     if (!binarySteps.length || !depsSteps.length) {
       problems.push(`.github/workflows/ci.yml: ${job} precisa instalar dependências e todos os motores exigidos.`);
     }

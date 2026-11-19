@@ -16,6 +16,7 @@ const assessment = assessDemoRehearsal(process.env);
 const phases = [
   ['Node.js runtime', 'NODE', '24 (workflow)'],
   ['Identidade do commit executado', 'TESTED_COMMIT', assessment.testedSha || 'NÃO IDENTIFICADO'],
+  ['Pré-requisitos fixados (age por SHA-256, psql)', 'PREREQUISITES', process.env.PREREQUISITES === 'failure' ? 'ver CI_FAILURE_CLASS no log (20 dependência externa, 21 segurança, 22 instalação, 23 capacidade)' : ''],
   ['Preflight de memória, disco e ferramentas', 'PREFLIGHT', last(read('preflight.txt'), /memória disponível.*/)],
   ['Bloqueio de projetos Supabase hospedados conhecidos', 'BLOCK_HOSTED', 'refs conhecidos bloqueados no runner'],
   ['Instalação pelo lockfile', 'INSTALL', ''],

@@ -17,12 +17,17 @@ Referências: logs completos dos jobs validate 112956438134 e presentation
 
 ## Preparação corrigida
 
-configure-ci-apt.mjs troca somente a URL azure.archive.ubuntu.com/ubuntu por
-https://archive.ubuntu.com/ubuntu nas sources do runner Ubuntu 24.04 x64.
-Também substitui mirror+file:/etc/apt/apt-mirrors.txt, formato real do runner,
-que prioriza Azure e depois os arquivos Ubuntu. Outros mirrorlists não mudam.
-Mantém suites/components/Signed-By e verificação de assinatura; não adiciona
-repositórios, trusted=yes ou downloads externos. A troca é idempotente.
+configure-ci-apt.mjs (revisado em 19/11/2026, run 44524490289): o runner ubuntu-24.04 passou a
+rodar também em AWS (us-east-1), onde archive.ubuntu.com/security.ubuntu.com não responderam
+("Network is unreachable", "Resource temporarily unavailable"). Forçar um único host público era a
+causa. Agora todas as URIs do arquivo Ubuntu (mirror+file:/etc/apt/apt-mirrors.txt,
+azure.archive, archive, security) apontam para /etc/apt/arandu-mirrors.txt: espelhos do próprio
+runner primeiro, na ordem original, e os hosts oficiais só como fallback. Suites, components e
+Signed-By não mudam; não há trusted=yes nem repositório novo. Acquire::ForceIPv4 evita tentativas
+IPv6 inalcançáveis. scripts/ci/apt-install.mjs executa o apt com classe de falha estável
+(20 dependência externa, 21 segurança/assinatura, 22 instalação, 23 capacidade) e anotação
+::error; nenhum erro é ignorado. O ensaio da Demo não usa mais apt para o age: release oficial
+v1.3.2 com SHA-256 fixado (scripts/ci/install-age.sh); o psql já vem na imagem.
 Retries apt limitados a 3; timeouts HTTP/HTTPS 30 segundos; update Error-Mode any
 recusa índices incompletos em vez de prosseguir silenciosamente. install-deps
 continua obrigatório em cache hit/miss e tem 25 minutos, noninteractive.

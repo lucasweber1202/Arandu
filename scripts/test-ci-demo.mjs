@@ -97,9 +97,12 @@ test('preflight local falha cedo se Node não for 24 ou faltarem as ferramentas 
   assert.match(preflight, /command -v age/);
   assert.match(preflight, /command -v age-keygen/);
   assert(runner.indexOf('preflight)') < runner.indexOf('images)'), 'tool preflight deve preceder provisionamento');
-  const install = workflow.slice(workflow.indexOf('      - name: Preflight'), workflow.indexOf('      - name: Block hosted'));
+  const install = workflow.slice(workflow.indexOf('      - name: Prerequisites'), workflow.indexOf('      - name: Preflight'));
   assert.match(install, /command -v age-keygen/);
-  assert(install.indexOf('scripts/configure-ci-apt.mjs')<install.indexOf('sudo apt-get update'),'signed archive and bounded network retries must precede apt');
+  assert.match(install, /bash scripts\/ci\/install-age\.sh/, 'age vem do release fixado por SHA-256, sem apt');
+  assert.doesNotMatch(install, /apt-get/, 'nenhum apt-get cru: só o wrapper classificado');
+  assert(install.indexOf('scripts/configure-ci-apt.mjs')<install.indexOf('scripts/ci/apt-install.mjs'),'mirror list and bounded retries must precede apt');
+  assert(workflow.indexOf('- name: Prerequisites') < workflow.indexOf('- name: Preflight'), 'pré-requisitos antes do preflight');
 });
 test('workflow: limpeza e evidência sempre executam', () => {
   for (const name of ['Collect sanitized evidence', 'Final Demo rehearsal decision', 'Teardown (containers, volumes, keys)', 'Upload sanitized evidence']) {

@@ -18,13 +18,9 @@ printf '%s\n' 'deb [signed-by=/usr/share/keyrings/arandu-pgdg.asc] https://apt.p
 # Prevent an unsolicited cluster/service: tests create two private clusters.
 sudo mkdir -p /etc/postgresql-common
 printf '%s\n' 'create_main_cluster = false' | sudo tee /etc/postgresql-common/createcluster.conf >/dev/null
-sudo apt-get update
+sudo "$(command -v node)" "$(dirname "$0")/ci/apt-install.mjs" --update-only
 sudo apt-get install -y --allow-downgrades postgresql-client-17=17.11-1.pgdg24.04+2 postgresql-17=17.11-1.pgdg24.04+2
-curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
-  --connect-timeout 20 --max-time 120 --retry 5 --retry-all-errors --retry-delay 3 --retry-max-time 360 \
-  https://github.com/FiloSottile/age/releases/download/v1.3.2/age-v1.3.2-linux-amd64.tar.gz -o "$tool_dir/age.tar.gz"
-printf '%s\n' "cbe24006683f8eb669266162894b9a522a1af52f2665fbc63a4bb032ed26ac10  $tool_dir/age.tar.gz" | sha256sum --check --status
-tar -xzf "$tool_dir/age.tar.gz" -C "$tool_dir" age/age age/age-keygen
+bash "$(dirname "$0")/ci/install-age.sh" "$tool_dir"
 printf '%s\n' /usr/lib/postgresql/17/bin "$tool_dir/age" >> "$GITHUB_PATH"
 test "$(/usr/lib/postgresql/17/bin/pg_dump --version)" = 'pg_dump (PostgreSQL) 17.11 (Ubuntu 17.11-1.pgdg24.04+2)'
 test "$("$tool_dir/age/age" --version)" = v1.3.2

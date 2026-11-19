@@ -124,7 +124,7 @@ jobs:
       - name: PostgreSQL client
         run: |
           if ! command -v psql >/dev/null 2>&1; then
-            sudo apt-get update && sudo apt-get install -y postgresql-client
+            sudo "$(command -v node)" scripts/configure-ci-apt.mjs && sudo "$(command -v node)" scripts/ci/apt-install.mjs postgresql-client
           fi
           psql --version
       - name: Clean install, upgrade, rollback, RLS and transaction tests
