@@ -59,3 +59,9 @@ Remover a linha `"**": false` de `vercel.json` restaura a política anterior
 (`main` publica, `docs/**` bloqueado, demais branches com preview) e ajustar o
 teste correspondente. É uma reversão só de configuração, sem efeito em dados,
 banco ou segredos.
+
+## Production manual (19/11/2026)
+
+O texto acima rege a política compartilhada de branches no `vercel.json`, especialmente a Demo. A exceção operacional **por projeto** é o Vercel `arandu` (produção), agora configurado para ignorar builds automáticos com `commandForIgnoringBuildStep = "exit 0"` e `autoAssignCustomDomains = false`. A Demo `arandu-demo` mantém o build automático da `main`.
+
+O projeto `arandu-pilot` foi excluído; referências antigas a três projetos neste documento são históricas. Não edite o `git.deploymentEnabled.main` compartilhado para bloquear Production, porque isso bloquearia também a Demo. A publicação para clientes é manual, em dois passos (stage protegido, depois promoção com aprovação separada), conforme [PRODUCTION_MANUAL_RELEASE.md](PRODUCTION_MANUAL_RELEASE.md).
