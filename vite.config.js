@@ -34,6 +34,8 @@ export default defineConfig({
         // A demonstração não carrega analytics: nada do sandbox vira métrica real.
         // O convite também não: o token de uso único nunca pode chegar a terceiros.
         if (page !== 'provider/invite.html' && !page.startsWith('demo/')) html = html.replace('</body>', speedInsightsTag + '</body>');
+        // Site institucional: na Demo canônica, um aviso leva à escolha de persona (decidido em runtime pelo servidor).
+        if (publicPages.has(page)) html = html.replace('</body>', '<script type="module" src="/financial-public-demo.js"></script></body>');
         if (demoMode && page === 'index.html') {
           html = html.replace('<a class="button ghost" href="#fluxo">', '<a class="button ghost" href="/demo/index.html" data-demo-cta>Explorar demonstração</a><a class="button ghost" href="#fluxo">');
         }

@@ -809,8 +809,32 @@ test('primeiros passos: gestor de empresa com contrato existente vê o passo cum
   await mockSession(page);
   await page.goto('/finance/dashboard.html');
   const onboarding = page.locator('#buyer-onboarding');
-  await expect(onboarding.locator('.onboarding-step.done')).toContainText(['Cadastre os provedores com quem fala', 'Registre um contrato que já existe']);
-  await expect(onboarding.getByRole('link', { name: 'Crie a primeira solicitação' })).toHaveAttribute('href', '/finance/new-rfq.html');
+  // Objetivo sugerido pelo que já existe (contrato); estado vem só do que o servidor devolveu.
+  await expect(onboarding.getByRole('radio', { name: /Acompanhar um contrato vigente/ })).toHaveAttribute('aria-checked', 'true');
+  await expect(onboarding.locator('.onboarding-step.done')).toContainText(['Cadastre a instituição', 'Registre o contrato vigente']);
+  // Trocar de objetivo pelo teclado mostra os passos do novo objetivo e o próximo passo.
+  await onboarding.getByRole('radio', { name: /Acompanhar um contrato vigente/ }).focus();
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  await expect(onboarding.getByRole('radio', { name: /Pedir propostas comparáveis/ })).toHaveAttribute('aria-checked', 'true');
+  await expect(onboarding.getByRole('radio', { name: /Pedir propostas comparáveis/ })).toBeFocused();
+  await expect(onboarding.getByRole('link', { name: 'Crie a solicitação', exact: true })).toHaveAttribute('href', '/finance/new-rfq.html');
+  await expect(onboarding.locator('[data-step="proposals"]')).toHaveAttribute('data-state', 'todo');
+  await page.reload();
+  await expect(onboarding.getByRole('radio', { name: /Pedir propostas comparáveis/ })).toHaveAttribute('aria-checked', 'true');
+  await noHorizontalOverflow(page);
+});
+
+test('primeiro valor: lista que não veio do servidor fica "não verificado", nunca concluída', async ({ page }) => {
+  // Resposta parcial do servidor: sem as listas de instituições e contratos.
+  await mockSession(page, { providers: null, contracts: null });
+  await page.goto('/finance/dashboard.html');
+  const onboarding = page.locator('#buyer-onboarding');
+  await expect(onboarding.locator('[data-step="institution"]')).toHaveAttribute('data-state', 'unknown');
+  await expect(onboarding.locator('[data-step="contract"]')).toHaveAttribute('data-state', 'unknown');
+  await expect(onboarding.locator('.onboarding-step.done')).toHaveCount(0);
+  await expect(onboarding.getByRole('status')).toContainText('não puderam ser verificados');
+  await expect(onboarding.locator('[data-first-value-next]')).toContainText('Conferir');
 });
 
 test('contrato → implantação: a página diz de qual contrato a pessoa veio, o recorte real e devolve ao contrato', async ({ page }) => {

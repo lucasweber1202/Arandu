@@ -9,16 +9,16 @@
       "id": "buyer",
       "label": "Comprador: painel → tarefas",
       "initial": {
-        "decodedBytes": 151904,
-        "requests": 18
+        "decodedBytes": 164455,
+        "requests": 19
       },
       "cumulative": {
-        "decodedBytes": 179973,
-        "requests": 29,
-        "transferBytes": 73814,
+        "decodedBytes": 193601,
+        "requests": 30,
+        "transferBytes": 78707,
         "scriptMs": 5
       },
-      "executedBytes": 46353
+      "executedBytes": 46439
     },
     {
       "id": "institution",
@@ -123,6 +123,19 @@
         "relationship360": 237964,
         "obligations": 117628,
         "renewal": 243754
+      }
+    },
+    {
+      "date": "2026-11-19",
+      "reason": "Arandu 11: painel de primeiro valor por objetivo, carregado sob demanda so para empresa sem solicitacao (fixture do comprador)",
+      "cumulative": {
+        "buyer": 193601,
+        "institution": 140956,
+        "portfolio": 137750,
+        "contract360": 195828,
+        "relationship360": 242016,
+        "obligations": 119129,
+        "renewal": 254311
       }
     }
   ]

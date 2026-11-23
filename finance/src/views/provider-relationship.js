@@ -13,6 +13,7 @@ import { entityTree } from '../../../lib/finance/entities.mjs';
 import { loadEntities, entityName } from './entities.js';
 import { crmWorkspace } from './crm-workspace.js';
 import { relationshipTimeline } from './relationship-timeline.js';
+import { canRenegotiate, renegotiationButton } from './shared/renegotiation.js';
 
 const ISSUE_SEVERITY = { low: ['Baixa', 'neutral'], medium: ['Média', 'warning'], high: ['Alta', 'danger'] };
 const ISSUE_STATUS = { open: 'Aberta', in_progress: 'Em andamento', resolved: 'Resolvida', cancelled: 'Cancelada' };
@@ -206,7 +207,14 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
   function attentionSection(items, detail) {
     const KIND = { overdue: ['Vencido', 'danger'], soon: ['Próximo', 'warning'], open: ['Em andamento', 'accent'], missing: ['Não informado', 'neutral'] };
     const action = (item) => {
-      if (item.target.type === 'contract') return el('a', { class: 'btn btn-sm btn-secondary', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${item.target.id}`), text: 'Abrir contrato' });
+      if (item.target.type === 'contract') {
+        const open = el('a', { class: 'btn btn-sm btn-secondary', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${item.target.id}`), text: 'Abrir contrato' });
+        // Prazo de renovação no relacionamento: a renegociação começa aqui, sem perder o contexto.
+        const contract = (detail.contracts || []).find((row) => row.id === item.target.id);
+        const renegotiate = contract && ['overdue', 'soon'].includes(item.kind) && canRenegotiate(ctx, { contractId: contract.id, category: contract.product, contractStatus: contract.status })
+          ? renegotiationButton(ctx, { contractId: contract.id, contractStatus: contract.status, providerName: provider.name, title: contract.title || provider.name, from: 'relacionamento' }) : null;
+        return renegotiate ? el('div', { class: 'row-actions' }, [open, renegotiate]) : open;
+      }
       if (item.target.type === 'rfq') return el('a', { class: 'btn btn-sm btn-secondary', href: ctx.href(`/finance/rfq.html?id=${item.target.id}`), text: 'Abrir negociação' });
       if (item.target.type === 'issue' && write) { const issue = detail.issues.find((row) => row.id === item.target.id); return button('Resolver', { size: 'sm', onClick: () => resolveIssue(issue) }); }
       if (item.target.type === 'task') return el('a', { class: 'btn btn-sm btn-secondary', href: ctx.href(`/finance/tasks.html#task-${item.target.id}`), text: 'Abrir tarefa' });

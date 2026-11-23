@@ -273,3 +273,43 @@ test('roteiro guiado só usa personas e destinos do produto', () => {
     expect(step.text).not.toMatch(/melhor|recomend|ranking|score/i);
   }
 });
+
+// ------------------------------------------------------------------------
+// Site institucional na Demo canônica: o visitante sabe que está numa
+// demonstração e chega à escolha de persona; em Produção nada muda.
+const health = (environment, datasource = 'supabase') => (r) => r.fulfill({ contentType: 'application/json',
+  body: JSON.stringify({ ok: true, status: 'alive', release: { environment, datasource, mode: environment || 'official' } }) });
+
+for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+  test(`site institucional na Demo (${viewport.width}px): aviso, entrada por persona e portal da instituição pela demonstração`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await page.route('**/api/health', health('demo'));
+    await page.goto('/');
+    const banner = page.getByRole('note').filter({ hasText: 'Você está na demonstração do Arandu' });
+    await expect(banner).toBeVisible();
+    await expect(banner.getByRole('link', { name: 'Escolher persona e entrar' })).toHaveAttribute('href', '/login.html#demonstracao');
+    if (viewport.width > 760) await expect(page.locator('.nav-cta')).toHaveText('Entrar na demonstração');
+    await expect(page.locator('a[href="/login.html"], a[href="/provider/index.html"]')).toHaveCount(0);
+    await expect(page.locator('#acesso h2')).toHaveText('Explore o ciclo completo como empresa ou instituição.');
+    await expect(page.locator('#acesso')).not.toContainText('piloto');
+    await expect(page.locator('.hero .actions a').first()).toHaveText('Entrar na demonstração');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Tab');
+    await page.route('**/api/auth/demo-personas', (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: true, personas: SERVER_PERSONAS }) }));
+    await banner.getByRole('link', { name: 'Escolher persona e entrar' }).click();
+    await expect(page).toHaveURL(/\/login\.html#demonstracao$/);
+    await expect(page.getByRole('region', { name: 'Conheça o Arandu por dentro' })).toBeVisible();
+  });
+}
+
+test('site institucional fora da Demo (Produção, sandbox ou API indisponível) continua com o login corporativo', async ({ page }) => {
+  for (const reply of [health(null, 'supabase'), health('demo', 'synthetic-fixtures'), (r) => r.fulfill({ status: 503, body: '{}' }), (r) => r.abort('failed')]) {
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+    await page.route('**/api/health', reply);
+    await page.goto('/produto.html');
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('#demo-site-banner')).toHaveCount(0);
+    await expect(page.locator('.nav-cta')).toHaveAttribute('href', '/login.html');
+  }
+});
