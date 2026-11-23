@@ -54,7 +54,7 @@ function opportunityRow(ctx, row) {
     ]),
     el('div', { class: 'opportunity-side' }, [
       pill(state, { size: 'sm' }),
-      OPEN.includes(row.rfq_status) && row.response_deadline ? el('span', { class: `opportunity-deadline${days !== null && days <= 2 ? ' urgent' : ''}` }, [icon('clock', { size: 12 }), textSpan(`Prazo ${relativeDays(row.response_deadline)}`)]) : null,
+      OPEN.includes(row.rfq_status) && row.response_deadline ? el('span', { class: `opportunity-deadline${days !== null && days >= 0 && days <= 2 ? ' urgent' : ''}` }, [icon('clock', { size: 12 }), textSpan(days !== null && days < 0 ? `Prazo informado passou ${relativeDays(row.response_deadline)}` : `Prazo ${relativeDays(row.response_deadline)}`)]) : null,
       el('span', { class: 'opportunity-cta', 'aria-hidden': 'true' }, [textSpan(cta), icon('chevronRight', { size: 14 })])
     ])
   ]);
@@ -116,8 +116,11 @@ export async function providerHome(ctx) {
   const truncated = coverage?.complete === false && rows.length >= (Number(coverage.limit) || 200);
   if (truncated) root.append(el('p', { class: 'muted', role: 'note' }, [textSpan('Resumo de até 200 oportunidades. '), linkButton('Consultar todas as páginas', ctx.href('/provider/rfqs.html'))]));
 
+  // Prazo informado que já passou não é o mais urgente: vai depois dos que
+  // ainda estão no prazo (o servidor decide se ainda aceita a resposta).
+  const lapsed = (row) => daysUntil(row.response_deadline) !== null && daysUntil(row.response_deadline) < 0;
   const todo = rows.filter((row) => ['todo', 'outdated'].includes(assignmentState(row).key))
-    .sort((a, b) => String(a.response_deadline || '9999').localeCompare(String(b.response_deadline || '9999')));
+    .sort((a, b) => Number(lapsed(a)) - Number(lapsed(b)) || String(a.response_deadline || '9999').localeCompare(String(b.response_deadline || '9999')));
   let hero;
   // O que vence primeiro manda: um rascunho que encerra em 3 dias vem antes de
   // um convite que encerra em 6.
@@ -133,7 +136,7 @@ export async function providerHome(ctx) {
     const state = assignmentState(next);
     hero = { title: state.key === 'outdated' ? `Revise sua proposta: ${next.title}` : `Responda: ${next.title}`,
       text: state.key === 'outdated' ? `A empresa publicou a revisão ${next.rfq_revision}. Sua proposta responde à revisão ${next.submitted_rfq_revision}.`
-        : [next.buyer_name, `${next.buyer_name ? 'prazo' : 'Prazo'} ${relativeDays(next.response_deadline) || 'não definido'}`, next.has_draft ? 'rascunho salvo' : null].filter(Boolean).join(' · '),
+        : [next.buyer_name, lapsed(next) ? `o prazo informado (${formatDate(next.response_deadline)}) já passou; a coleta continua aberta e o envio só vale se o servidor aceitar` : `${next.buyer_name ? 'prazo' : 'Prazo'} ${relativeDays(next.response_deadline) || 'não definido'}`, next.has_draft ? 'rascunho salvo' : null].filter(Boolean).join(' · '),
       action: linkButton(state.key === 'outdated' ? 'Revisar proposta' : next.has_draft ? 'Continuar resposta' : 'Responder agora', proposalHref(ctx, next), { variant: 'primary', iconName: 'arrowRight' }) };
   } else if (rows.some((row) => OPEN.includes(row.rfq_status) && proposalPending(row).expiring)) {
     const next = rows.filter((row) => OPEN.includes(row.rfq_status) && proposalPending(row).expiring).sort((a, b) => String(a.terms?.valid_until).localeCompare(String(b.terms?.valid_until)))[0];

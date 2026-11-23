@@ -11,7 +11,8 @@ export async function providers(ctx) {
   // Memória de relacionamento (contatos, issues, avaliações da empresa, mapa).
   const entities = await loadEntities(ctx);
   const relationshipEnabled = entities.available;
-  await need('center', 'contractCenter', ...(relationshipEnabled ? ['relationship'] : []));
+  // Só o botão de registro é usado aqui: o Contract 360 inteiro não entra na rota.
+  const [{ importContractButton }] = await Promise.all([import('../contract-center/import-button.js'), need('center', ...(relationshipEnabled ? ['relationship'] : []))]);
   const manage = ctx.can('create_rfq');
   const add = manage ? button('Cadastrar instituição', { variant: 'primary', iconName: 'plus', attrs: { 'data-intent': 'cadastrar-instituicao' }, onClick: () => providerDrawer(ctx) }) : null;
   // Consultas guiadas (sem IA) e catálogo: carregados só ao abrir.
@@ -78,7 +79,7 @@ export async function providers(ctx) {
   draw();
   const openRelationship = relationshipEnabled ? (provider) => { const url = new URL(location.href); url.searchParams.set('provider_id', provider.id); history.replaceState(null, '', url.pathname + url.search + url.hash); mods.relationship.openProviderRelationship(ctx, provider); } : null;
   const center = mods.center.relationshipWorkQueue(ctx, { entities, onOpenProvider: openRelationship,
-    importButton: manage ? (providerId) => mods.contractCenter.importContractButton(ctx, entities, { label: 'Registrar contrato existente', size: 'sm', providerId }) : null });
+    importButton: manage ? (providerId) => importContractButton(ctx, entities, { label: 'Registrar contrato existente', size: 'sm', providerId }) : null });
   const agenda = relationshipEnabled ? (await import('../crm/organization-panel.js')).crmOrganizationPanel(ctx, { providers: rows, contracts: ctx.data.contracts || [], onOpenProvider: openRelationship }) : null;
   return el('div', { class: 'list-page' }, [
     center,

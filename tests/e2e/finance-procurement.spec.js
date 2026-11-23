@@ -774,9 +774,12 @@ for (const [status, warned] of [[503, true], [200, false]]) {
     await page.route('**/api/auth/logout', (route) => route.fulfill({ status, contentType: 'application/json',
       body: JSON.stringify(status === 200 ? { ok: true, authenticated: false } : { ok: false, code: 'auth_logout_unconfirmed', error: 'A sessão local foi encerrada, mas não foi possível confirmar o encerramento das sessões no serviço de contas.' }) }));
     await page.goto('/finance/dashboard.html');
+    // 11.3: dados da aba ligados à conta não sobrevivem à saída, confirmada ou não.
+    await page.evaluate(() => { sessionStorage.setItem('arandu.pending-invite', 'a'.repeat(64)); sessionStorage.setItem('arandu-finance-org', 'org-x'); });
     await page.getByRole('button', { name: /^Conta de / }).click();
     await page.getByRole('button', { name: 'Sair' }).click();
     await page.waitForURL(/\/login\.html/);
+    expect(await page.evaluate(() => [sessionStorage.getItem('arandu.pending-invite'), sessionStorage.getItem('arandu-finance-org')])).toEqual([null, null]);
     if (warned) await expect(page.getByRole('alert')).toContainText('Não foi possível confirmar o encerramento da sua sessão em outros dispositivos');
     else await expect(page.locator('#logout-unconfirmed')).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
@@ -1928,4 +1931,16 @@ test('estúdio: duplicar cenário copia pesos sem resultado e "Recalcular" atual
   expect(calls).toBe(1);
   await expect(studio.getByRole('button', { name: /Recalcular .* cenário/ })).toBeHidden();
   await expect(studio).not.toContainText(/recomend|melhor proposta/i);
+});
+
+// Arandu 11.3 — proposta retirada não conta como "respondeu" no cartão de convites. API SIMULADA.
+test('11.3 convites da RFQ: proposta retirada aparece como retirada e não entra em "responderam"', async ({ page }) => {
+  const base = overview().rfqs[0];
+  const proposals = [base.proposals[0], { ...base.proposals[1], status: 'withdrawn' }];
+  await mockSession(page, { data: overview({ rfqs: [{ ...base, proposals, invites: [{ provider_id: 'x1', status: 'accepted', provider_name: 'Banco Um' }, { provider_id: 'x2', status: 'accepted', provider_name: 'Banco Dois' }] }] }) });
+  await page.goto(`/finance/rfq.html?id=${RFQ}`);
+  const card = page.locator('#convites');
+  await expect(card).toContainText('2 convidados · 1 respondeu');
+  await expect(card.locator('[data-provider="x2"]')).toContainText('Proposta retirada');
+  await expect(card.locator('[data-provider="x1"]')).toContainText('Respondeu');
 });

@@ -818,3 +818,16 @@ test('11.2 central: contrato sem aviso prévio registrado diz que a data-limite 
   await expect(item).toContainText('a data-limite para avisar a não renovação é desconhecida');
   await expect(page.locator('#relationship-center')).not.toContainText('null dias');
 });
+
+// Arandu 11.3 — link de origem vindo da API só vira âncora se for caminho interno. API SIMULADA.
+test('11.3 radar: origem do sinal com javascript: ou outro domínio não vira link', async ({ page }) => {
+  await setup(page);
+  const ctx = (href) => ({ status: 'open', deadline: null, overdue: false, provider_id: P_ATLAS, legal_entity_id: null, source_object_type: 'fee_variance', source_href: href, linked_rfq_id: null });
+  await page.route('**/api/finance/opportunities?*', (route) => route.fulfill({ json: { ok: true, next: null, summary: [], rows: new URL(route.request().url()).searchParams.get('status') === 'open'
+    ? [{ id: 'o-js', cells: ['Sinal A', 'Fato.', '—', 'Revisar', 'Aberta'], context: ctx('javascript:alert(1)') }, { id: 'o-ext', cells: ['Sinal B', 'Fato.', '—', 'Revisar', 'Aberta'], context: ctx('//evil.example/finance/x') }] : [] } }));
+  await page.goto('/finance/providers.html');
+  const center = page.locator('#relationship-center');
+  await expect(center).toContainText('Sinal A');
+  await expect(center).toContainText('Sinal B');
+  await expect(center.getByRole('link', { name: 'Origem do sinal' })).toHaveCount(0);
+});

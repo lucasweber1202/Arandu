@@ -230,16 +230,22 @@ function overviewTab(ctx, rfq, { manage, pending, approvals, decision, contract,
   const revisions = card({ title: 'Revisões publicadas', subtitle: 'Propostas ficam ligadas à revisão que o provedor viu.', id: 'revisoes', body: revisionTimeline(ctx, rfq) });
 
   const invites = rfq.invites || [];
-  const answered = new Map((rfq.proposals || []).map((proposal) => [proposal.provider_id, proposal]));
+  // Só proposta enviada (submitted/revised) é resposta: rascunho e proposta
+  // retirada não contam como "respondeu" (workflow PROPOSAL_STATES).
+  const sent = (proposal) => (proposal.status ? ['submitted', 'revised'].includes(proposal.status) : Number(proposal.version || proposal.current_version) > 0);
+  const byProvider = new Map((rfq.proposals || []).map((proposal) => [proposal.provider_id, proposal]));
+  const answered = new Map([...byProvider].filter(([, proposal]) => sent(proposal)));
   const inviteList = el('ul', { class: 'invite-list', role: 'list' });
   for (const invite of invites) {
     const proposal = answered.get(invite.provider_id);
+    const withdrawn = byProvider.get(invite.provider_id)?.status === 'withdrawn';
     const state = proposal ? { label: 'Respondeu', tone: 'success', icon: 'checkCircle' }
+      : withdrawn ? { label: 'Proposta retirada', tone: 'warning', icon: 'x' }
       : invite.status === 'accepted' ? { label: 'Preparando', tone: 'info', icon: 'edit' }
         : invite.status === 'invited' ? { label: 'Convidado', tone: 'neutral', icon: 'send' } : INVITE_CLOSED[invite.status] || { label: 'Convite encerrado', tone: 'neutral', icon: 'x' };
     const detail = proposal ? `Proposta v${proposal.version}${proposal.rfq_revision ? ` · respondeu à revisão ${proposal.rfq_revision}` : ''}`
-      : invite.status === 'accepted' ? 'Aceitou o convite' : invite.status === 'invited' ? 'Aguardando aceite' : INVITE_CLOSED[invite.status]?.detail || 'Não pode mais responder por este convite';
-    inviteList.append(el('li', { class: 'invite-row' }, [person(invite.provider_name || 'Provedor', detail), pill(state, { size: 'sm' })]));
+      : withdrawn ? 'A instituição retirou a proposta; ela não entra na comparação' : invite.status === 'accepted' ? 'Aceitou o convite' : invite.status === 'invited' ? 'Aguardando aceite' : INVITE_CLOSED[invite.status]?.detail || 'Não pode mais responder por este convite';
+    inviteList.append(el('li', { class: 'invite-row', dataset: { provider: invite.provider_id } }, [person(invite.provider_name || 'Provedor', detail), pill(state, { size: 'sm' })]));
   }
   const inviteCard = card({ title: 'Instituições convidadas', subtitle: invites.length ? `${plural(invites.length, 'convidado', 'convidados')} · ${answered.size} ${answered.size === 1 ? 'respondeu' : 'responderam'}` : 'Ninguém convidado ainda.', id: 'convites',
     body: [invites.length ? inviteList : emptyState({ title: 'Convide pelo menos três provedores', text: 'Com menos de três propostas, a comparação diz pouco.', iconName: 'users', compact: true }),

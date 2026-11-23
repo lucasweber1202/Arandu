@@ -57,11 +57,7 @@ function confirmedFactsPanel(ctx, contractId, editor) {
   return panel;
 }
 
-/** Botão + formulário de contrato existente (carteira fora de RFQ). */
-export function importContractButton(ctx, entities, { label = 'Registrar contrato existente', variant = 'secondary', providerId = null, size = null } = {}) {
-  if (!ctx.can('create_rfq')) return null;
-  return button(label, { variant, size, iconName: 'plus', attrs: { 'data-intent': 'registrar-contrato' }, onClick: () => import('./contract-center/import.js').then((m) => m.openImportContract(ctx, entities, { providerId })).catch((error) => toast(readableError(error), 'error')) });
-}
+export { importContractButton } from './contract-center/import-button.js';
 
 // Índice das seções do Contract 360. Várias seções chegam depois (trabalho,
 // próximas ações, documentos), então o índice acompanha os títulos que de fato
