@@ -84,6 +84,13 @@
       "previous": 908295,
       "reason": "Arandu 11.2 — Financial Workspace (PR #362): no chunk já existente do Painel (dashboard), lacunas de contrato vigente (fim, aviso prévio, responsável) sem presumir aviso de 0 dias, bloco 'Aguardando outras pessoas' com aprovações na vez de outro aprovador e bloco recolhido 'Objetivos' que carrega first-value sob demanda; situação 'aviso prévio não informado' na Central de Relacionamentos. +4.226 B em chunks de rota existentes; nenhum módulo novo na abertura. Nenhum hard limit alterado.",
       "journeyBaseline": "2026-11-19"
+    },
+    {
+      "date": "2026-11-23",
+      "accepted": 914711,
+      "previous": 912521,
+      "reason": "Arandu 11.3 — semântica canônica do aviso prévio em renewalStage (noticeKnown, deadline nulo) e adaptação dos consumidores (carteira, plano de renovações, radar, sinais de contexto); botão de registro de contrato extraído para chunk próprio (contract-center/import-button, 490 B) para a rota Instituições/Relationship 360 não baixar o Contract 360 (JS inicial da jornada relationship360: 243.081 → 215.967 B, −11,2%); prazo vencido no portal; proposta retirada no cartão de convites; limpeza da aba no logout; filtro de link interno. +2.190 B no agregado; nenhum hard limit alterado.",
+      "journeyBaseline": "2026-11-23"
     }
   ]
 }
