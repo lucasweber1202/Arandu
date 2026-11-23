@@ -478,3 +478,77 @@ test('recusa: convite inválido (409) explica sem revelar concorrentes e desativ
   await expect(page.locator('#invite-state')).toContainText('não pode mais ser recusado');
   await expect(page.getByRole('button', { name: 'Recusar convite' })).toBeDisabled();
 });
+
+// Retomada do convite: quem abre o link sem sessão entra e volta com o convite,
+// sem o token passar pela URL do login. Sessão simulada (teste de UI).
+test('convite aberto sem sessão: login não perde o token e ele não vai para a URL do login', async ({ page }) => {
+  const token = 'f'.repeat(64);
+  let signedIn = false, accepts = 0;
+  await mockProvider(page);
+  await page.route('**/api/finance/organizations', (route) => (signedIn
+    ? route.fulfill({ json: { ok: true, rows: [{ id: PROVIDER, kind: 'PROVIDER', legal_name: 'Banco Atlas S.A.' }] } })
+    : route.fulfill({ status: 401, json: { ok: false, error: 'Sessão ausente.' } })));
+  await page.route('**/api/finance/invites/accept', (route) => { accepts += 1; expect(route.request().postDataJSON().token).toBe(token); return route.fulfill({ json: { ok: true } }); });
+  await page.goto(`/provider/invite.html?token=${token}`);
+  await expect(page.getByText('O convite é retomado nesta aba depois do login.')).toBeVisible();
+  const login = page.getByRole('link', { name: 'Entrar', exact: true });
+  const href = await login.getAttribute('href');
+  expect(href).not.toContain(token);
+  expect(page.url()).not.toContain(token);
+  // Login concluído na mesma aba: o portal volta sem token no endereço.
+  signedIn = true;
+  await page.goto('/provider/invite.html');
+  await expect(page.locator('#invite-state')).toContainText('Retomamos o convite que você abriu antes de entrar');
+  await expect(page.getByLabel('Token do convite')).toHaveValue(token);
+  await page.getByRole('button', { name: 'Aceitar convite' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Aceitar convite' }).click();
+  await expect(page).toHaveURL(/\/provider\/rfqs\.html$/);
+  expect(accepts).toBe(1);
+  // Usado o convite, a aba não o guarda mais.
+  expect(await page.evaluate(() => sessionStorage.getItem('arandu.pending-invite'))).toBeNull();
+});
+
+test('convite: erro de formato some ao corrigir; sessão expirada guarda o convite e oferece entrar de novo', async ({ page }) => {
+  const token = '9'.repeat(64);
+  await mockProvider(page);
+  await page.route('**/api/finance/invites/accept', (route) => route.fulfill({ status: 401, json: { ok: false, error: 'Sessão expirada.' } }));
+  await page.goto('/provider/invite.html');
+  const input = page.getByLabel('Token do convite');
+  await input.fill('curto');
+  await page.getByRole('button', { name: 'Aceitar convite' }).click();
+  await expect(page.getByText('O token tem 64 caracteres (0-9, a-f).')).toBeVisible();
+  await input.fill(token);
+  await expect(page.getByText('O token tem 64 caracteres (0-9, a-f).')).toBeHidden();
+  await expect(input).not.toHaveAttribute('aria-invalid', 'true');
+  await page.getByRole('button', { name: 'Aceitar convite' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Aceitar convite' }).click();
+  await expect(page.locator('#invite-state')).toContainText('Sua sessão expirou. Nada foi registrado');
+  await expect(page.getByRole('link', { name: 'Entrar de novo e retomar este convite' })).toHaveAttribute('href', '/login.html?next=%2Fprovider%2Finvite.html');
+  expect(await page.evaluate(() => sessionStorage.getItem('arandu.pending-invite'))).toBe(token);
+});
+
+test('convite definitivamente inválido não fica guardado para a próxima visita', async ({ page }) => {
+  await mockProvider(page);
+  await page.addInitScript((value) => { if (!sessionStorage.getItem('seeded')) { sessionStorage.setItem('seeded', '1'); sessionStorage.setItem('arandu.pending-invite', value); } }, '8'.repeat(64));
+  await page.route('**/api/finance/invites/accept', (route) => route.fulfill({ status: 409, json: { ok: false, error: 'Este convite não é válido para esta conta.', code: 'invite_invalid' } }));
+  await page.goto('/provider/invite.html');
+  await expect(page.getByLabel('Token do convite')).toHaveValue('8'.repeat(64));
+  await page.getByRole('button', { name: 'Aceitar convite' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Aceitar convite' }).click();
+  await expect(page.locator('#invite-state')).toContainText('Peça um novo link à empresa');
+  expect(await page.evaluate(() => sessionStorage.getItem('arandu.pending-invite'))).toBeNull();
+});
+
+test('resumo do portal só se diz truncado quando veio cheio (limite declarado pelo servidor)', async ({ page }) => {
+  const sent = { ...ASSIGNMENT, version: 1, submitted_rfq_revision: 1, terms: { valid_until: '2099-01-01' } };
+  let rows = [sent];
+  await mockProvider(page);
+  await page.route('**/api/finance/assignments*', (route) => route.fulfill({ json: { ok: true, rows, coverage: { complete: false, limit: 200, continuation: 'assignments?paged=1' } } }));
+  await page.goto('/provider/index.html');
+  await expect(page.locator('#next-hero-title')).toHaveText('Nada pendente agora');
+  await expect(page.getByText('Resumo de até 200 oportunidades.')).toHaveCount(0);
+  rows = Array.from({ length: 200 }, (_, index) => ({ ...sent, proposal_id: `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`, rfq_id: `00000000-0000-4000-9000-${String(index).padStart(12, '0')}` }));
+  await page.reload();
+  await expect(page.getByText('Resumo de até 200 oportunidades.')).toBeVisible();
+  await expect(page.locator('#next-hero-title')).toHaveText('Nenhuma pendência nesta seleção');
+});

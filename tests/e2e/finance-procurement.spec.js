@@ -1171,6 +1171,7 @@ test('lifecycle: registro incerto preserva formulário e encontra contrato sem s
   await expect(page.locator('.lifecycle-step[aria-current=step]')).toContainText('Decisão');
   await expect(form.getByLabel('Resumo do custo')).toHaveValue(/0,8.*36 meses/);
   await form.getByLabel('Condições principais').fill('Conferido pela equipe financeira');
+  await form.getByLabel(/^Aviso prévio/).fill('60');
   await form.getByRole('button',{name:'Registrar contrato',exact:true}).click();
   await expect(form).toContainText('A resposta não confirmou o registro');
   await expect(form.getByLabel('Condições principais')).toHaveValue('Conferido pela equipe financeira');
@@ -1195,6 +1196,58 @@ test('lifecycle: RFQ oculta não abre contexto de outra organização',async({pa
   await page.goto(`/finance/rfq.html?id=${RFQ}`);
   await expect(page.getByText('Solicitação não encontrada',{exact:true})).toBeVisible();
   await expect(page.locator('#decision-form, #contract-form')).toHaveCount(0);
+});
+
+test('lifecycle: contrato da decisão não presume aviso prévio nem guarda erro já corrigido',async({page})=>{
+  const rfq={...overview().rfqs[0],status:'comparing'};
+  await mockSession(page,{data:overview({rfqs:[rfq]})});
+  const bodies=[];
+  const decision={id:'decision-now',rfq_id:RFQ,proposal_id:'p1',selected_proposal:{proposal_id:'p1',version:2,terms:{interest_rate_month:0.8,term_months:36}}};
+  await page.route('**/api/finance/decisions?*',route=>route.fulfill({json:{ok:true,rows:[{...decision,contract:null}]}}));
+  await page.route('**/api/finance/contracts',route=>{bodies.push(route.request().postDataJSON());return route.fulfill({status:201,json:{ok:true,id:'00000000-0000-4000-8000-0000000000c1'}});});
+  await page.goto(`/finance/rfq.html?id=${RFQ}#decisao`);
+  const form=page.locator('#contract-form');
+  const notice=form.getByLabel(/^Aviso prévio/);
+  await expect(notice).toHaveValue('');
+  // Fim sugerido pelo prazo declarado na proposta, em meses de calendário, com a origem dita.
+  const starts=await form.getByLabel('Início da vigência').inputValue();
+  const [y,m,d]=starts.split('-').map(Number);
+  const target=new Date(Date.UTC(y,m-1+36,1));target.setUTCDate(Math.min(d,new Date(Date.UTC(target.getUTCFullYear(),target.getUTCMonth()+1,0)).getUTCDate()));
+  await expect(form.getByLabel('Fim da vigência')).toHaveValue(target.toISOString().slice(0,10));
+  await expect(form).toContainText('Sugerido pelo prazo de 36 meses da proposta escolhida');
+  await form.getByRole('button',{name:'Registrar contrato',exact:true}).click();
+  await expect(form).toContainText('Informe o aviso prévio em dias');
+  await expect(notice).toBeFocused();
+  await notice.fill('2.5');
+  await form.getByRole('button',{name:'Registrar contrato',exact:true}).click();
+  await expect(form).toContainText('Use um número inteiro de dias');
+  expect(bodies).toHaveLength(0);
+  await notice.fill('0');
+  await page.route('**/finance/contracts.html*',route=>route.fulfill({contentType:'text/html',body:'<h1>Contratos</h1>'}));
+  await form.getByRole('button',{name:'Registrar contrato',exact:true}).click();
+  await expect(page).toHaveURL(/contracts\.html#contract-/);
+  expect(bodies).toHaveLength(1);
+  expect(bodies[0].renewal_notice_days).toBe(0);
+});
+
+test('convite sem confirmação não é reenviado às cegas: cada envio cria um convite novo',async({page})=>{
+  const rfq={...overview().rfqs[0],status:'collecting',proposals:[],invites:[]};
+  await mockSession(page,{data:overview({rfqs:[rfq],providers:[{id:'x3',name:'Banco Três',kind:'bank',status:'active'}]})});
+  let sends=0, mode='drop';
+  await page.route('**/api/finance/invites/send',route=>{sends++;return mode==='drop'?route.abort('connectionreset'):route.fulfill({status:400,json:{ok:false,error:'Instituição inválida.'}});});
+  await page.goto(`/finance/rfq.html?id=${RFQ}`);
+  const submit=page.getByRole('button',{name:'Convidar',exact:true});
+  await submit.click();
+  await expect(page.getByText(/Não foi possível confirmar o convite para Banco Três/)).toBeVisible();
+  await expect(page.getByRole('button',{name:'Atualizar e conferir'})).toBeVisible();
+  await expect(submit).toBeDisabled();
+  expect(sends).toBe(1);
+  // Recusa definitiva (4xx) não criou nada: o envio volta a ficar disponível.
+  await page.reload(); mode='reject';
+  await page.getByRole('button',{name:'Convidar',exact:true}).click();
+  await expect(page.getByText('Instituição inválida.')).toBeVisible();
+  await expect(page.getByRole('button',{name:'Convidar',exact:true})).toBeEnabled();
+  expect(sends).toBe(2);
 });
 
 test('lifecycle: fotografia ausente não preenche contrato com condições atuais',async({page})=>{
@@ -1228,6 +1281,7 @@ test('lifecycle: conferência incerta não libera reenvio nem perde dados',async
  await page.goto(`/finance/rfq.html?id=${RFQ}#decisao`);
  const form=page.locator('#contract-form');
  await form.getByLabel('Condições principais').fill('Preservar estas condições');
+ await form.getByLabel(/^Aviso prévio/).fill('30');
  await form.getByRole('button',{name:'Registrar contrato',exact:true}).click();
  await form.getByRole('button',{name:'Conferir registro do contrato'}).click();
  await expect(form).toContainText('O contrato ainda não foi localizado');
