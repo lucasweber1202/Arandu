@@ -478,7 +478,8 @@ export async function dashboard(ctx) {
     el('div', { class: 'dash-main' }, [entityCard, pipelineCard, activityCard].filter(Boolean)),
     el('div', { class: 'dash-side' }, [waitingCard, contractsCard, tasksCard].filter(Boolean))
   ]), ...[valueCard].filter(Boolean));
-  if (!rfqs.length) root.prepend(firstUse(ctx));
+  // Primeiros passos até a primeira solicitação (lista ausente = mostrar; nunca esconder por suposição).
+  if (!Array.isArray(ctx.data.rfqs) || !ctx.data.rfqs.length) root.prepend(firstUse(ctx));
   return root;
 }
 
@@ -506,14 +507,7 @@ function lazyWorkQueue(ctx) {
 }
 
 function firstUse(ctx) {
-  const steps = [
-    ['Complete os dados da empresa', 'CNPJ, setor e faixa de faturamento.', '/finance/settings.html', Boolean(ctx.data.organization?.sector)],
-    ['Cadastre os provedores com quem fala', 'Bancos, fintechs e adquirentes.', '/finance/providers.html', (ctx.data.providers || []).length >= 1],
-    // Valor antes da primeira proposta: o que a empresa já tem passa a ter prazo e próxima ação.
-    ['Registre um contrato que já existe', 'O Arandu acompanha vencimento, aviso prévio e renovação.', '/finance/contracts.html?acao=registrar-contrato', (ctx.data.contracts || []).length >= 1],
-    ['Crie a primeira solicitação', 'Crédito empresarial ou adquirência.', '/finance/new-rfq.html', false]
-  ];
-  // Os quatro passos são de gestão (o servidor recusa a quem só lê). Quem
+  // Os passos são de gestão (o servidor recusa a quem só lê). Quem
   // acompanha não recebe uma lista de ações impossíveis: lê quem faz e onde
   // acompanhar o que já existe.
   if (!ctx.can('create_rfq')) {
@@ -524,9 +518,12 @@ function firstUse(ctx) {
         el('span', {}, [el('a', { href: ctx.href(path), text: title }), el('span', { class: 'muted', text: count ? ` — ${count} na lista carregada` : ' — nenhum ainda' })])])))
     ] });
   }
-  return card({ title: 'Primeiros passos', id: 'buyer-onboarding', subtitle: 'Comece pelo que a empresa já tem e chegue à primeira concorrência.', body: el('ol', { class: 'onboarding' }, steps.map(([title, text, path, done]) =>
-    el('li', { class: `onboarding-step${done ? ' done' : ''}` }, [el('span', { class: 'onboarding-mark' }, icon(done ? 'check' : 'arrowRight', { size: 14 })),
-      el('span', {}, [el('a', { href: ctx.href(path), text: title }), el('span', { class: 'muted', text: ` — ${text}` })]), done ? el('span', { class: 'sr-only', text: '(concluído)' }) : null]))) });
+  // Painel por objetivo carregado sob demanda: só empresas sem solicitação o veem.
+  const slot = card({ title: 'Primeiros passos', id: 'buyer-onboarding', subtitle: 'Escolha o que quer conseguir primeiro; o Arandu mostra o que já está registrado e o próximo passo.',
+    body: el('p', { class: 'muted small', role: 'status', text: 'Carregando os primeiros passos…' }) });
+  import('./first-value.js').then((m) => slot.querySelector('.card-body')?.replaceChildren(m.firstValuePanel(ctx)))
+    .catch(() => slot.querySelector('.card-body')?.replaceChildren(el('p', { class: 'muted small', role: 'alert', text: 'Não foi possível carregar os primeiros passos. Use "Começar" no topo para escolher o que fazer.' })));
+  return slot;
 }
 
 export { money, person, button, greeting };

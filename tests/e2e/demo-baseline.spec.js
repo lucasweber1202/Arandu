@@ -280,7 +280,6 @@ test('responsáveis de tarefa no backend real: reatribuir, deixar sem responsáv
   const reused = await write('POST', { ...body, title: 'Outro conteúdo com a mesma chave' });
   expect(reused.status()).toBe(409);
   expect((await write('PATCH', { organization_id: org, task_id: first.row.id, status: 'cancelled' })).status()).toBe(200);
-  await admin.close();
 
   // Leitor (controller): vê quem responde, não recebe controle e o servidor recusa a atribuição.
   const viewer = await browser.newContext({ baseURL, ignoreHTTPSErrors: true });
@@ -311,4 +310,15 @@ test('responsáveis de tarefa no backend real: reatribuir, deixar sem responsáv
   expect(foreign.status()).toBeGreaterThanOrEqual(400);
   expect(JSON.stringify(await foreign.json())).not.toContain('Confirmar TAC');
   await provider.close();
+
+  // Relationship 360 (Arandu 11), por último e na sessão da Helena já aberta: nenhum
+  // login a mais (cota de entrada por rede) e só depois das escritas que dependem da
+  // cota por pessoa. O crédito da Atlas está na janela de renovação do dataset e a
+  // administradora vê a ação contextual (leitor sem ação: E2E com API simulada). Só leitura.
+  await helena.goto('/finance/providers.html');
+  await helena.getByRole('button', { name: 'Relacionamento com Atlas Bank' }).first().click();
+  const attention = helena.getByRole('dialog', { name: 'Atlas Bank' }).locator('.rel-attention');
+  await expect(attention.locator('.milestone-row').first()).toBeVisible();
+  await expect(attention.getByRole('button', { name: /(Iniciar|Retomar) renegociação/ })).toHaveCount(1);
+  await admin.close();
 });
