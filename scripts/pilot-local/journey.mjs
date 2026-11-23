@@ -658,7 +658,9 @@ await step('finance_ops: cadastra TOTP (npm run finance:operator:mfa), confirma 
   ok(await api(people.operator, 'POST', '/api/finance/ops/mfa', { step: 'verify', factor_id: challenge.factor_id, challenge_id: challenge.challenge_id, code: totpCode(enrolled.secret) }), 'verificar');
   must(jwtAal(accessToken(people.operator)) === 'aal2', 'cookie sem aal2');
   const overview = ok(await api(people.operator, 'GET', '/api/finance/ops/overview'), 'console');
-  const text = JSON.stringify(overview);
+  // Instantes ISO (generated_at, started_at…) saem antes da varredura: "…:01.523Z"
+  // contém "1.52" sem ser o valor do cliente. Valores numéricos reais continuam visíveis.
+  const text = JSON.stringify(overview).replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?/g, '<instante>');
   for (const forbidden of ['@', '3000000', '1.52', '1.39', 'Banco A', 'Banco B', 'Capital de giro', 'Parecer', 'aval', 'teto']) must(!text.includes(forbidden), `console expõe "${forbidden}"`);
   must(overview.overview.schema_version === EXPECTED_SCHEMA_VERSION, `schema ${overview.overview.schema_version}`);
   const trace = ok(await api(people.operator, 'GET', `/api/finance/ops/trace?entity_id=${ctx.rfq}`), 'rastreio');
