@@ -25,6 +25,7 @@ export const SITUATIONS = Object.freeze({
   proposals_waiting: { label: 'Propostas aguardando análise', tone: 'warning', rank: 2 },
   task: { label: 'Tarefa aberta', tone: 'neutral', rank: 4 },
   no_end: { label: 'Término não informado', tone: 'warning', rank: 5 },
+  no_notice: { label: 'Aviso prévio não informado', tone: 'warning', rank: 5 },
   // Radar: saídas do Opportunity Engine (regra da empresa + fato + fonte).
   signal_overdue: { label: 'Sinal com prazo vencido', tone: 'danger', rank: 1 },
   signal_review: { label: 'Sinal em revisão', tone: 'info', rank: 3 },
@@ -72,6 +73,15 @@ export function relationshipWorkItems({ contracts = [], rfqs = [], tasks = [], m
       who: owner(contract.owner_id), role: 'contrato', actor: 'manage', href: `/finance/contracts.html?abrir=contrato#contract-${contract.id}`, cta: 'Abrir contrato',
       source: `Contrato ${contract.origin === 'imported' ? 'registrado pela empresa (carteira existente)' : 'registrado a partir de decisão no Arandu'}${contract.current_version ? ` · termos v${contract.current_version}` : ' · termos não estruturados'}` };
     if (!contract.ends_on) { items.push({ ...base, id: `c-${contract.id}`, situation: 'no_end', title: name, detail: 'Sem data de término o Arandu não acompanha renovação nem aviso prévio.', due: null }); continue; }
+    // Sem aviso prévio registrado, renewalStage presumiria 0 dias: a data-limite
+    // é desconhecida e o item diz isso em vez de afirmar um prazo.
+    if ('renewal_notice_days' in contract && !(Number.isInteger(contract.renewal_notice_days) && contract.renewal_notice_days >= 0)) {
+      const ended = renewalStage(contract).stage === 'expired';
+      items.push({ ...base, id: `c-${contract.id}`, situation: ended ? 'expired' : 'no_notice', title: name, due: ended ? contract.ends_on : null,
+        detail: ended ? `Término em ${formatDate(contract.ends_on)}; ainda registrado como vigente. Atualize o status ou registre a renovação.`
+          : `Término em ${formatDate(contract.ends_on)}. Aviso prévio não registrado: a data-limite para avisar a não renovação é desconhecida. Confira no documento e registre um aditivo.` });
+      continue;
+    }
     const stage = renewalStage(contract);
     const notice = `aviso prévio de ${contract.renewal_notice_days} dias registrado no cadastro (confira no documento)`;
     const situation = stage.stage === 'expired' ? 'expired' : stage.stage === 'past_notice' ? 'past_notice' : contract.status === 'renewing' ? 'renewing' : stage.stage === 'window' ? 'window' : null;

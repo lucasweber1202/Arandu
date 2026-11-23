@@ -806,3 +806,15 @@ test('relacionamento declara cobertura e origem e leva ao plano de renovações 
   await expect(page.locator('#plano-renovacoes [data-contract]')).toHaveCount(2);
   await expect(page.locator('#plano-renovacoes')).not.toContainText('Nexo Payments');
 });
+
+// Arandu 11.2 — aviso prévio nulo não vira "null dias" nem prazo presumido de 0 dias. API SIMULADA.
+test('11.2 central: contrato sem aviso prévio registrado diz que a data-limite é desconhecida', async ({ page }) => {
+  const overview = structuredClone(OVERVIEW);
+  overview.contracts[0].renewal_notice_days = null;
+  await setup(page, { overview });
+  await page.goto('/finance/providers.html');
+  const item = page.locator('#relationship-center [data-situation="no_notice"]');
+  await expect(item).toContainText('Aviso prévio não informado');
+  await expect(item).toContainText('a data-limite para avisar a não renovação é desconhecida');
+  await expect(page.locator('#relationship-center')).not.toContainText('null dias');
+});
