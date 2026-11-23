@@ -61,7 +61,7 @@ export function relationshipAttention(detail, { today = Date.UTC(new Date().getU
     else {
       // Três datas distintas: término contratual, marco de aviso prévio
       // registrado no cadastro e tarefas operacionais (abaixo).
-      if (contract.renewal_notice_days === null || contract.renewal_notice_days === undefined) {
+      if (!renewalStage(contract).noticeKnown) {
         if (days <= RENEWAL_HORIZON) items.push({ kind: 'soon', rank: 1, due: days, title: `Vence em ${days} ${days === 1 ? 'dia' : 'dias'}: ${name}`, detail: `Término em ${formatDate(contract.ends_on)}. Aviso prévio não informado no registro: nenhum marco foi calculado.`, target: { type: 'contract', id: contract.id } });
         continue;
       }

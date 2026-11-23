@@ -263,11 +263,21 @@ export function renewalStage(contract) {
   const ends = parseDay(contract?.ends_on);
   if (!ends || !['active', 'renewing'].includes(contract?.status)) return { stage: 'inactive' };
   const iso = (date) => new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())).toISOString().slice(0, 10);
-  const deadline = new Date(ends.getTime() - Number(contract.renewal_notice_days || 0) * 86400000);
-  const opensAt = new Date(Math.min(deadline.getTime() - RENEWAL_WINDOW_DAYS * 86400000, ends.getTime() - 90 * 86400000));
   const today = parseDay(todayIso());
+  // Aviso prévio nulo, ausente ou inválido é desconhecido, nunca 0 dias: sem
+  // ele não há data-limite (deadline null) nem "prazo do aviso passou". A
+  // janela abre 90 dias antes do fim, só pelo término registrado. 0 explícito
+  // é válido (data-limite = fim). Mesma regra de lib/finance/contract-portfolio.mjs.
+  const notice = contract.renewal_notice_days;
+  if (!(Number.isInteger(notice) && notice >= 0)) {
+    const opensAt = new Date(ends.getTime() - 90 * 86400000);
+    const stage = today > ends ? 'expired' : today >= opensAt ? 'window' : 'upcoming';
+    return { stage, noticeKnown: false, deadline: null, opensAt: iso(opensAt), endsOn: contract.ends_on, daysToDeadline: null, daysToEnd: daysUntil(contract.ends_on) };
+  }
+  const deadline = new Date(ends.getTime() - notice * 86400000);
+  const opensAt = new Date(Math.min(deadline.getTime() - RENEWAL_WINDOW_DAYS * 86400000, ends.getTime() - 90 * 86400000));
   const stage = today > ends ? 'expired' : today > deadline ? 'past_notice' : today >= opensAt ? 'window' : 'upcoming';
-  return { stage, deadline: iso(deadline), opensAt: iso(opensAt), endsOn: contract.ends_on, daysToDeadline: daysUntil(iso(deadline)), daysToEnd: daysUntil(contract.ends_on) };
+  return { stage, noticeKnown: true, deadline: iso(deadline), opensAt: iso(opensAt), endsOn: contract.ends_on, daysToDeadline: daysUntil(iso(deadline)), daysToEnd: daysUntil(contract.ends_on) };
 }
 export function needsRenewalAttention(contract) {
   return ['window', 'past_notice'].includes(renewalStage(contract).stage);

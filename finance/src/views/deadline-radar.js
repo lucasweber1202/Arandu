@@ -59,11 +59,12 @@ export function deadlineItems({ contracts = [], rfqs = [], tasks = [] } = {}, { 
     const base = { owner: contract.owner_id || null, provider: contract.provider_name || null, providerIds: contract.provider_id ? [contract.provider_id] : [], entityId: contract.legal_entity_id || null, href, sourceId: contract.id };
     if (!contract.ends_on) { push({ ...base, kind: 'contract_end', date: null, title: `Término não informado: ${title}`, detail: 'Sem data de término o Arandu não acompanha aviso prévio nem renovação' }); continue; }
     const stage = renewalStage(contract);
-    const noticeKnown = contract.renewal_notice_days !== null && contract.renewal_notice_days !== undefined && Number(contract.renewal_notice_days) > 0;
-    if (noticeKnown && stage.deadline && stage.stage !== 'expired') {
+    const noticeKnown = stage.noticeKnown === true;
+    // 0 dias explícito: a data-limite coincide com o término e não vira um segundo marco.
+    if (noticeKnown && contract.renewal_notice_days > 0 && stage.deadline && stage.stage !== 'expired') {
       push({ ...base, kind: 'notice', date: stage.deadline, title: `Decidir renovação: ${title}`, detail: `${contract.renewal_notice_days} dias de aviso registrados no cadastro; confira no documento` });
     }
-    push({ ...base, kind: 'contract_end', date: contract.ends_on, title: `Término: ${title}`, detail: noticeKnown ? 'Término contratual' : 'Término contratual · aviso prévio não registrado' });
+    push({ ...base, kind: 'contract_end', date: contract.ends_on, title: `Término: ${title}`, detail: !noticeKnown ? 'Término contratual · aviso prévio não registrado' : contract.renewal_notice_days === 0 ? 'Término contratual · 0 dias de aviso registrados (data-limite no término)' : 'Término contratual' });
   }
   for (const rfq of rfqs) {
     if (!OPEN_RFQ.has(rfq?.status) || !rfq.response_deadline) continue;

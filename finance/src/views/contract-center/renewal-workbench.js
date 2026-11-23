@@ -33,8 +33,10 @@ export function renewalBucket(contract) {
   const stage = renewalStage(contract);
   if (stage.stage === 'expired') return 'expired';
   if (stage.stage === 'past_notice') return 'past_notice';
-  if (stage.stage === 'window') return stage.daysToDeadline <= 30 ? 'soon' : 'window';
-  if (stage.stage === 'upcoming' && stage.daysToDeadline <= HORIZON_DAYS) return 'upcoming';
+  // Sem aviso prévio registrado não há data-limite: o término decide o grupo, sem "decidir em até 30 dias".
+  const days = stage.noticeKnown ? stage.daysToDeadline : stage.daysToEnd;
+  if (stage.stage === 'window') return stage.noticeKnown && days <= 30 ? 'soon' : 'window';
+  if (stage.stage === 'upcoming' && days <= HORIZON_DAYS) return 'upcoming';
   return null;
 }
 
@@ -130,18 +132,18 @@ export function renewalWorkbench(ctx, contracts, { coverage = { state: 'complete
 
   function row(contract) {
     const stage = renewalStage(contract);
-    const deadline = contract.ends_on ? stage.deadline : null;
+    const deadline = contract.ends_on && stage.noticeKnown ? stage.deadline : null;
     const who = contract.owner_id ? memberName(contract.owner_id) || 'Responsável sem acesso de leitura' : null;
     const count = taskCount(contract);
     return el('li', { class: 'renewal-row', dataset: { contract: contract.id } }, [
       el('div', { class: 'renewal-main' }, [
         el('a', { class: 'renewal-title', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${contract.id}`), text: `${contract.provider_name || 'Instituição'} · ${contract.title || productLabel(contract.product, { short: true })}` }),
-        el('span', { class: 'row-sub', text: deadline ? `Aviso prévio até ${formatDate(deadline)} (${relativeDays(deadline)}) · fim ${formatDate(contract.ends_on)}` : 'Fim de vigência não cadastrado' }),
+        el('span', { class: 'row-sub', text: deadline ? `Aviso prévio até ${formatDate(deadline)} (${relativeDays(deadline)}) · fim ${formatDate(contract.ends_on)}` : contract.ends_on ? `Data-limite do aviso desconhecida · fim ${formatDate(contract.ends_on)} (${relativeDays(contract.ends_on)})` : 'Fim de vigência não cadastrado' }),
         el('span', { class: 'renewal-meta' }, [
           who ? textSpan(`Responsável: ${who}`) : tag('Sem responsável', 'warning'),
           tag(renewalLifecycle(contract).label, contract.status === 'renewing' ? 'accent' : 'neutral'),
           entityLabel(contract.legal_entity_id) ? textSpan(`Entidade: ${entityLabel(contract.legal_entity_id)}`) : null,
-          !contract.renewal_notice_days && contract.ends_on ? tag('Aviso prévio não cadastrado', 'warning') : null,
+          !stage.noticeKnown && contract.ends_on ? tag('Aviso prévio não cadastrado', 'warning') : null,
           count
         ].filter(Boolean))
       ]),
@@ -157,7 +159,7 @@ export function renewalWorkbench(ctx, contracts, { coverage = { state: 'complete
       const key = renewalBucket(contract);
       if (key) grouped.get(key).push(contract); else later += 1;
     }
-    for (const list of grouped.values()) list.sort((a, b) => String(renewalStage(a).deadline || '9999').localeCompare(String(renewalStage(b).deadline || '9999')));
+    for (const list of grouped.values()) list.sort((a, b) => String(renewalStage(a).deadline || a.ends_on || '9999').localeCompare(String(renewalStage(b).deadline || b.ends_on || '9999')));
     const groups = BUCKETS.filter(([key]) => grouped.get(key).length).map(([key, label, hint]) => el('section', { class: `renewal-group renewal-${key}`, id: `renewal-group-${key}`, 'aria-label': label }, [
       el('h3', { class: 'renewal-group-title' }, [textSpan(label), el('span', { class: 'chip-count', text: String(grouped.get(key).length) })]),
       mutedText(hint), el('ul', { class: 'renewal-list', role: 'list' }, grouped.get(key).map(row))]));

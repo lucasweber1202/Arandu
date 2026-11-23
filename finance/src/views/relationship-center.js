@@ -75,7 +75,7 @@ export function relationshipWorkItems({ contracts = [], rfqs = [], tasks = [], m
     if (!contract.ends_on) { items.push({ ...base, id: `c-${contract.id}`, situation: 'no_end', title: name, detail: 'Sem data de término o Arandu não acompanha renovação nem aviso prévio.', due: null }); continue; }
     // Sem aviso prévio registrado, renewalStage presumiria 0 dias: a data-limite
     // é desconhecida e o item diz isso em vez de afirmar um prazo.
-    if ('renewal_notice_days' in contract && !(Number.isInteger(contract.renewal_notice_days) && contract.renewal_notice_days >= 0)) {
+    if (!renewalStage(contract).noticeKnown) {
       const ended = renewalStage(contract).stage === 'expired';
       items.push({ ...base, id: `c-${contract.id}`, situation: ended ? 'expired' : 'no_notice', title: name, due: ended ? contract.ends_on : null,
         detail: ended ? `Término em ${formatDate(contract.ends_on)}; ainda registrado como vigente. Atualize o status ou registre a renovação.`

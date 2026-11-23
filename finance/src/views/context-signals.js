@@ -14,6 +14,7 @@ const HORIZON = 30;
 export function renewalSignal(contract) {
   const stage = renewalStage(contract);
   if (stage.stage === 'past_notice') return { source: 'contract', rank: 1, due: stage.daysToDeadline, tone: 'danger', kind: 'Renovação', title: `Aviso prévio vencido: ${contract.provider_name || contract.title || 'contrato'}`, detail: `Contrato vence ${relativeDays(contract.ends_on)} (${formatDate(contract.ends_on)}).`, href: `/finance/contracts.html?abrir=contrato#contract-${contract.id}`, cta: 'Abrir contrato' };
+  if (stage.stage === 'window' && !stage.noticeKnown) return { source: 'contract', rank: 2, due: stage.daysToEnd, tone: 'warning', kind: 'Renovação', title: `Confirmar aviso prévio: ${contract.provider_name || contract.title || 'contrato'}`, detail: `Aviso prévio não registrado; a data-limite é desconhecida · vence ${formatDate(contract.ends_on)}.`, href: `/finance/contracts.html?abrir=contrato#contract-${contract.id}`, cta: 'Abrir contrato' };
   if (stage.stage === 'window') return { source: 'contract', rank: 2, due: stage.daysToDeadline, tone: 'warning', kind: 'Renovação', title: `Decidir renovação: ${contract.provider_name || contract.title || 'contrato'}`, detail: `Aviso prévio ${relativeDays(stage.deadline)} (${formatDate(stage.deadline)}) · vence ${formatDate(contract.ends_on)}.`, href: `/finance/contracts.html?abrir=contrato#contract-${contract.id}`, cta: 'Abrir contrato' };
   return null;
 }
