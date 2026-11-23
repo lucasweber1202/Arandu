@@ -460,3 +460,56 @@ test('plano de renovações filtra por entidade jurídica e busca, e avisa cober
   await expect(plan).toContainText('Nenhum contrato vigente neste recorte.');
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
 });
+
+// Arandu 11.2 — Financial Workspace. API SIMULADA (não é validação hospedada).
+test('11.2 painel: aviso prévio não registrado não vira prazo presumido; lacunas levam ao Contract 360', async ({ page }) => {
+  const C2 = '00000000-0000-4000-8000-0000000000c2';
+  const noNotice = { ...CONTRACT, ends_on: day(40), renewal_notice_days: null };
+  const noEnd = { ...CONTRACT, id: C2, provider_name: 'Banco Sul', ends_on: null, owner_id: null };
+  await setup(page, { overview: { ...OVERVIEW, contracts: [noNotice, noEnd], tasks: [] } });
+  await page.goto('/finance/dashboard.html');
+  const attention = page.locator('#precisa-de-voce');
+  const row = attention.locator('.action-row', { hasText: 'Confirmar aviso prévio: Atlas Bank' });
+  await expect(row).toContainText('aviso prévio não registrado');
+  await expect(attention).not.toContainText('Decidir renovação: Atlas Bank');
+  await expect(row.getByRole('link', { name: /Confirmar aviso prévio/ })).toHaveAttribute('href', `/finance/contracts.html?abrir=contrato#contract-${C1}`);
+  const gap = attention.locator('.action-row', { hasText: 'Completar contrato: Banco Sul' });
+  await expect(gap).toContainText('sem fim de vigência, sem responsável');
+  await expect(gap).toContainText('Por que aqui: Falta informação para acompanhar prazos');
+  await attention.getByRole('group', { name: 'Filtrar pendências por tipo' }).getByRole('button', { name: /Dados incompletos/ }).click();
+  await expect(attention.locator('.action-row:visible')).toHaveCount(1);
+});
+
+test('11.2 painel: leitor não recebe pendências de dados incompletos', async ({ page }) => {
+  await setup(page, { role: 'viewer', overview: { ...OVERVIEW, contracts: [{ ...CONTRACT, ends_on: null }], tasks: [] } });
+  await page.goto('/finance/dashboard.html');
+  await expect(page.locator('#precisa-de-voce')).not.toContainText('Completar contrato');
+});
+
+test('11.2 painel: "Aguardando outras pessoas" diz com quem está a aprovação', async ({ page }) => {
+  const RFQ = '00000000-0000-4000-8000-0000000000e2';
+  await setup(page, { overview: { ...OVERVIEW, rfqs: [{ id: RFQ, title: 'Antecipação 2027', status: 'comparing', product: 'credit', invites: [], proposals: [], revision: 1 }] } });
+  await page.route('**/api/finance/members*', (route) => route.fulfill({ json: { ok: true, rows: [{ user_id: 'u1', role: 'admin', display_name: 'Paula Nogueira' }, { user_id: 'u2', role: 'approver', display_name: 'Carlos Lima' }], viewer_id: 'u1' } }));
+  await page.route('**/api/finance/approvals*', (route) => route.fulfill({ json: { ok: true, rows: [{ id: 'ap1', rfq_id: RFQ, status: 'pending', requested_by: 'u1', requested_at: new Date().toISOString(),
+    steps: [{ position: 1, approver_id: 'u2', status: 'pending' }] }] } }));
+  await page.goto('/finance/dashboard.html');
+  const card = page.locator('#aguardando-terceiros');
+  await expect(card).toContainText('Aguardando outras pessoas');
+  await expect(card.locator('[data-waiting="approval"]')).toContainText('com Carlos Lima');
+  await expect(card.getByRole('link', { name: 'Antecipação 2027' })).toHaveAttribute('href', '/finance/approvals.html#request-ap1');
+  await expect(page.locator('#precisa-de-voce')).not.toContainText('Aprovar: Antecipação 2027');
+});
+
+test('11.2 painel: objetivos continuam disponíveis depois da primeira solicitação, recolhidos', async ({ page }) => {
+  const RFQ = '00000000-0000-4000-8000-0000000000e3';
+  await setup(page, { overview: { ...OVERVIEW, rfqs: [{ id: RFQ, title: 'Crédito 2027', status: 'draft', product: 'credit', invites: [], proposals: [], revision: 1 }] } });
+  await page.goto('/finance/dashboard.html');
+  await expect(page.locator('#buyer-onboarding')).toHaveCount(0);
+  const goals = page.locator('#objetivos');
+  await expect(goals).not.toHaveAttribute('open', '');
+  await goals.locator('summary').click();
+  await expect(goals.getByRole('radiogroup', { name: 'O que você quer conseguir primeiro?' })).toBeVisible();
+  await page.reload();
+  await expect(page.locator('#objetivos')).toHaveAttribute('open', '');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+});

@@ -78,8 +78,23 @@ export function actionItems(ctx, approvals) {
       if (rfq.status === 'decided') items.push({ rank: 2, tone: 'accent', icon: 'briefcase', kind: 'Contrato', title: `Registrar contrato: ${rfq.title}`, detail: 'Decisão registrada. Informe vigência e aviso prévio para acompanhar a renovação.', cta: 'Registrar', href: ctx.href(`/finance/rfq.html?id=${rfq.id}#decisao`) });
       if (rfq.status === 'draft' && rfq.owner_id === viewer) items.push({ rank: 3, tone: 'neutral', icon: 'edit', kind: 'Rascunho', title: `Revisar e abrir: ${rfq.title}`, detail: 'Rascunho ainda não enviado a nenhum provedor.', cta: 'Abrir', href: ctx.href(`/finance/rfq.html?id=${rfq.id}`) });
     }
+    const incomplete = [];
     for (const contract of data.contracts || []) {
       const stage = renewalStage(contract);
+      const live = ['active', 'renewing'].includes(contract.status);
+      const gaps = live ? contractGaps(contract) : [];
+      // Sem aviso prévio registrado a data-limite é desconhecida: renewalStage
+      // usaria 0 dias e o Painel afirmaria um prazo que ninguém registrou.
+      if (gaps.includes('notice') && ['window', 'past_notice'].includes(stage.stage)) {
+        items.push({ rank: stage.daysToEnd <= 30 ? 1 : 2, due: stage.daysToEnd, tone: 'warning', icon: 'alert', kind: 'Renovação', title: `Confirmar aviso prévio: ${contract.provider_name}`,
+          detail: `${productLabel(contract.product, { short: true })} · vence ${relativeDays(contract.ends_on)} (${formatDate(contract.ends_on)}) · aviso prévio não registrado, a data-limite para avisar a não renovação é desconhecida`,
+          cta: 'Conferir', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${contract.id}`), secondary: { label: 'Plano de renovações', href: ctx.href('/finance/contracts.html?plano=renovacoes') } });
+        gaps.splice(gaps.indexOf('notice'), 1);
+        if (gaps.length) incomplete.push({ contract, gaps });
+        continue;
+      }
+      if (gaps.length) incomplete.push({ contract, gaps });
+      if (gaps.includes('notice')) continue;
       if (stage.stage === 'window' && contract.status === 'active') {
         items.push({ rank: stage.daysToDeadline <= 7 ? 1 : 2, due: stage.daysToDeadline, tone: 'warning', icon: 'repeat', kind: 'Renovação', title: `Decidir renovação: ${contract.provider_name}`,
           detail: `${productLabel(contract.product, { short: true })} · aviso prévio ${relativeDays(stage.deadline)} (${formatDate(stage.deadline)}) · vence ${formatDate(contract.ends_on)}`, cta: 'Decidir', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${contract.id}`), secondary: { label: 'Plano de renovações', href: ctx.href('/finance/contracts.html?plano=renovacoes') } });
@@ -90,6 +105,15 @@ export function actionItems(ctx, approvals) {
         items.push({ rank: 3, tone: 'accent', icon: 'repeat', kind: 'Renovação', title: `Renovação em andamento: ${contract.provider_name}`,
           detail: `Compare as propostas antes de ${formatDate(stage.deadline)}.`, cta: 'Acompanhar', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${contract.id}`) });
       }
+    }
+    // Dados que impedem acompanhar o contrato: cada um leva ao Contract 360,
+    // onde a lacuna aparece com a ação que a resolve. Muitos viram um só item.
+    if (incomplete.length > 3) {
+      items.push({ rank: 3, tone: 'neutral', icon: 'info', kind: 'Dados', title: `${plural(incomplete.length, 'contrato vigente com dados incompletos', 'contratos vigentes com dados incompletos')}`,
+        detail: 'Sem fim de vigência, aviso prévio ou responsável, a renovação não pode ser acompanhada. O plano de renovações lista cada um.', cta: 'Ver', href: ctx.href('/finance/contracts.html?plano=renovacoes') });
+    } else {
+      for (const { contract, gaps } of incomplete) items.push({ rank: 3, tone: 'neutral', icon: 'info', kind: 'Dados', title: `Completar contrato: ${contract.provider_name}`,
+        detail: `${productLabel(contract.product, { short: true })} · ${gaps.map((gap) => GAP_LABEL[gap]).join(', ')}`, cta: 'Completar', href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${contract.id}`) });
     }
   }
   const contractsById = new Map((data.contracts || []).map((row) => [row.id, row]));
@@ -125,6 +149,20 @@ export function actionItems(ctx, approvals) {
   return items.sort((a, b) => a.rank - b.rank || due(a) - due(b));
 }
 
+const GAP_LABEL = { end: 'sem fim de vigência', notice: 'sem aviso prévio registrado', owner: 'sem responsável' };
+/**
+ * Lacunas de um contrato vigente que impedem acompanhar a renovação. Campo
+ * ausente da resposta não é lacuna (a lista pode não trazê-lo); só o nulo é.
+ * Mesma regra do resumo do Contract 360 (contract-center/summary.js).
+ */
+export function contractGaps(contract) {
+  const gaps = [];
+  if (!/^\d{4}-\d{2}-\d{2}/.test(contract.ends_on || '')) gaps.push('end');
+  else if ('renewal_notice_days' in contract && !(Number.isInteger(contract.renewal_notice_days) && contract.renewal_notice_days >= 0)) gaps.push('notice');
+  if ('owner_id' in contract && !contract.owner_id) gaps.push('owner');
+  return gaps;
+}
+
 /**
  * Por que o item está nesta posição: explicação curta a partir do estado e do
  * prazo já usados na ordenação. Não é pontuação nem recomendação.
@@ -138,6 +176,7 @@ export function priorityReason(item) {
     return `Prazo em ${plural(item.due, 'dia', 'dias')}`;
   }
   if (item.kind === 'Atribuição' || item.unassigned) return 'Sem responsável definido';
+  if (item.kind === 'Dados') return 'Falta informação para acompanhar prazos';
   if (item.rank === 1) return 'Processo parado aguardando ação';
   return 'Próximo passo do processo, sem prazo registrado';
 }
@@ -228,7 +267,7 @@ function actionRow(item, ctx = null) {
 }
 
 const KIND_GROUPS = [['decide', 'Aprovações e decisões', ['Aprovação', 'Decisão', 'Avaliação']], ['deadline', 'Prazos e convites', ['Prazo', 'Convites']],
-  ['contract', 'Contratos e renovações', ['Renovação', 'Contrato']], ['task', 'Tarefas', ['Tarefa', 'Atribuição']]];
+  ['contract', 'Contratos e renovações', ['Renovação', 'Contrato']], ['task', 'Tarefas', ['Tarefa', 'Atribuição']], ['data', 'Dados incompletos', ['Dados']]];
 /** Grupo de tipo do item para o filtro do Painel (outros tipos ficam só em "Todas"). Exportada para teste. */
 export const kindGroup = (item) => KIND_GROUPS.find(([, , kinds]) => kinds.includes(item.kind))?.[0] || 'other';
 
@@ -420,13 +459,22 @@ export async function dashboard(ctx) {
   const tasksCard = card({ title: listed.size ? 'Outras tarefas' : 'Tarefas', actions: [linkButton('Radar de prazos', ctx.href('/finance/tasks.html#deadline-radar'), { variant: 'ghost', size: 'sm', iconName: 'calendar' }), linkButton('Todas', ctx.href('/finance/tasks.html'), { variant: 'ghost', size: 'sm', iconName: 'arrowRight' })],
     body: tasks.length ? taskList : emptyState({ title: listed.size ? 'Nenhuma outra tarefa aberta' : 'Nenhuma tarefa aberta', text: listed.size ? 'As tarefas com prazo próximo estão em "Precisa de você".' : undefined, compact: true, iconName: 'checkCircle' }) });
 
-  // Aguardando terceiros: convites sem resposta. Espera, não tarefa de quem lê.
-  const waiting = S ? S.waitingOnInstitutions(rfqs, todayIso()) : [];
-  const waitingCard = waiting.length ? card({ title: 'Aguardando instituições', id: 'aguardando-terceiros', subtitle: 'Solicitações em coleta com convites ainda sem resposta.',
-    body: el('ul', { class: 'mini-list', role: 'list' }, waiting.slice(0, 4).map((row) => el('li', { class: 'mini-row' }, [
-      el('span', { class: 'mini-icon tone-neutral' }, icon('send', { size: 14 })),
+  // Aguardando outras pessoas: aprovações na vez de outro aprovador e convites
+  // sem resposta. É espera, não tarefa de quem lê; cada linha diz de quem.
+  const rfqById = new Map(rfqs.map((rfq) => [rfq.id, rfq]));
+  const waitingApprovals = approvals.filter((request) => request.status === 'pending' && !request.stale && !isViewerTurn(request, ctx.viewer?.id) && rfqById.has(request.rfq_id))
+    .map((request) => {
+      const step = currentStep(request);
+      return { title: rfqById.get(request.rfq_id).title, href: `/finance/approvals.html#request-${request.id}`, icon: 'checkCircle',
+        detail: `Aprovação · ${step?.approver_id ? `com ${memberName(ctx.members, step.approver_id)}` : 'aprovador da etapa não informado'} · ${approvalSummaryLine(request)}${request.requested_at ? ` · pedida ${timeAgo(request.requested_at)}` : ''}` };
+    });
+  const waitingInstitutions = (S ? S.waitingOnInstitutions(rfqs, todayIso()) : []).map((row) => ({ ...row, icon: 'send' }));
+  const waiting = [...waitingApprovals, ...waitingInstitutions];
+  const waitingCard = waiting.length ? card({ title: 'Aguardando outras pessoas', id: 'aguardando-terceiros', subtitle: 'Aprovações na vez de outro aprovador e convites ainda sem resposta.',
+    body: [el('ul', { class: 'mini-list', role: 'list' }, waiting.slice(0, 5).map((row) => el('li', { class: 'mini-row', dataset: { waiting: row.icon === 'send' ? 'institution' : 'approval' } }, [
+      el('span', { class: 'mini-icon tone-neutral' }, icon(row.icon, { size: 14 })),
       el('div', { class: 'mini-main' }, [el('a', { class: 'mini-title stretched', href: ctx.href(row.href), text: row.title }), el('span', { class: 'mini-meta', text: row.detail })])
-    ]))) }) : null;
+    ]))), waiting.length > 5 ? mutedText(`Mais ${plural(waiting.length - 5, 'item', 'itens')} em Aprovações e Solicitações.`) : null].filter(Boolean) }) : null;
 
   // Atividade recente da organização.
   const feed = el('ol', { class: 'activity compact' }, el('li', { class: 'muted', text: 'Carregando…' }));
@@ -475,7 +523,7 @@ export async function dashboard(ctx) {
     // renovações e tarefas vêm antes dos indicadores de portfólio. No celular a
     // coluna lateral desce: a inteligência de valor fica depois dela, em largura
     // total, para não empurrar renovações e tarefas para o fim da página.
-    el('div', { class: 'dash-main' }, [entityCard, pipelineCard, activityCard].filter(Boolean)),
+    el('div', { class: 'dash-main' }, [entityCard, pipelineCard, goalsCard(ctx), activityCard].filter(Boolean)),
     el('div', { class: 'dash-side' }, [waitingCard, contractsCard, tasksCard].filter(Boolean))
   ]), ...[valueCard].filter(Boolean));
   // Primeiros passos até a primeira solicitação (lista ausente = mostrar; nunca esconder por suposição).
@@ -503,6 +551,32 @@ function lazyWorkQueue(ctx) {
   let remembered = false;
   try { remembered = localStorage.getItem(WORK_OPEN_KEY) === '1'; } catch { /* sem storage: fechada */ }
   if (remembered || location.hash === '#caixa-de-trabalho') { box.open = true; load(); }
+  return box;
+}
+
+// Primeiro valor permanente: o mesmo painel por objetivo dos primeiros passos,
+// depois da primeira solicitação, recolhido e carregado só ao abrir. Não é
+// outro onboarding: os passos e o estado vêm da mesma fonte (first-value.mjs).
+const GOALS_OPEN_KEY = 'arandu:objetivos:aberto';
+function goalsCard(ctx) {
+  if (!Array.isArray(ctx.data.rfqs) || !ctx.data.rfqs.length || !ctx.can('create_rfq')) return null;
+  const slot = el('div', { class: 'card-body' }, el('p', { class: 'muted small', text: 'Registrar outro contrato, acompanhar relacionamentos ou preparar a próxima negociação, a partir do que já está registrado.' }));
+  const box = el('details', { class: 'card goals-toggle', id: 'objetivos' }, [
+    el('summary', { class: 'card-head' }, [el('span', { class: 'card-title', text: 'Objetivos' }), el('span', { class: 'muted small', text: ' · o que já está registrado e o próximo passo' })]), slot]);
+  let loaded = false;
+  const load = () => {
+    if (loaded) return;
+    loaded = true;
+    import('./first-value.js').then((m) => slot.replaceChildren(m.firstValuePanel(ctx)))
+      .catch(() => { loaded = false; slot.replaceChildren(el('p', { class: 'muted small', role: 'alert', text: 'Não foi possível carregar os objetivos. Feche e abra de novo para tentar outra vez.' })); });
+  };
+  box.addEventListener('toggle', () => {
+    try { localStorage.setItem(GOALS_OPEN_KEY, box.open ? '1' : '0'); } catch { /* preferência opcional */ }
+    if (box.open) load();
+  });
+  let remembered = false;
+  try { remembered = localStorage.getItem(GOALS_OPEN_KEY) === '1'; } catch { /* sem storage: fechado */ }
+  if (remembered || location.hash === '#objetivos') { box.open = true; load(); }
   return box;
 }
 
