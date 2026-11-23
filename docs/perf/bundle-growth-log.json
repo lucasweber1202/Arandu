@@ -77,6 +77,13 @@
       "previous": 905785,
       "reason": "Arandu 11.1 — integridade das jornadas (PR #361), medido sobre a main integrada com #358/#359: aviso prévio obrigatório e validado no contrato da decisão, com fim sugerido em meses de calendário (contract-registration); retomada do convite após login via sessionStorage da aba, reentrada em sessão expirada e cobertura do resumo pelo limite declarado (provider); envio de convite que não reenvia às cegas após resposta incerta (invite-delivery, usado por rfq e negotiation-origin). +2.510 B em chunks de rota já existentes; nenhum módulo novo na abertura. Nenhum hard limit alterado.",
       "journeyBaseline": "2026-11-19"
+    },
+    {
+      "date": "2026-11-23",
+      "accepted": 912521,
+      "previous": 908295,
+      "reason": "Arandu 11.2 — Financial Workspace (PR #362): no chunk já existente do Painel (dashboard), lacunas de contrato vigente (fim, aviso prévio, responsável) sem presumir aviso de 0 dias, bloco 'Aguardando outras pessoas' com aprovações na vez de outro aprovador e bloco recolhido 'Objetivos' que carrega first-value sob demanda; situação 'aviso prévio não informado' na Central de Relacionamentos. +4.226 B em chunks de rota existentes; nenhum módulo novo na abertura. Nenhum hard limit alterado.",
+      "journeyBaseline": "2026-11-19"
     }
   ]
 }
