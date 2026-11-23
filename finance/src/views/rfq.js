@@ -14,7 +14,7 @@ import { coverage, keyTerms } from './shared/terms.js';
 import { lazyDocuments } from './shared/documents.js';
 import { negotiationNextStep } from '../../../lib/finance/negotiation-next-step.mjs';
 import { exportProcess } from './rfq/export.js';
-import { deliverInvite } from './rfq/invite-delivery.js';
+import { sendInvite } from './rfq/invite-delivery.js';
 
 const FLOW = [['draft', 'Rascunho'], ['open', 'Aberta'], ['collecting', 'Coleta'], ['comparing', 'Avaliação'], ['decided', 'Decisão'], ['contracted', 'Contrato']];
 
@@ -362,13 +362,8 @@ function inviteForm(ctx, rfq) {
   const form = el('form', { class: 'inline-form' }, [field({ label: 'Convidar instituição', control: select }), submit]);
   onSubmit(form, async (event) => {
     event.preventDefault();
-    submit.disabled = true;
-    try {
-      const result = await ctx.send('invites/send', { rfq_id: rfq.id, provider_id: select.value });
-      const name = select.selectedOptions[0].textContent.split(' · ')[0];
-      await deliverInvite(ctx, result, name);
-      ctx.reload();
-    } catch (error) { toastError(error); submit.disabled = false; }
+    if (submit.disabled) return;
+    await sendInvite(ctx, { rfqId: rfq.id, providerId: select.value, name: select.selectedOptions[0].textContent.split(' · ')[0], trigger: submit });
   });
   return form;
 }

@@ -74,6 +74,14 @@ export function inviteFailure(error, { retried = false } = {}) {
   return error.message;
 }
 const triedInvites = new Set();
+// Token de convite pendente durante o login: só sessionStorage desta aba
+// (mesma origem, apagado ao fechar), nunca URL, cookie ou servidor.
+const PENDING_INVITE = 'arandu.pending-invite';
+export const pendingInvite = {
+  read() { try { const value = sessionStorage.getItem(PENDING_INVITE) || ''; return /^[0-9a-f]{64}$/.test(value) ? value : ''; } catch { return ''; } },
+  keep(value) { try { sessionStorage.setItem(PENDING_INVITE, value); } catch { /* sem armazenamento: a pessoa cola o token de novo */ } },
+  clear() { try { sessionStorage.removeItem(PENDING_INVITE); } catch { /* nada a limpar */ } }
+};
 
 async function acceptInvite(ctx, invite, { button: trigger = null } = {}) {
   const ok = await confirmDialog({ title: invite.buyer_name ? `Aceitar o convite de ${invite.buyer_name}?` : 'Aceitar o convite?', confirmLabel: 'Aceitar convite', description: ACCEPT_MEANING,
@@ -102,7 +110,11 @@ export async function providerHome(ctx) {
   const invites = ctx.data.pending_invites || [];
   ctx.header({ title: 'Portal da instituição', subtitle: `${greeting(ctx.viewer?.name)} · ${ctx.organization.legal_name}` });
   const root = el('div', { class: 'provider-home' });
-  if (ctx.data.assignment_coverage?.complete === false) root.append(el('p', { class: 'muted', role: 'note' }, [textSpan('Resumo de até 200 oportunidades. '), linkButton('Consultar todas as páginas', ctx.href('/provider/rfqs.html'))]));
+  // O resumo lê até `coverage.limit` oportunidades: só está truncado quando
+  // veio cheio. Com menos linhas que o limite, a lista é a carteira inteira.
+  const coverage = ctx.data.assignment_coverage;
+  const truncated = coverage?.complete === false && rows.length >= (Number(coverage.limit) || 200);
+  if (truncated) root.append(el('p', { class: 'muted', role: 'note' }, [textSpan('Resumo de até 200 oportunidades. '), linkButton('Consultar todas as páginas', ctx.href('/provider/rfqs.html'))]));
 
   const todo = rows.filter((row) => ['todo', 'outdated'].includes(assignmentState(row).key))
     .sort((a, b) => String(a.response_deadline || '9999').localeCompare(String(b.response_deadline || '9999')));
@@ -128,7 +140,7 @@ export async function providerHome(ctx) {
     hero = { title: `Confira a validade da sua proposta: ${next.title}`, text: `${proposalPending(next).validity.text}. A coleta ainda está aberta: você pode enviar uma nova versão.`,
       action: linkButton('Ver ou revisar proposta', proposalHref(ctx, next), { variant: 'primary', iconName: 'arrowRight' }) };
   } else {
-    hero = { title: rows.length ? (ctx.data.assignment_coverage?.complete === false ? 'Nenhuma pendência nesta seleção' : 'Nada pendente agora') : 'Nenhuma oportunidade ainda', text: rows.length ? 'Suas propostas foram enviadas. Você será avisado se a empresa revisar a solicitação ou comentar.' : 'Quando uma empresa convidar a sua instituição, a oportunidade aparece aqui.', action: null };
+    hero = { title: rows.length ? (truncated ? 'Nenhuma pendência nesta seleção' : 'Nada pendente agora') : 'Nenhuma oportunidade ainda', text: rows.length ? 'Suas propostas foram enviadas. Você será avisado se a empresa revisar a solicitação ou comentar.' : 'Quando uma empresa convidar a sua instituição, a oportunidade aparece aqui.', action: null };
   }
   root.append(el('section', { class: 'next-hero', id: 'provider-status', 'aria-labelledby': 'next-hero-title' }, [
     el('span', { class: 'next-step-kicker', text: 'Sua próxima ação' }),
@@ -522,15 +534,25 @@ export async function providerInvite(ctx) {
     query.delete('token');
     try { history.replaceState(null, '', `${location.pathname}${query.toString() ? `?${query}` : ''}`); } catch { /* segue com o token em memória */ }
   }
+  // Quem abre o link sem sessão entra e volta para cá: o token (já fora do
+  // endereço) fica só nesta aba, nunca na URL do login, e sai no fim do uso.
+  let restored = false;
+  if (!token) { token = pendingInvite.read(); restored = Boolean(token); }
+  if (ctx.signedOut && /^[0-9a-f]{64}$/.test(token)) pendingInvite.keep(token);
   const stateNode = el('p', { id: 'invite-state' });
-  if (!token) { stateNode.className = 'callout callout-info'; stateNode.textContent = 'Nenhum token no endereço. Cole abaixo o token que você recebeu.'; }
+  const reenter = () => el('a', { href: `/login.html?next=${encodeURIComponent('/provider/invite.html')}`, text: 'Entrar de novo e retomar este convite' });
+  if (restored && /^[0-9a-f]{64}$/.test(token) && !ctx.signedOut) { stateNode.className = 'callout callout-info'; stateNode.textContent = 'Retomamos o convite que você abriu antes de entrar. Confirme a organização que vai responder e aceite ou recuse.'; }
+  else if (!token) { stateNode.className = 'callout callout-info'; stateNode.textContent = 'Nenhum token no endereço. Cole abaixo o token que você recebeu.'; }
   else if (!/^[0-9a-f]{64}$/.test(token)) { stateNode.className = 'callout callout-danger'; stateNode.textContent = 'Este link não tem o formato de um convite do Arandu. Confira se ele foi copiado por inteiro.'; }
   else { stateNode.className = 'callout callout-info'; stateNode.textContent = 'Confirme a organização que vai responder e aceite o convite.'; }
   const form = el('form', { id: 'invite-form', class: 'stack', novalidate: true });
   const tokenInput = el('input', { name: 'token', value: token, minlength: '64', maxlength: '64', autocomplete: 'off', spellcheck: 'false', class: 'mono' });
   form.append(field({ label: 'Token do convite', control: tokenInput, hint: '64 caracteres. Chega por e-mail ou pelo link que a empresa enviou.' }));
+  // Erro de formato some quando a pessoa corrige; não fica pendurado na tela.
+  tokenInput.addEventListener('input', () => tokenInput.closest('.field')?.setError(''));
   if (ctx.signedOut) {
-    form.append(el('div', { class: 'callout callout-info' }, [icon('lock'), textSpan('Entre na conta da sua instituição para aceitar.'), linkButton('Entrar', `/login.html?next=${encodeURIComponent('/provider/invite.html')}`, { size: 'sm', variant: 'primary' })]));
+    tokenInput.addEventListener('change', () => { if (/^[0-9a-f]{64}$/.test(tokenInput.value.trim())) pendingInvite.keep(tokenInput.value.trim()); });
+    form.append(el('div', { class: 'callout callout-info' }, [icon('lock'), textSpan(/^[0-9a-f]{64}$/.test(token) ? 'Entre na conta da sua instituição para aceitar ou recusar. O convite é retomado nesta aba depois do login.' : 'Entre na conta da sua instituição para aceitar.'), linkButton('Entrar', `/login.html?next=${encodeURIComponent('/provider/invite.html')}`, { size: 'sm', variant: 'primary' })]));
   } else if (!ctx.organizations?.length) {
     form.append(el('p', { class: 'callout callout-warning', text: 'Esta conta ainda não pertence a nenhuma organização provedora. Crie a organização da sua instituição antes de aceitar: o convite é vinculado a ela.' }));
   } else {
@@ -559,6 +581,7 @@ export async function providerInvite(ctx) {
         stateNode.className = 'callout callout-success';
         stateNode.textContent = `Convite recusado${result.declined_at ? ` em ${formatDateTime(result.declined_at)}` : ''}. A empresa vê a recusa; nenhuma proposta foi criada.${result.replayed ? ' (A recusa já estava registrada.)' : ''}`;
         stateNode.dataset.state = 'declined';
+        pendingInvite.clear();
         form.querySelectorAll('button, input, select').forEach((node) => { node.disabled = true; });
         toast('Convite recusado.');
       } catch (error) {
@@ -567,6 +590,8 @@ export async function providerInvite(ctx) {
         stateNode.textContent = error.status === 401 ? 'Sua sessão expirou. Nada foi registrado; entre de novo para responder.'
           : error.status === 409 ? 'Este convite não pode mais ser recusado: ele pode ter sido aceito, revogado, expirado ou pertencer a outra instituição.'
           : uncertain ? 'Não foi possível confirmar a recusa. Tente de novo: o mesmo pedido é reenviado e não duplica o registro.' : (error.message || 'A recusa não foi registrada.');
+        if (error.status === 409) pendingInvite.clear();
+        if (error.status === 401) { pendingInvite.keep(declinePayload?.token || tokenInput.value.trim()); stateNode.append(' ', reenter()); }
         if (error.status === 409 || error.status === 401) declinePayload = null;
         decline.disabled = error.status === 409; submit.disabled = false;
       }
@@ -587,12 +612,15 @@ export async function providerInvite(ctx) {
         const result = await ctx.send('invites/accept', { token: tokenInput.value.trim(), provider_organization_id: select.value });
         stateNode.className = 'callout callout-success';
         stateNode.textContent = 'Convite aceito. A solicitação já aparece nas suas oportunidades.';
+        pendingInvite.clear();
         toast('Convite aceito.');
         location.assign(ctx.href(result.proposal_id ? `/provider/proposal.html?proposal=${encodeURIComponent(result.proposal_id)}` : '/provider/rfqs.html'));
       } catch (error) {
         stateNode.className = uncertainWrite(error) ? 'callout callout-warning' : 'callout callout-danger';
         stateNode.textContent = error.status === 401 ? 'Sua sessão expirou. Nada foi registrado; entre de novo na conta da sua instituição para aceitar.' : inviteFailure(error, { retried });
         if (uncertainWrite(error)) stateNode.append(' ', el('a', { href: ctx.href('/provider/rfqs.html'), text: 'Conferir em Oportunidades' }));
+        if (error.status === 401) { pendingInvite.keep(tokenInput.value.trim()); stateNode.append(' ', reenter()); }
+        else if (!retried && ['invite_invalid', 'invite_unavailable'].includes(error.code)) pendingInvite.clear();
         submit.disabled = false;
       }
     });

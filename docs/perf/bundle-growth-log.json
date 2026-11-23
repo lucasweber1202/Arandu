@@ -70,6 +70,13 @@
       "previous": 897022,
       "reason": "Arandu 11 — ativação de produto (PR #358): painel de primeiro valor por objetivo em chunk sob demanda (first-value, carregado só pela empresa sem solicitação), renegociação contextual no Relationship 360 extraída para módulo compartilhado (shared/renegotiation, usado pela fila e pela gaveta) e aviso de demonstração do site institucional (financial-public-demo, só nas páginas públicas, decidido em runtime por /api/health). +8.763 B no build regular; nenhum módulo novo no carregamento inicial de rotas estabelecidas. Jornadas medidas em Chromium: só a do comprador (fixture sem solicitação, que renderiza o painel) teve baseline atualizada com motivo em 2026-11-19; as demais dentro da baseline anterior. Nenhum hard limit alterado.",
       "journeyBaseline": "2026-11-19"
+    },
+    {
+      "date": "2026-11-23",
+      "accepted": 908295,
+      "previous": 905785,
+      "reason": "Arandu 11.1 — integridade das jornadas (PR #361), medido sobre a main integrada com #358/#359: aviso prévio obrigatório e validado no contrato da decisão, com fim sugerido em meses de calendário (contract-registration); retomada do convite após login via sessionStorage da aba, reentrada em sessão expirada e cobertura do resumo pelo limite declarado (provider); envio de convite que não reenvia às cegas após resposta incerta (invite-delivery, usado por rfq e negotiation-origin). +2.510 B em chunks de rota já existentes; nenhum módulo novo na abertura. Nenhum hard limit alterado.",
+      "journeyBaseline": "2026-11-19"
     }
   ]
 }

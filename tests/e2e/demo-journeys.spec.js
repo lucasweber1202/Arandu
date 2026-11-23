@@ -172,6 +172,7 @@ test('jornada completa: comprador → provedor → comprador → aprovador → d
   await page.getByRole('button', { name: 'Registrar decisão' }).click();
   await confirm(page, 'Registrar decisão');
   await expect(page.locator('#decisao-registrada')).toContainText('Atlas Bank — DEMO');
+  await page.locator('#contract-form').getByLabel(/^Aviso prévio/).fill('60');
   await page.locator('#contract-form').getByRole('button', { name: 'Registrar contrato' }).click();
   await expect(page).toHaveURL(/\/demo\/finance\/contracts\.html#contract-/);
   await expect(page.locator('.contract-card.highlighted')).toContainText('Atlas Bank — DEMO');

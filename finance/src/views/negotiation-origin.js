@@ -24,12 +24,12 @@ export function incumbentOnboarding(ctx, rfq, origin) {
   ]);
   if (state.canInvite) {
     box.append(button(state.kind === 'closed' ? `Convidar ${name} de novo` : `Convidar ${name} para o portal`, { size: 'sm', variant: 'secondary', iconName: 'send', onClick: async (event) => {
-      const target = event.currentTarget; target.disabled = true;
+      const target = event.currentTarget;
+      if (target.disabled) return;
+      target.disabled = true;
       try {
-        const result = await ctx.send('invites/send', { rfq_id: rfq.id, provider_id: origin.provider_id });
-        const { deliverInvite } = await import('./rfq/invite-delivery.js');
-        await deliverInvite(ctx, result, name);
-        ctx.reload();
+        const { sendInvite } = await import('./rfq/invite-delivery.js');
+        await sendInvite(ctx, { rfqId: rfq.id, providerId: origin.provider_id, name, trigger: target });
       } catch (error) { toastError(error); target.disabled = false; }
     } }), mutedText('Convidar a instituição atual não exclui outras: a empresa decide quem participa no formulário de convites.'));
   } else if (state.reason && state.kind !== 'accepted') box.append(mutedText(state.reason));
