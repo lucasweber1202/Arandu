@@ -280,7 +280,6 @@ test('responsáveis de tarefa no backend real: reatribuir, deixar sem responsáv
   const reused = await write('POST', { ...body, title: 'Outro conteúdo com a mesma chave' });
   expect(reused.status()).toBe(409);
   expect((await write('PATCH', { organization_id: org, task_id: first.row.id, status: 'cancelled' })).status()).toBe(200);
-  await admin.close();
 
   // Leitor (controller): vê quem responde, não recebe controle e o servidor recusa a atribuição.
   const viewer = await browser.newContext({ baseURL, ignoreHTTPSErrors: true });
@@ -299,7 +298,15 @@ test('responsáveis de tarefa no backend real: reatribuir, deixar sem responsáv
   const ignored = await carlos.request.fetch('/api/finance/tasks', { method: 'PATCH', data: { organization_id: org, task_id: taskId, status: 'done' }, headers: { Origin: new URL(baseURL).origin } });
   // Hoje 200 sem gravar (handoff ao Codex: 403/404). Seja qual for o código, nada muda.
   expect([200, 403, 404]).toContain(ignored.status());
-  const reread = await (await page.request.get(`/api/finance/tasks?organization_id=${org}`)).json();
+  // Releitura do estado no servidor pela Helena (admin da MESMA organização): a
+  // Juliana chega perto da cota de leitura por pessoa (finance-account: 240/10 min;
+  // ~233 medidas numa execução desktop local) e um 429 legítimo aqui não diz nada
+  // sobre a tarefa. A cota não é elevada nem contornada; o 429 continua visível abaixo.
+  const rereadResponse = await helena.request.get(`/api/finance/tasks?organization_id=${org}`);
+  const reread = await rereadResponse.json().catch(() => null);
+  // Falha legível: status, código sanitizado e Retry-After, nunca lista vazia presumida.
+  expect(rereadResponse.status(), `releitura das tarefas: status ${rereadResponse.status()}, código ${reread?.code || 'sem código'}, Retry-After ${rereadResponse.headers()['retry-after'] || 'ausente'}`).toBe(200);
+  expect(Array.isArray(reread?.rows), `releitura sem lista: chaves ${Object.keys(reread || {}).join(',') || 'corpo ilegível'}`).toBe(true);
   expect(reread.rows.find((t) => t.id === taskId)?.status).toBe('open');
   await viewer.close();
 
@@ -311,4 +318,15 @@ test('responsáveis de tarefa no backend real: reatribuir, deixar sem responsáv
   expect(foreign.status()).toBeGreaterThanOrEqual(400);
   expect(JSON.stringify(await foreign.json())).not.toContain('Confirmar TAC');
   await provider.close();
+
+  // Relationship 360 (Arandu 11), por último e na sessão da Helena já aberta: nenhum
+  // login a mais (cota de entrada por rede) e só depois das escritas que dependem da
+  // cota por pessoa. O crédito da Atlas está na janela de renovação do dataset e a
+  // administradora vê a ação contextual (leitor sem ação: E2E com API simulada). Só leitura.
+  await helena.goto('/finance/providers.html');
+  await helena.getByRole('button', { name: 'Relacionamento com Atlas Bank' }).first().click();
+  const attention = helena.getByRole('dialog', { name: 'Atlas Bank' }).locator('.rel-attention');
+  await expect(attention.locator('.milestone-row').first()).toBeVisible();
+  await expect(attention.getByRole('button', { name: /(Iniciar|Retomar) renegociação/ })).toHaveCount(1);
+  await admin.close();
 });

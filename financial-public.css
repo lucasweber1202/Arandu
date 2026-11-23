@@ -106,3 +106,7 @@ body.public{background:#fff;color:var(--navy);font-family:Inter,system-ui,-apple
 .demo-entry-status:empty{display:none}
 .demo-entry-status[data-tone=error]{color:var(--danger)}
 @media(max-width:700px){.demo-entry-list{grid-template-columns:1fr}.auth-grid.has-demo-entry{padding-top:2rem}}
+
+.demo-site-banner{background:var(--petrol-weak);border-bottom:1px solid var(--line)}
+.demo-site-banner .wrap{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.8rem;padding-top:.7rem;padding-bottom:.7rem}
+.demo-site-banner p{margin:0;max-width:72ch}
