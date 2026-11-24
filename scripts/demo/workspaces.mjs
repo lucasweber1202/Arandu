@@ -4,7 +4,7 @@ import { supabaseApiKeyHeaders } from '../../lib/supabase-api-headers.mjs';
 //
 //   node scripts/demo/workspaces.mjs list
 //   node scripts/demo/workspaces.mjs provision --count=3 [--concurrency=2]
-//   node scripts/demo/workspaces.mjs cleanup
+//   node scripts/demo/workspaces.mjs cleanup [--dry-run]        # reconciliação sob lease (schema anterior ou novo)
 //   node scripts/demo/workspaces.mjs maintain [--dry-run]   # controlador: limpa e repõe até o alvo
 //
 // Mesmas travas do seed (lib/finance/demo-guard.mjs): ARANDU_ENV=demo,
@@ -40,7 +40,22 @@ async function service(path, { method = 'GET', body, prefer } = {}) {
 const marker = (await service(`fin_settings?select=value&key=eq.${DEMO_MARKER_KEY}`))?.[0]?.value;
 if (marker !== DEMO_MARKER_VALUE) { console.error('Banco sem marcador de demonstração: recusado. Semeie o baseline (npm run demo:seed) antes.'); process.exit(2); }
 
-const rows = () => service('fin_demo_workspaces?select=slug,status,baseline_version,created_at,ready_at,claimed_at,expires_at,idle_expires_at,heartbeat_at,failed_at,cleanup_attempts,last_error&order=created_at');
+// Transição de schema (issue #366, auditoria pós-#367): heartbeat_at/failed_at
+// só existem após docs/supabase-financial-demo-pool-integrity.sql. No schema
+// anterior o controlador lê sem elas; planPool então usa a regra legada
+// (provisioning sem heartbeat só é órfão após staleProvisioningHours = 6 h) e o
+// backoff pela criação. Nenhuma outra regra muda.
+let poolColumns = null;
+async function hasPoolColumns() {
+  if (poolColumns !== null) return poolColumns;
+  const headers = { ...supabaseApiKeyHeaders(config.serviceKey) };
+  const response = await fetch(`${config.supabaseUrl}/rest/v1/fin_demo_workspaces?select=heartbeat_at,failed_at&limit=0`, { headers });
+  if (response.ok) poolColumns = true;
+  else if (response.status === 400 && /heartbeat_at|failed_at|column/i.test(await response.text())) poolColumns = false;
+  else throw new Error(`Leitura do schema do pool falhou: ${response.status}`);
+  return poolColumns;
+}
+const rows = async () => service(`fin_demo_workspaces?select=slug,status,baseline_version,created_at,ready_at,claimed_at,expires_at,idle_expires_at,${(await hasPoolColumns()) ? 'heartbeat_at,failed_at,' : ''}cleanup_attempts,last_error&order=created_at`);
 /** Um seed por workspace, em processo próprio; resolve com o status e a duração. */
 // Filhos vivos: cancelamento do controlador repassa o sinal, e o seed marca o
 // próprio workspace como failed (failed_at) antes de sair.
@@ -109,8 +124,21 @@ if (command === 'list') {
   console.log(`Provisionados: ${ok}/${count}.`);
   if (ok !== count) process.exit(1);
 } else if (command === 'cleanup') {
-  const { cleanup: due } = planPool(await rows());
-  const ok = await cleanup(due);
+  // Reconciliação canônica (funciona no schema anterior e no novo): só o que
+  // planPool classifica como limpável — expirados, falhos, limpeza interrompida
+  // e provisioning comprovadamente órfão (heartbeat parado ou, legado, > 6 h).
+  // Sob o mesmo lease do controlador: nunca concorre com maintain nem com o
+  // release da Demo; claimed válido nunca entra no plano.
+  const holder = `pool-${crypto.randomBytes(6).toString('hex')}`;
+  const plan = planPool(await rows());
+  if (DRY) { console.log(JSON.stringify({ dry_run: true, schema: (await hasPoolColumns()) ? 'pool-integrity' : 'legacy', cleanup: plan.cleanup, orphaned: plan.orphaned, counts: plan.counts })); process.exit(0); }
+  const leased = await service('rpc/fin_demo_pool_lease', { method: 'POST', body: { p_holder: holder, p_seconds: POOL_POLICY.leaseSeconds } });
+  if (leased !== true) { console.log(JSON.stringify({ result: 'skipped', reason: 'outro controlador ou release do pool está ativo' })); process.exit(0); }
+  let ok = 0, due = [];
+  try {
+    due = planPool(await rows()).cleanup; // replaneja com o lease
+    ok = await cleanup(due);
+  } finally { await service('rpc/fin_demo_pool_release', { method: 'POST', body: { p_holder: holder } }).catch(() => null); }
   console.log(`Limpeza: ${ok}/${due.length} workspace(s) removido(s).`);
   if (ok !== due.length) process.exit(1);
 } else if (command === 'maintain') {
