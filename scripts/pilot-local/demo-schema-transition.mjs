@@ -53,7 +53,7 @@ try {
   assert.equal(q("select count(*) from information_schema.columns where table_name='fin_demo_workspaces' and column_name in ('heartbeat_at','failed_at')"), '0');
 
   step('2. pool pelo código antigo: 2 workspaces, 1 reivindicado por visitante');
-  let r = tool(old, ['scripts/demo/workspaces.mjs', 'provision', '--count=2', '--concurrency=2']);
+  let r = tool(old, ['scripts/demo/workspaces.mjs', 'provision', '--count=2', '--concurrency=1']); // código antigo: seeds paralelos disputam o cron global (202)
   assert.equal(r.status, 0, r.stderr.slice(-800));
   const tokenHash = createHash('sha256').update('visitor-transition').digest('hex');
   q(`select public.fin_demo_workspace_claim('${tokenHash}', 240, 1440, 25)`);
