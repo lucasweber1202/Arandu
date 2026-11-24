@@ -91,6 +91,13 @@
       "previous": 912521,
       "reason": "Arandu 11.3 — semântica canônica do aviso prévio em renewalStage (noticeKnown, deadline nulo) e adaptação dos consumidores (carteira, plano de renovações, radar, sinais de contexto); botão de registro de contrato extraído para chunk próprio (contract-center/import-button, 490 B) para a rota Instituições/Relationship 360 não baixar o Contract 360 (JS inicial da jornada relationship360: 243.081 → 215.967 B, −11,2%); prazo vencido no portal; proposta retirada no cartão de convites; limpeza da aba no logout; filtro de link interno. +2.190 B no agregado; nenhum hard limit alterado.",
       "journeyBaseline": "2026-11-23"
+    },
+    {
+      "date": "2026-11-24",
+      "accepted": 917851,
+      "previous": 914711,
+      "reason": "Arandu 12 (PR #364), +3.140 B medidos por chunk contra a main d129872: provider +1.739 B (prévia minimizada do convite: empresa, produto, prazos e estado, descarte de resposta atrasada, trava de convite encerrado), decision-studio +975 B (UX-01 resultado de cenário único; UX-02 cenários salvos no dossiê com versão, origem, revisão e instante), rfq +378 B (convite idempotente: 'já enviado'/'atualizado'), renewal-workbench +42 B (DATA-01 só tarefas abertas), work-queue +6 B (UX-03 data pt-BR). Lazy loading não reduz o agregado (todos os chunks contam). Nenhum módulo novo na abertura; nenhum hard limit alterado.",
+      "journeyBaseline": "2026-11-23"
     }
   ]
 }
