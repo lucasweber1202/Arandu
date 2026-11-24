@@ -140,7 +140,7 @@ if (dryRun) {
     { name: 'backup', ok: null, detail: 'Backup local ou referência externa obrigatória.' },
     { name: 'apply', ok: null, detail: 'Migrations serão aplicadas na ordem canônica.' },
     { name: 'post-migration-probes', ok: null, detail: 'Grants, RLS, expiração e integridade serão verificados.' },
-    { name: 'write-canary', ok: null, detail: 'Executado por check:supabase:write no endpoint protegido.' },
+    { name: 'isolation-canary', ok: null, detail: 'Canário de isolamento entre tenants (ops/sql/pilot-isolation-canary.sql) após os probes.' },
     { name: 'rollback-disposable', ok: null, detail: 'Permanece obrigatório em CI/PostgreSQL descartável.' }
   );
   writeReport();
@@ -259,8 +259,11 @@ try {
   ]);
   report.steps.push({ name: 'post-migration-probes', ok: true, detail: 'Grants, RLS, expiração e constraints aprovados.' });
 
-  run(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', 'check:supabase:write'], { capture: false });
-  report.steps.push({ name: 'write-canary', ok: true, detail: 'Endpoint protegido respondeu ao canário configurado.' });
+  // Antes chamava `npm run check:supabase:write`, script que nunca existiu no
+  // repositório: o --apply aplicava e depois falhava. O canário de isolamento
+  // (o mesmo de pilot:canary) é a verificação real disponível no banco-alvo.
+  run('psql', [databaseUrl, '-X', '-q', '-v', 'ON_ERROR_STOP=1', '-f', path.join(root, 'ops/sql/pilot-isolation-canary.sql')]);
+  report.steps.push({ name: 'isolation-canary', ok: true, detail: 'Nenhum vazamento entre tenants no banco-alvo.' });
   report.steps.push({
     name: 'rollback-disposable',
     ok: null,
