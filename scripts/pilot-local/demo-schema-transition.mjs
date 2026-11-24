@@ -117,7 +117,7 @@ try {
   };
   const preservation = await preserve({ exec, evidence, recipient, repository: 'owner/private-snapshots', token: 'test-token', fetchImpl: fake, workDir: work });
   assert.equal(preservation.ciphertext_sha256, preservation.uploaded_sha256);
-  const back = spawnSync('age', ['--decrypt', '-i', path.join(keyDir, 'id.age')], { input: assets.get(7) });
+  const back = spawnSync('age', ['--decrypt', '-i', path.join(keyDir, 'id.age')], { input: assets.get(7), maxBuffer: 512 * 1024 * 1024 });
   assert.equal(createHash('sha256').update(back.stdout).digest('hex'), evidence.snapshot_sha256, 'ciphertext decifra para o snapshot ensaiado (fora de CI)');
   const inventory = plan({ exec, sourceEnv: pgEnvLocal, declaredEnvironment: 'demo', connectionRef: DEMO_REF }).inventory;
   const decision = decideDemoRelease({ declaredEnvironment: 'demo', connectionRef: DEMO_REF, inventory, evidence, preservation, lock: { held: true, holder_matches: true }, authorization: 'issue-366-transition-test' });
