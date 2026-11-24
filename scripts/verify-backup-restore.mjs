@@ -25,7 +25,7 @@ const report = { classification: 'restore_verification', generatedAt: new Date()
 const write = () => { fs.mkdirSync(path.dirname(reportPath), { recursive: true }); fs.writeFileSync(reportPath, JSON.stringify(report, null, 2)); };
 const fail = (message) => { report.checks.push({ name: 'blocked', ok: false, detail: message }); write(); console.error(`BLOQUEADO: ${message}`); process.exit(1); };
 const redact = (value) => [restoredUrl, stagingUrl, productionUrl].filter(Boolean).reduce((text, secret) => text.replaceAll(secret, '[DATABASE_URL]'), String(value || ''));
-const run = (binary, commandArgs) => { const result = spawnSync(binary, commandArgs, { cwd: root, encoding: 'utf8' }); if (result.error || result.status !== 0) throw new Error(redact(result.stderr || result.error?.message || 'falha operacional').slice(-1000)); return String(result.stdout || ''); };
+const run = (binary, commandArgs) => { const result = spawnSync(binary, commandArgs, { cwd: root, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 }); if (result.error || result.status !== 0) throw new Error(redact(result.stderr || result.error?.message || 'falha operacional').slice(-1000)); return String(result.stdout || ''); };
 const databaseIdentity = (value) => {
   try {
     const url = new URL(value);
@@ -64,10 +64,28 @@ try {
     expectedSchema = schemaFingerprint(sourceSchema);
     report.checks.push({ name: 'source-schema-fingerprint', ok: true, detail: { schemaSha256: expectedSchema } });
   }
-  run('pg_restore', [
-    '--clean', '--if-exists', '--no-owner', '--no-acl', '--exit-on-error', '--single-transaction',
-    '--dbname', restoredUrl, backupFile
-  ]);
+  // O escopo public_schema não carrega auth.users, mas public referencia
+  // auth.users por FK. Num Supabase descartável (auth.users existe), o restore
+  // vai em seções: estrutura e dados; depois só os IDs que o backup referencia
+  // ganham linhas-placeholder (id apenas) NO ALVO DESCARTÁVEL; por fim índices
+  // e constraints — todas as FKs continuam criadas e validadas. Conteúdo do Auth
+  // fica fora deste escopo (o restore completo com Auth/Storage é o pilot:restore:drill).
+  const restoreArgs = ['--clean', '--if-exists', '--no-owner', '--no-acl', '--exit-on-error', '--single-transaction', '--dbname', restoredUrl];
+  const targetHasAuth = run('psql', [restoredUrl, '-XAtc', "select to_regclass('auth.users') is not null"]).trim() === 't';
+  if (targetHasAuth) {
+    run('pg_restore', [...restoreArgs, '--section=pre-data', backupFile]);
+    run('pg_restore', [...restoreArgs.filter((a) => a !== '--clean' && a !== '--if-exists'), '--section=data', backupFile]);
+    // As FKs para auth.users vêm do próprio backup (seção post-data), não de heurística.
+    const postData = run('pg_restore', ['--section=post-data', '--file=-', backupFile]);
+    const refs = [...postData.matchAll(/ALTER TABLE ONLY public\.("?[a-z0-9_]+"?)\s+ADD CONSTRAINT "?[a-z0-9_]+"? FOREIGN KEY \(("?[a-z0-9_]+"?)\) REFERENCES auth\.users\(id\)/g)]
+      .map((m) => ({ table: m[1].replaceAll('"', ''), column: m[2].replaceAll('"', '') }));
+    const stubbed = Number(run('psql', [restoredUrl, '-XAt', '-v', 'ON_ERROR_STOP=1', '-v', `refs=${JSON.stringify(refs)}`, '-f', path.join(root, 'ops/sql/restore-auth-reference-stubs.sql')]).trim().split('\n').at(-1));
+    if (!Number.isSafeInteger(stubbed) || stubbed < 0) fail('Contagem de referências ao Auth inválida.');
+    report.checks.push({ name: 'auth-references-stubbed', ok: true, detail: { foreign_keys: refs.length, placeholders: stubbed, scope: 'disposable_target_only', auth_content: 'out_of_public_schema_scope' } });
+    run('pg_restore', [...restoreArgs.filter((a) => a !== '--clean' && a !== '--if-exists'), '--section=post-data', backupFile]);
+  } else {
+    run('pg_restore', [...restoreArgs, backupFile]);
+  }
   report.checks.push({ name: 'restore-executed', ok: true });
   const schema = run('pg_dump', [restoredUrl, '--schema=public', '--schema-only', '--no-owner', '--no-acl']);
   const schemaSha256 = schemaFingerprint(schema);
