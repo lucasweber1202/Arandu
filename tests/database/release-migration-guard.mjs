@@ -68,14 +68,16 @@ try {
   const manifest = JSON.parse(readFileSync('docs/supabase-migrations.json', 'utf8')).existingDatabase;
   const sections = manifest.map((file) => ({ file, content: readFileSync(file, 'utf8') }));
   const pending = selectPendingSections(sections, 'financial-contract-email-links-1');
-  assert.deepEqual(pending.map((s) => s.file), ['docs/supabase-financial-arandu-10.sql']);
+  assert.deepEqual(pending.map((s) => s.file), ['docs/supabase-financial-arandu-10.sql', 'docs/supabase-financial-invite-integrity.sql', 'docs/supabase-financial-demo-pool-integrity.sql']);
+  assert.equal(pending[1].expectedAfter, 'financial-invite-integrity-1');
+  assert.doesNotThrow(() => assertSingleTransaction(pending[1].content, pending[1].file));
   assert.equal(pending[0].expectedAfter, 'financial-arandu-10-1');
   assert.equal(finalMarker(pending[0].content), 'financial-arandu-10-1');
   assert.doesNotThrow(() => assertSingleTransaction(pending[0].content, pending[0].file));
   assert.throws(() => assertSingleTransaction('begin;\nselect 1;\ncommit;\ndrop table x;', 'x'), /após COMMIT/);
   assert.throws(() => assertSingleTransaction('begin;\ncommit;\nbegin;\ncommit;', 'x'), /ambíguo/);
   assert.throws(() => assertSingleTransaction('create index concurrently i on t(a);', 'x'), /não transacional/);
-  assert.throws(() => selectPendingSections(sections, 'financial-arandu-10-1'), /Nenhuma migration pendente/);
+  assert.throws(() => selectPendingSections(sections, 'financial-demo-pool-integrity-1'), /Nenhuma migration pendente/);
   assert.throws(() => selectPendingSections(sections, 'financial-unknown-9'), /desconhecido/);
   console.log('Release migration guard: lock, marcador real, rollback integral e seleção pendente aprovados em PostgreSQL real.');
 } finally {

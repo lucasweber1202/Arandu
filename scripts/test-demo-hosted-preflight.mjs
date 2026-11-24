@@ -56,7 +56,7 @@ await ok('schema completo = compatible', () => assert.equal(classifySchema(plan,
 await ok('sem Arandu 10 = incremental com pendentes em ordem', () => {
   const r = classifySchema(plan, allRelations.filter((n) => !['fin_decision_scenarios', 'fin_renewal_operations'].includes(n)));
   assert.equal(r.state, 'incremental');
-  assert.equal(r.pending.at(-1), 'docs/supabase-financial-arandu-10.sql');
+  assert.deepEqual(r.pending.slice(-3), ['docs/supabase-financial-arandu-10.sql', 'docs/supabase-financial-invite-integrity.sql', 'docs/supabase-financial-demo-pool-integrity.sql']);
   assert(r.pending.includes('docs/supabase-financial-contract-email-links.sql'), 'migration sem relação própria após a última completa também é pendente');
 });
 await ok('meia migration = partial', () => assert.equal(classifySchema(plan, allRelations.filter((n) => n !== 'fin_renewal_operations')).state, 'partial'));
@@ -92,7 +92,7 @@ await ok('NO-GO: estado público atual (sandbox sem ARANDU_ENV, Arandu 10 ausent
     fetchImpl: fake({ release: { environment: null, mode: 'demo', datasource: 'synthetic-fixtures', commit: 'b'.repeat(40) }, relations: allRelations.filter((n) => !['fin_decision_scenarios', 'fin_renewal_operations'].includes(n)) }).impl });
   assert.equal(r.verdict, 'NO-GO');
   assert(r.codes.includes('APP_NOT_CANONICAL') && r.codes.includes('SCHEMA_PENDING'));
-  assert.equal(r.schema.pending.at(-1), 'docs/supabase-financial-arandu-10.sql');
+  assert.deepEqual(r.schema.pending.slice(-3), ['docs/supabase-financial-arandu-10.sql', 'docs/supabase-financial-invite-integrity.sql', 'docs/supabase-financial-demo-pool-integrity.sql']);
 });
 await ok('NO-GO: ref legado/produção recusado antes de qualquer requisição ao banco', async () => {
   const net = fake();
@@ -136,10 +136,10 @@ await ok('relação revogada do service_role (42501) conta como existente; ausê
 await ok('schema_version: marcador desconhecido = divergente; pendente provado pelo marcador', () => {
   assert.equal(classifySchema(plan, allRelations, { schemaVersion: 'financial-unknown-1' }).reason, 'unknown_schema_version');
   const before = classifySchema(plan, allRelations.filter((n) => !['fin_decision_scenarios', 'fin_renewal_operations'].includes(n)), { schemaVersion: 'financial-contract-email-links-1' });
-  assert.deepEqual(before.pending, ['docs/supabase-financial-arandu-10.sql']);
+  assert.deepEqual(before.pending, ['docs/supabase-financial-arandu-10.sql', 'docs/supabase-financial-invite-integrity.sql', 'docs/supabase-financial-demo-pool-integrity.sql']);
   assert.equal(classifySchema(plan, allRelations, { schemaVersion: 'financial-contract-email-links-1' }).state, 'incremental');
-  assert.equal(classifySchema(plan, allRelations, { schemaVersion: 'financial-arandu-10-1' }).state, 'compatible');
-  assert.equal(classifySchema(plan, allRelations.filter((n) => n !== 'fin_decision_scenarios' && n !== 'fin_renewal_operations'), { schemaVersion: 'financial-arandu-10-1' }).reason, 'schema_version_ahead_of_relations');
+  assert.equal(classifySchema(plan, allRelations, { schemaVersion: 'financial-demo-pool-integrity-1' }).state, 'compatible');
+  assert.equal(classifySchema(plan, allRelations.filter((n) => n !== 'fin_decision_scenarios' && n !== 'fin_renewal_operations'), { schemaVersion: 'financial-demo-pool-integrity-1' }).reason, 'schema_version_ahead_of_relations');
 });
 await ok('NO-GO: schema parcial/divergente e storage público', async () => {
   assert((await runHostedPreflight({ env: env(), fetchImpl: fake({ relations: allRelations.filter((n) => n !== 'fin_renewal_operations') }).impl, plan })).codes.includes('SCHEMA_PARTIAL'));

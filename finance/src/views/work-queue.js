@@ -24,9 +24,9 @@ const OWNER_FILTERS = new Set(['tasks', 'demands', 'contracts']);
 /** Por que o item merece atenção, só com fatos da linha. Exportada para teste. */
 export function workReason(section, row, today = new Date().toISOString().slice(0, 10)) {
   if (section === 'tasks') {
-    if (row.overdue) return `Prazo vencido em ${row.due_on}`;
+    if (row.overdue) return `Prazo vencido em ${formatDate(row.due_on)}`;
     if (row.unassigned) return 'Sem responsável';
-    return row.due_on ? (row.due_on === today ? 'Vence hoje' : `Prazo ${row.due_on}`) : 'Sem prazo definido';
+    return row.due_on ? (row.due_on === today ? 'Vence hoje' : `Prazo ${formatDate(row.due_on)}`) : 'Sem prazo definido';
   }
   if (section === 'approvals') {
     if (row.context_coverage === 'incomplete' || row.freshness === 'unknown') return 'Contexto não pôde ser conferido';

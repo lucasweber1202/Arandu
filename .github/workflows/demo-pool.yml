@@ -1,11 +1,15 @@
 name: Arandu Demo Workspace Pool
 
 # Controlador do pool de workspaces da Demo canônica (docs/demo/VISITOR_ISOLATION.md).
-# Só execução manual: o agendamento recorrente fica desligado até o Supabase DEMO
-# ter atribuição ativa aprovada (lib/deployment-topology.mjs) e o cutover da Demo
-# estar validado. Não roda código de PR: só a main revisada, com secrets do
-# environment "demo", que nunca contém credencial de Production ou do Pilot.
+# Execução manual, ou agenda a cada 30 min SOMENTE com a variável de repositório
+# ARANDU_DEMO_POOL_AUTOMATION_ENABLED == 'true' (ausente = desligada; padrão).
+# A agenda executa a ponta da main e só prossegue com os quatro contextos
+# obrigatórios verdes nesse SHA exato, dry-run prévio e lease no banco.
+# Não roda código de PR: só a main revisada, com secrets do environment "demo",
+# que nunca contém credencial de Production ou do Pilot.
 on:
+  schedule:
+    - cron: '7,37 * * * *'
   workflow_dispatch:
     inputs:
       action:
@@ -24,6 +28,7 @@ on:
 
 permissions:
   contents: read
+  checks: read
 
 concurrency:
   group: arandu-demo-pool
@@ -31,18 +36,34 @@ concurrency:
 
 jobs:
   pool:
-    if: github.ref == 'refs/heads/main'
+    # Agenda: só com opt-in explícito. Manual: sempre permitido na main.
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || vars.ARANDU_DEMO_POOL_AUTOMATION_ENABLED == 'true')
     runs-on: ubuntu-latest
     environment: demo
-    # 4 workspaces por execução, 2 em paralelo, ~630 s cada: ~21 min + limpeza.
-    timeout-minutes: 40
+    # Medido na Demo hospedada (24/11/2026): ~1096 s por workspace. 4 por
+    # execução em 2 levas de 2: ~37 min + limpeza + jobs escopados. O seed
+    # individual é interrompido em 35 min (POOL_POLICY.seedTimeoutMinutes).
+    timeout-minutes: 90
     steps:
       - name: Verify reviewed code identity
         env:
-          REVIEWED_SHA: ${{ inputs.reviewed_sha }}
+          REVIEWED_SHA: ${{ github.event_name == 'schedule' && github.sha || inputs.reviewed_sha }}
           EXECUTION_SHA: ${{ github.sha }}
         run: |
           node -e 'if (!/^[a-f0-9]{40}$/.test(process.env.REVIEWED_SHA || "") || process.env.REVIEWED_SHA !== process.env.EXECUTION_SHA) process.exit(1)'
+
+      - name: Required CI contexts green on this exact SHA (fail closed)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh api "repos/$REPO/commits/$SHA/check-runs?per_page=100" > checks.json
+          node -e '
+            const runs = require("./checks.json").check_runs || [];
+            const need = ["database", "deploy-boundaries", "validate", "presentation"];
+            const bad = need.filter((name) => !runs.some((r) => r.name === name && r.status === "completed" && r.conclusion === "success"));
+            if (bad.length) { console.error("Contextos obrigatórios não verdes neste SHA: " + bad.join(", ")); process.exit(1); }'
 
       - name: Checkout reviewed main
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -61,6 +82,16 @@ jobs:
       - name: Pool plan checks without credentials
         run: node scripts/test-demo-pool.mjs
 
+      - name: Dry-run plan (no writes)
+        env:
+          ARANDU_ENV: demo
+          ARANDU_DEMO_CONFIRM: ${{ secrets.ARANDU_DEMO_SUPABASE_REF }}
+          SUPABASE_URL: ${{ secrets.ARANDU_DEMO_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.ARANDU_DEMO_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.ARANDU_DEMO_SUPABASE_SERVICE_ROLE_KEY }}
+          ARANDU_DEMO_APP_URL: ${{ secrets.ARANDU_DEMO_APP_URL }}
+        run: node scripts/demo/workspaces.mjs maintain --dry-run
+
       - name: Run pool controller
         env:
           ARANDU_ENV: demo
@@ -72,5 +103,5 @@ jobs:
           ARANDU_DEMO_APP_URL: ${{ secrets.ARANDU_DEMO_APP_URL }}
           ARANDU_DEMO_PASSWORD: ${{ secrets.ARANDU_DEMO_PASSWORD }}
           CRON_SECRET: ${{ secrets.ARANDU_DEMO_CRON_SECRET }}
-          ACTION: ${{ inputs.action }}
+          ACTION: ${{ github.event_name == 'schedule' && 'maintain' || inputs.action }}
         run: node scripts/demo/workspaces.mjs "$ACTION"

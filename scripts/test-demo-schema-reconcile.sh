@@ -21,12 +21,15 @@ apply tests/database/bootstrap.sql
 expect "incremental" "banco vazio (só bootstrap)"
 mapfile -t files < <(node -e "for (const f of require('$root_dir/docs/supabase-migrations.json').cleanInstall) console.log(f)")
 last="${files[-1]}"
-[ "$last" = "docs/supabase-financial-arandu-10.sql" ] || { echo "A última migration mudou ($last): revise este teste."; exit 1; }
-for file in "${files[@]:0:${#files[@]}-1}"; do apply "$file"; done
-expect "incremental pending=docs/supabase-financial-arandu-10.sql" "banco no estado anterior ao Arandu 10 (upgrade; schema_version prova a migration sem relação própria)"
+a10="${files[-3]}"; inv="${files[-2]}"
+[ "$last" = "docs/supabase-financial-demo-pool-integrity.sql" ] && [ "$inv" = "docs/supabase-financial-invite-integrity.sql" ] && [ "$a10" = "docs/supabase-financial-arandu-10.sql" ] || { echo "A última migration mudou ($last): revise este teste."; exit 1; }
+for file in "${files[@]:0:${#files[@]}-3}"; do apply "$file"; done
+expect "incremental pending=docs/supabase-financial-arandu-10.sql,docs/supabase-financial-invite-integrity.sql,docs/supabase-financial-demo-pool-integrity.sql" "banco no estado anterior ao Arandu 10 (upgrade; schema_version prova a migration sem relação própria)"
 psql "$url" -qc "update public.fin_settings set value='financial-operating-context-1' where key='schema_version'" >/dev/null
-expect "incremental pending=docs/supabase-financial-contract-email-links.sql,docs/supabase-financial-arandu-10.sql" "marcador anterior: a migration sem relação volta ao plano (conservador)"
+expect "incremental pending=docs/supabase-financial-contract-email-links.sql,docs/supabase-financial-arandu-10.sql,docs/supabase-financial-invite-integrity.sql,docs/supabase-financial-demo-pool-integrity.sql" "marcador anterior: a migration sem relação volta ao plano (conservador)"
 apply docs/supabase-financial-contract-email-links.sql
+apply "$a10"
+apply "$inv"
 apply "$last"
 expect "compatible" "após aplicar a pendente (upgrade incremental)"
 apply "$last"
@@ -39,7 +42,7 @@ expect "divergent reason=unexpected_relations" "relação fora do manifesto"
 psql "$url" -qc "drop table public.fin_rogue" >/dev/null
 psql "$url" -qc "update public.fin_settings set value='financial-unknown-9' where key='schema_version'" >/dev/null
 expect "divergent reason=unknown_schema_version" "marcador de versão desconhecido"
-psql "$url" -qc "update public.fin_settings set value='financial-arandu-10-1' where key='schema_version'" >/dev/null
+psql "$url" -qc "update public.fin_settings set value='financial-demo-pool-integrity-1' where key='schema_version'" >/dev/null
 psql "$url" -qc "create table public.fin_rogue(id int)" >/dev/null
 psql "$url" -qc "drop table public.fin_rogue" >/dev/null
 expect "compatible" "estado restaurado"

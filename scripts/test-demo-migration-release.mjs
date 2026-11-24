@@ -29,14 +29,14 @@ const report = JSON.parse(readFileSync('reports/migration-release-report.json', 
 assert.equal(report.status, 'planned');
 assert.equal(report.afterSchema, marker);
 assert.deepEqual(report.steps.find(s => s.name === 'canonical-order').detail.map(s => s.file),
-  ['docs/supabase-financial-arandu-10.sql']);
+  ['docs/supabase-financial-arandu-10.sql', 'docs/supabase-financial-invite-integrity.sql', 'docs/supabase-financial-demo-pool-integrity.sql']);
 assert.match(dry.stdout, /Nenhuma conexão foi aberta/);
 
 blocked(['--environment=demo', '--dry-run'], /--after-schema/);
 blocked(['--environment=demo', '--flow=cleanInstall', '--after-schema=' + marker, '--dry-run'], /existingDatabase/);
 blocked([...flags, '--dry-run', '--apply'], /não podem ser combinados/);
 blocked(['--environment=demo', '--flow=existingDatabase', '--after-schema=financial-not-a-marker', '--dry-run'], /desconhecido|ambíguo/);
-blocked(['--environment=demo', '--flow=existingDatabase', '--after-schema=financial-arandu-10-1', '--dry-run'], /Nenhuma migration pendente/);
+blocked(['--environment=demo', '--flow=existingDatabase', '--after-schema=financial-demo-pool-integrity-1', '--dry-run'], /Nenhuma migration pendente/);
 
 const preflight = [...flags, '--operator=demo-release', '--backup-reference=BACKUP-20261118-A',
   '--confirm-demo=ARANDU-DEMO'];
@@ -112,7 +112,7 @@ if (process.platform !== 'win32') {
       + 'if [ -f "' + log + '" ]; then printf "' + after + '\\n"; else printf "financial-contract-email-links-1\\n"; fi\n';
 
     writeFileSync(evidence, JSON.stringify({ ...goodEvidence, backupSha256: 'f'.repeat(64) }));
-    writeFileSync(stub, stubScript(0, 'financial-arandu-10-1')); chmodSync(stub, 0o700);
+    writeFileSync(stub, stubScript(0, 'financial-demo-pool-integrity-1')); chmodSync(stub, 0o700);
     blocked(applyArgs, /Hash do backup/, applyEnv);
     writeFileSync(evidence, JSON.stringify({ ...goodEvidence, restoreReference: 'RESTORE-OTHER-0001' }));
     blocked(applyArgs, /Referência de restore/, applyEnv);

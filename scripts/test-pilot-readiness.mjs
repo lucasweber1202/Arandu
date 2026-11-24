@@ -157,7 +157,7 @@ await step('RFQ é aberta pela máquina de estados', {
 
 await step('provedor é convidado e o token só existe na resposta', {
   method: 'POST', path: 'invites/send', body: { rfq_id: RFQ, provider_id: PROVIDER },
-  respond: (entry) => (entry.url.includes('fin_rfqs') ? [{ id: RFQ, organization_id: BUYER, product: 'credit', status: 'open' }] : 'a'.repeat(64)),
+  respond: (entry) => (entry.url.includes('fin_rfqs') ? [{ id: RFQ, organization_id: BUYER, product: 'credit', status: 'open' }] : { invite_id: RFQ, token: 'a'.repeat(64), recipient_mode: 'exact_email', outcome: 'created' }),
   check: (payload) => {
     assert.equal(String(payload.invitationToken).length, 64);
   }

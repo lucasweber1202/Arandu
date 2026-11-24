@@ -290,7 +290,7 @@ export function renewalOperations(ctx, { entities = null, contracts = [], fallba
       item.history?.parent_contract_id ? el('a', { href: ctx.href(`/finance/contracts.html?abrir=contrato#contract-${item.history.parent_contract_id}`), text: 'Contrato anterior' }) : null,
       el('a', { href: contractHref, text: 'Histórico do contrato' })
     ].filter(Boolean);
-    const tasks = item.tasks || [], milestones = item.milestones || [];
+    const tasks = (item.tasks || []).filter((task) => !task.status || task.status === 'open'), milestones = item.milestones || [];
     const nextMilestone = milestones.find((m) => m.status !== 'done' && m.status !== 'completed');
     const canStart = item.actions?.can_start_renewal && ['active', 'renewing'].includes(item.status);
     return el('li', { class: 'renewal-row', dataset: { contract: item.id, urgency: item.urgency } }, [

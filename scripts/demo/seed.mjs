@@ -887,6 +887,20 @@ async function seedFinancialCrm() {
   });
 }
 
+/** Jobs de manutenção restritos ao workspace; 'job busy' (cron global em curso) espera e repete. */
+async function runScopedJobs(attempts = 6) {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      const { payload } = await service('rpc/fin_demo_workspace_run_jobs', { method: 'POST', body: { p_slug: WORKSPACE, p_day: new Date().toISOString().slice(0, 10) } });
+      must(payload && typeof payload === 'object' && Number(payload.scope_organizations) >= 2, 'jobs escopados do workspace sem escopo válido');
+      return payload;
+    } catch (error) {
+      if (!/job busy|55P03/i.test(String(error.message)) || attempt >= attempts) throw error;
+      await sleep(Math.min(60_000, 5_000 * 2 ** (attempt - 1)));
+    }
+  }
+}
+
 async function finishStory() {
   // Daqui em diante (cron do dia e leitura de avisos) os registros ficam com o horário real.
   closeStep();
@@ -897,7 +911,13 @@ async function finishStory() {
   // Marcos de renovação, obrigações, performance e oportunidades pelo mesmo
   // cron que roda todo dia em produção.
   const runsCron = await profile.phase('waitForIndependentStories',()=>coordination.beforeCron());
-  if (CRON && runsCron) {
+  if (WORKSPACE) {
+    // OPS-POOL-01: um workspace descartável NUNCA chama o cron global (ele
+    // varre todas as organizações). Os mesmos processadores rodam só no escopo
+    // do workspace, derivado no banco das contas +ws-<slug> — sem organização
+    // informada por quem chama. Sem a função (migration ausente) falha fechado.
+    await profile.phase('scopedJobs',()=>runScopedJobs());
+  } else if (CRON && runsCron) {
     for(let pass=0;pass<coordination.cronPasses;pass++) {
       const {response,payload}=await profile.request({channel:'cron',method:'GET',path:'renewals',actor:'operator'},async()=>{
         const response = await fetch(`${APP}/api/jobs/renewals`, { headers: { Authorization: `Bearer ${CRON}` } });
@@ -1101,6 +1121,17 @@ async function sanity() {
 
 // ---------------------------------------------------------------- main
 // ------------------------------------------------- workspace de visitante
+// Prova de vida do provisionamento (OPS-POOL-02): o controlador só trata como
+// órfão um 'provisioning' cujo heartbeat parou. Só atualiza a própria linha.
+let heartbeat = null;
+function startHeartbeat() {
+  heartbeat = setInterval(() => {
+    service(`fin_demo_workspaces?slug=eq.${WORKSPACE}&status=eq.provisioning`, { method: 'PATCH', body: { heartbeat_at: new Date().toISOString() }, prefer: 'return=minimal' }).catch(() => null);
+  }, 60_000);
+  heartbeat.unref?.();
+}
+const stopHeartbeat = () => { if (heartbeat) clearInterval(heartbeat); heartbeat = null; };
+
 async function saveWorkspace(fields) {
   await service('fin_demo_workspaces?on_conflict=slug', { method: 'POST', body: { slug: WORKSPACE, baseline_version: BASELINE_VERSION, ...fields },
     prefer: 'resolution=merge-duplicates,return=minimal' });
@@ -1115,7 +1146,7 @@ async function cleanupWorkspace(scope) {
     await service(`fin_demo_workspaces?slug=eq.${WORKSPACE}`, { method: 'DELETE', prefer: 'return=minimal' });
     log(`Workspace ${WORKSPACE}: ${scope.orgs.length} organização(ões) e ${scope.users.length} conta(s) removidas.`);
   } catch (error) {
-    if (current) await service(`fin_demo_workspaces?slug=eq.${WORKSPACE}`, { method: 'PATCH', body: { status: 'failed', last_error: String(error.message).slice(0, 500) }, prefer: 'return=minimal' }).catch(() => null);
+    if (current) await service(`fin_demo_workspaces?slug=eq.${WORKSPACE}`, { method: 'PATCH', body: { status: 'failed', failed_at: new Date().toISOString(), last_error: String(error.message).slice(0, 500) }, prefer: 'return=minimal' }).catch(() => null);
     throw error;
   }
 }
@@ -1138,7 +1169,10 @@ async function main() {
       await resetDemo();
     }
     if (!marker) await service('fin_settings', { method: 'POST', body: { key: DEMO_MARKER_KEY, value: DEMO_MARKER_VALUE }, prefer: 'return=minimal' });
-    if (WORKSPACE) await saveWorkspace({ status: 'provisioning', baseline_version: BASELINE_VERSION, last_error: null });
+    if (WORKSPACE) {
+      await saveWorkspace({ status: 'provisioning', baseline_version: BASELINE_VERSION, last_error: null, failed_at: null, heartbeat_at: new Date().toISOString() });
+      startHeartbeat();
+    }
     const started = Date.now();
     log('Criando contas das personas e liberando os domínios fictícios…');
     await profile.phase('createAccounts',()=>createAccounts());
@@ -1165,7 +1199,7 @@ async function main() {
   if (WORKSPACE && MODE !== 'check') {
     // Só entra no pool o workspace que passou em TODAS as checagens.
     await saveWorkspace(failed
-      ? { status: 'failed', last_error: `${failed} checagem(ns) de sanidade falharam` }
+      ? { status: 'failed', failed_at: new Date().toISOString(), last_error: `${failed} checagem(ns) de sanidade falharam` }
       : { status: 'ready', ready_at: new Date().toISOString(), buyer_organization_id: ctx.org,
         provider_organization_ids: Object.values(ctx.providerOrg), user_ids: Object.values(people).map((person) => person.id),
         personas: Object.fromEntries(Object.entries(people).map(([key, person]) => [key, person.email])) });
@@ -1189,7 +1223,18 @@ function writeTiming(success) {
   if(report.requests.length)console.log('ARANDU_SEED_QUOTA '+JSON.stringify(seedQuotaReport(report)));
   console.log('ARANDU_SEED_TIMING '+JSON.stringify({result:report.result,wall_ms:report.wall_ms,waits:report.waits,requests:report.requests.reduce((n,r)=>n+r.attempts,0)}));
 }
-main().then(()=>writeTiming(true)).catch((error) => {
+// Falha ou cancelamento de um provisionamento: a linha deixa de parecer viva
+// (status failed + failed_at), o heartbeat para e o controlador limpa depois.
+async function markProvisioningFailed(reason) {
+  stopHeartbeat();
+  if (!WORKSPACE || MODE === 'cleanup' || MODE === 'check') return;
+  await service(`fin_demo_workspaces?slug=eq.${WORKSPACE}&status=eq.provisioning`, { method: 'PATCH',
+    body: { status: 'failed', failed_at: new Date().toISOString(), last_error: String(reason).slice(0, 500) }, prefer: 'return=minimal' }).catch(() => null);
+}
+for (const signal of ['SIGTERM', 'SIGINT']) process.once(signal, () => { markProvisioningFailed(`interrompido por ${signal}`).finally(() => process.exit(130)); });
+
+main().then(()=>{stopHeartbeat();writeTiming(true);}).catch(async (error) => {
+  await markProvisioningFailed(error.message || 'falha no seed');
   writeTiming(false);
   if (error instanceof DemoGuardError) {
     console.error('Seed da demonstração recusado. Nada foi escrito.');
