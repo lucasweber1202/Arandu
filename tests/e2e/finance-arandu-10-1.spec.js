@@ -226,6 +226,19 @@ test('Decision Studio: cenário desatualizado bloqueia comparação até atualiz
   await page.getByRole('dialog').getByRole('button', { name: 'Atualizar contexto' }).click();
   await expect(studio(page).locator('.scenario-saved')).toContainText('Contexto atual');
   expect(calls.find((c) => c.method === 'PATCH').body).toMatchObject({ refresh_context: true, expected_version: 1 });
+  // UX-01/UX-02 (auditoria hospedada 11.3): um único cenário salvo recalculado
+  // mostra o resultado (não só "recalculado") e o dossiê registra a análise.
+  await studio(page).locator('.scenario-saved input[type=checkbox]').check();
+  await studio(page).getByRole('button', { name: 'Comparar 1 selecionado(s)' }).click();
+  // Este cenário usa Taxa com bases incompatíveis: o motor recusa e diz por quê.
+  await expect(studio(page).getByRole('region', { name: 'Comparação entre cenários' })).toContainText('Base: Os critérios escolhidos têm bases incompatíveis');
+  await studio(page).getByRole('button', { name: 'Abrir dossiê da análise' }).click();
+  const dossier = page.locator('#dossie');
+  await expect(dossier).toContainText('Não pontuado:');
+  await expect(dossier).toContainText('recalculado pelo servidor');
+  await expect(dossier).toContainText('revisão');
+  await expect(dossier).not.toContainText('Nenhum cenário calculado nesta sessão');
+  await page.keyboard.press('Escape');
 
   // Viewer: consulta e compara, sem criar/alterar.
   await page.unrouteAll();
@@ -259,6 +272,9 @@ test('Caixa de trabalho: quatro seções, cursor independente, cobertura sem tot
   await expect(box.locator('.work-row')).toHaveCount(20);
   await expect(box).toContainText('há mais registros no servidor. O total não é calculado.');
   await expect(box.getByRole('tab', { name: /Tarefas/ })).toContainText('20+');
+  // UX-03 (auditoria hospedada 11.3): motivo com data em português, nunca ISO.
+  await expect(box.locator(".work-reason").first()).toContainText("Prazo vencido em");
+  await expect(box.locator(".work-reason").filter({ hasText: /\d{4}-\d{2}-\d{2}/ })).toHaveCount(0);
   await expect(box.locator('.work-row').first()).toContainText('Por quê: Prazo vencido');
   await box.getByRole('button', { name: 'Carregar mais' }).click();
   await expect(box.locator('.work-row')).toHaveCount(23);
@@ -392,4 +408,23 @@ test('Caixa de trabalho e plano em 320 px: sem rolagem horizontal da página', a
   await expect(page.locator('#caixa-de-trabalho .work-row').first()).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
+});
+
+// UX-01/UX-02 (auditoria hospedada 11.3): um único cenário salvo pontuado
+// mostra a ordem calculada e o dossiê registra versão, origem e revisão.
+test('Decision Studio: um cenário salvo comparado mostra o resultado e entra no dossiê', async ({ page }) => {
+  const server = scenarioServer();
+  server.handle('decision-scenarios', 'POST', { rfq_id: RFQ, name: 'Prazo longo', weights: { term_months: 60 }, request_key: 'seed-0002' }, new URLSearchParams());
+  await setup(page, { scenarios: server });
+  await page.goto(`/finance/rfq.html?id=${RFQ}#comparacao`);
+  await studio(page).locator('.scenario-saved input[type=checkbox]').check();
+  await studio(page).getByRole('button', { name: 'Comparar 1 selecionado(s)' }).click();
+  await expect(studio(page).locator('[data-state="single-scenario"]')).toContainText('Resultado do cenário “Prazo longo”');
+  await expect(studio(page).locator('[data-state="single-scenario"]')).toContainText('selecione mais um cenário salvo');
+  await expect(studio(page).getByRole('region', { name: 'Tabela de cenários' })).toContainText('Atlas Bank');
+  await studio(page).getByRole('button', { name: 'Abrir dossiê da análise' }).click();
+  const dossier = page.locator('#dossie');
+  await expect(dossier).toContainText('Prazo longo — pesos:');
+  await expect(dossier).toContainText(/cenário salvo v1, recalculado pelo servidor em .* com a revisão 1/);
+  await expect(dossier).not.toContainText('Nenhum cenário calculado nesta sessão');
 });

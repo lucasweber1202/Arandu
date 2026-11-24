@@ -811,6 +811,16 @@ for current_db in "$clean_db" "$upgrade_db" "$fresh_db"; do
 done
 node "$root_dir/tests/database/arandu-10-concurrency.mjs" "$(database_url "$fresh_db")"
 
+# Arandu 12 idempotent invites + preview: forward, rollback, double reapply.
+for current_db in "$clean_db" "$upgrade_db" "$fresh_db"; do
+  apply_file "$current_db" "docs/supabase-financial-invite-integrity.sql"
+  apply_file "$current_db" "tests/database/financial-invite-integrity.sql"
+  apply_file "$current_db" "docs/rollback/supabase-financial-invite-integrity.rollback.sql"
+  apply_file "$current_db" "docs/supabase-financial-invite-integrity.sql"
+  apply_file "$current_db" "docs/supabase-financial-invite-integrity.sql"
+  apply_file "$current_db" "tests/database/financial-invite-integrity.sql"
+done
+
 # Executor de migrations hospedadas: lock, marcador real e rollback integral.
 (cd "$root_dir" && node tests/database/release-migration-guard.mjs "$base_url")
 

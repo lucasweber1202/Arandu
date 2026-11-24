@@ -1749,7 +1749,8 @@ test('estúdio: cenários continuam ao ir à proposta e voltar; pesos alterados 
   await expect(back.getByLabel('Cenário B: peso de Taxa (% a.m.)')).toHaveValue('50');
   await back.getByLabel('Cenário B: peso de Taxa (% a.m.)').press('End');
   await expect(back.getByText('Pesos alterados: calcule de novo.')).toBeVisible();
-  await expect(back.getByText('Calcule um segundo cenário para comparar')).toBeVisible();
+  await expect(back.locator('[data-state="single-scenario"]')).toContainText('calcule um segundo cenário');
+  await expect(back.getByRole('region', { name: 'Tabela de cenários' })).toBeVisible();
 });
 
 test('estúdio: falha do cálculo não vira resultado e mantém a causa do servidor', async ({ page }) => {

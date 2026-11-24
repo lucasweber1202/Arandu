@@ -70,6 +70,10 @@ response=await call('GET',`renewal-operations?organization_id=${org}&limit=2`);a
 const cursor=response.page.next_cursor;
 await call('GET',`renewal-operations?organization_id=${org}&owner=none`);
 assert(sent.some(e=>e.url.pathname.endsWith('fin_renewal_operations')&&e.url.searchParams.get('unassigned')==='eq.true'));
+// DATA-01 (auditoria hospedada 11.3): a contagem de "tarefas abertas" do plano
+// de renovações vem só de tarefas open; concluídas não entram no enriquecimento.
+assert(sent.filter(e=>e.url.pathname.endsWith("fin_tasks")).every(e=>e.url.searchParams.get("status")==="eq.open"));
+assert(sent.some(e=>e.url.pathname.endsWith("fin_tasks")));
 await assert.rejects(call('GET',`renewal-operations?organization_id=${org}&limit=2&owner=none&cursor=${cursor}`),e=>e.status===400);
 response=await call('GET',`work-intelligence?organization_id=${org}&section=tasks&limit=2&owner=none`);
 assert.equal(response.rows[0].actions.can_edit,false);assert.equal(response.rows[0].unassigned,true);assert.equal(response.page.has_more,true);

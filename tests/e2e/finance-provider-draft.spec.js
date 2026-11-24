@@ -567,3 +567,38 @@ test('11.3 portal: oportunidade com prazo já passado vai depois da que está no
   await expect(lateRow).toContainText('Prazo informado passou');
   await expect(lateRow.locator('.opportunity-deadline')).not.toHaveClass(/urgent/);
 });
+
+// Prévia minimizada do convite (POST invites/preview, Arandu 12): só o que o
+// e-mail já revelou; convite encerrado trava aceite e recusa; sem a migration
+// (available:false) a tela segue como antes. Simulado: não prova o banco.
+test('prévia do convite: empresa, produto e prazos antes de aceitar ou recusar', async ({ page }) => {
+  await mockProvider(page);
+  const asked = [];
+  await page.route('**/api/finance/invites/preview', (route) => { asked.push(route.request().postDataJSON());
+    return route.fulfill({ json: { ok: true, available: true, preview: { buyer: 'Comercial Andes S.A.', product: 'acquiring', response_deadline: '2099-01-10', expires_at: '2099-01-20T00:00:00Z', state: 'open' } } }); });
+  await page.goto(`/provider/invite.html#token=${'e'.repeat(64)}`);
+  const preview = page.locator('#invite-preview');
+  await expect(preview).toBeVisible();
+  await expect(preview).toContainText('Comercial Andes S.A.');
+  await expect(preview).toContainText('Aguardando sua resposta');
+  await expect(preview).toContainText('Os detalhes da demanda ficam visíveis depois do aceite');
+  expect(asked[0]).toEqual({ token: 'e'.repeat(64), provider_organization_id: PROVIDER });
+  await expect(page.getByRole('button', { name: 'Aceitar convite' })).toBeEnabled();
+});
+
+test('prévia do convite expirado trava aceite e recusa; prévia indisponível não muda a tela', async ({ page }) => {
+  await mockProvider(page);
+  let mode = 'expired';
+  await page.route('**/api/finance/invites/preview', (route) => route.fulfill({ json: mode === 'expired'
+    ? { ok: true, available: true, preview: { buyer: 'Comercial Andes S.A.', product: 'acquiring', response_deadline: null, expires_at: '2020-01-01T00:00:00Z', state: 'expired' } }
+    : { ok: true, available: false } }));
+  await page.goto(`/provider/invite.html#token=${'f'.repeat(64)}`);
+  await expect(page.locator('#invite-preview')).toContainText('Expirado');
+  await expect(page.locator('#invite-state')).toContainText('Peça um novo link à empresa');
+  await expect(page.getByRole('button', { name: 'Aceitar convite' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Recusar convite' })).toBeDisabled();
+  mode = 'unavailable';
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Aceitar convite' })).toBeEnabled();
+  await expect(page.locator('#invite-preview')).toBeHidden();
+});

@@ -87,7 +87,7 @@ export function decisionStudio(ctx, rfq, { calculate, getModel = () => null, app
     draw();
     list.querySelectorAll('.studio-scenario').item(scenarios.length - 1)?.querySelector('input[type=range]')?.focus();
   } });
-  const dossierButton = button('Abrir dossiê da análise', { size: 'sm', variant: 'secondary', iconName: 'file', onClick: () => openDossier(ctx, rfq, { model: getModel(), scenarios, approvals, decision, contract }) });
+  const dossierButton = button('Abrir dossiê da análise', { size: 'sm', variant: 'secondary', iconName: 'file', onClick: () => openDossier(ctx, rfq, { model: getModel(), scenarios, savedComparison: serverComparison, approvals, decision, contract }) });
 
   // Cada cálculo leva o número da execução e a impressão dos pesos usados.
   // Resposta que chega depois de os pesos mudarem, de outro cálculo ou de o
@@ -210,23 +210,27 @@ export function decisionStudio(ctx, rfq, { calculate, getModel = () => null, app
     // Cenários salvos que o motor não pôde pontuar: o motivo do servidor aparece, nunca um texto genérico.
     const refused = serverComparison ? serverComparison.scenarios.filter((item) => !item.weighted?.applied).map((item) => el('p', { class: 'callout callout-warning compact', role: 'note' }, [icon('alert', { size: 14 }),
       textSpan(`${item.scenario.name}: ${item.weighted?.notice || 'o motor não pontuou este cenário.'}${(item.weighted?.excluded_criteria || []).map((c) => ` ${c.label}: ${c.reasons.join(' ')}`).join('')}`)])) : [];
-    if (data.scenarios.length < 2) {
-      if (refused.length) { comparison.replaceChildren(...refused, comparisonSource()); return; }
-      comparison.replaceChildren(serverComparison && data.scenarios.length === 1 ? comparisonSource() : mutedText(data.scenarios.length ? 'Calcule um segundo cenário para comparar as ordens lado a lado (ou selecione cenários salvos).' : 'Calcule ao menos um cenário ou selecione cenários salvos para comparar.'));
+    if (!data.scenarios.length) {
+      comparison.replaceChildren(...refused, refused.length ? comparisonSource() : mutedText('Calcule ao menos um cenário ou selecione cenários salvos para comparar.'));
       return;
     }
+    // Um só cenário: mostra o resultado dele (antes só aparecia a origem, sem
+    // nenhuma ordem) e diz o que falta para comparar lado a lado.
+    const single = data.scenarios.length === 1;
     const table = el('table', { class: 'data-table studio-table' }, [
-      el('thead', {}, el('tr', {}, [el('th', { scope: 'col', text: 'Proposta' }), ...data.scenarios.map((scenario) => el('th', { scope: 'col', text: scenario.name })), el('th', { scope: 'col', text: 'Muda entre cenários' })])),
+      el('thead', {}, el('tr', {}, [el('th', { scope: 'col', text: 'Proposta' }), ...data.scenarios.map((scenario) => el('th', { scope: 'col', text: scenario.name })), single ? null : el('th', { scope: 'col', text: 'Muda entre cenários' })])),
       el('tbody', {}, data.rows.map((row) => el('tr', { dataset: { proposal: row.id } }, [
         el('th', { scope: 'row' }, el('a', { href: `#proposal-${row.id}`, text: row.name })),
         ...row.cells.map((cell) => el('td', {}, !cell ? 'sem cálculo' : cell.low
           ? [textSpan('fora da ordem'), el('span', { class: 'row-sub', text: `cobertura ${(cell.coverage * 100).toFixed(0)}%${cell.missing.length ? ` · falta ${cell.missing.join(', ')}` : ''}` })]
           : [textSpan(`${cell.position}º · ${cell.score === null ? 'sem dados' : cell.score.toFixed(2)}`), cell.missing.length ? el('span', { class: 'row-sub', text: `falta ${cell.missing.join(', ')}` }) : null])),
-        el('td', {}, row.changes ? tag('Posição muda', 'warning') : el('span', { class: 'muted', text: 'não' }))
+        single ? null : el('td', {}, row.changes ? tag('Posição muda', 'warning') : el('span', { class: 'muted', text: 'não' }))
       ])))
     ]);
     comparison.replaceChildren(
-      el('p', { class: data.leaderChanges ? 'callout callout-warning compact' : 'callout callout-info compact', role: 'note' }, [icon(data.leaderChanges ? 'alert' : 'info', { size: 14 }),
+      single ? el('p', { class: 'callout callout-info compact', role: 'note', dataset: { state: 'single-scenario' } }, [icon('info', { size: 14 }),
+        textSpan(`Resultado do cenário “${data.scenarios[0].name}”. Para comparar lado a lado, ${serverComparison ? 'selecione mais um cenário salvo' : 'calcule um segundo cenário'}.`)])
+      : el('p', { class: data.leaderChanges ? 'callout callout-warning compact' : 'callout callout-info compact', role: 'note' }, [icon(data.leaderChanges ? 'alert' : 'info', { size: 14 }),
         textSpan(data.leaderChanges ? 'A primeira posição muda conforme os pesos: a ordem depende dos critérios escolhidos, não só das condições.' : 'A primeira posição é a mesma em todos os cenários calculados.')]),
       el('div', { class: 'matrix-scroll', tabindex: '0', role: 'region', 'aria-label': 'Tabela de cenários' }, table),
       ...refused, mutedText(`${USER_WEIGHTS_NOTICE} "Fora da ordem": cobertura abaixo do mínimo do motor; não é a pior proposta.`), comparisonSource());
@@ -313,7 +317,7 @@ export function decisionStudio(ctx, rfq, { calculate, getModel = () => null, app
     drawComparison();
   }
   const library = sandbox ? null : scenarioLibrary(ctx, rfq, { specs, onEdit: (saved) => loadPersisted(saved),
-    onCompared: (data) => { serverComparison = data; drawComparison(); comparison.scrollIntoView?.({ block: 'nearest' }); } });
+    onCompared: (data) => { serverComparison = { ...data, computedAt: new Date().toISOString() }; drawComparison(); comparison.scrollIntoView?.({ block: 'nearest' }); } });
   draw();
 
   return card({ title: 'Estúdio de decisão', id: 'estudio-decisao', headingLevel: 3,
@@ -334,7 +338,7 @@ export function decisionStudio(ctx, rfq, { calculate, getModel = () => null, app
 // Leitura factual montada com o que a tela já tem: solicitação, propostas e
 // versões, comparação do motor, cenários desta sessão, aprovações, decisão e
 // contrato. Sem recomendação e sem motivo de escolha que não esteja registrado.
-export function buildDossier(rfq, { model, scenarios, approvals, decision, contract, generatedAt = new Date() }) {
+export function buildDossier(rfq, { model, scenarios, savedComparison = null, approvals, decision, contract, generatedAt = new Date() }) {
   const columns = model?.columns || [];
   const rows = model?.rows || [];
   const differs = rows.filter((row) => row.differs).map((row) => row.label);
@@ -348,13 +352,25 @@ export function buildDossier(rfq, { model, scenarios, approvals, decision, contr
       revisionMismatch: Boolean(column.revision_mismatch), respondedRevision: column.rfq_revision ?? null, expired: Boolean(column.expired), validityUnknown: Boolean(column.validity_unknown), changed: column.changed_keys?.length || 0 }))
       : (rfq.proposals || []).map((proposal) => ({ id: proposal.id, name: proposal.provider_name, version: proposal.version ?? null, currency: proposal.currency ?? null, external: false, submittedAt: proposal.submitted_at || null, revisionMismatch: false, respondedRevision: proposal.rfq_revision ?? null, expired: false, validityUnknown: false, changed: 0 })),
     differs, pending, notices: model?.context_notices || [],
-    scenarios: (scenarios || []).filter((scenario) => scenario.result?.applied).map((scenario) => ({ name: scenario.name, criteria: scenario.result.criteria,
-      results: scenario.result.results.map((row, index) => ({ name: row.provider_name, position: row.low_coverage ? null : index + 1, score: row.score, coverage: row.coverage, missing: row.missing_criteria })),
-      sensitivity: scenario.sensitivity?.running === false ? scenario.sensitivity.rows : null })),
+    // Análise efetivamente feita: cenários salvos recalculados pelo servidor
+    // (com versão, revisão do contexto e instante) e rascunhos desta aba.
+    scenarios: [
+      ...(savedComparison?.scenarios || []).map((item) => ({ name: item.scenario?.name || 'Cenário salvo', applied: Boolean(item.weighted?.applied),
+        origin: `cenário salvo${item.scenario?.version ? ` v${item.scenario.version}` : ''}, recalculado pelo servidor${savedComparison.computedAt ? ` em ${formatDateTime(savedComparison.computedAt)}` : ''} com a revisão ${savedComparison.context?.rfq_revision ?? 'não informada'} da solicitação`,
+        notice: item.weighted?.applied ? null : (item.weighted?.notice || 'o motor não pontuou este cenário.'),
+        criteria: item.weighted?.criteria || [], results: dossierResults(item.weighted), sensitivity: null })),
+      ...(scenarios || []).filter((scenario) => scenario.result?.applied).map((scenario) => ({ name: scenario.name, applied: true, origin: 'rascunho desta aba (não salvo)', notice: null,
+        criteria: scenario.result.criteria, results: dossierResults(scenario.result),
+        sensitivity: scenario.sensitivity?.running === false ? scenario.sensitivity.rows : null }))
+    ],
     approvals: (approvals || []).map((request) => ({ status: request.stale && request.status === 'pending' ? 'Desatualizada' : APPROVAL_STATUS[request.status]?.label || request.status, stale: Boolean(request.stale), requestedAt: request.requested_at || null, proposalVersion: request.proposal_version ?? null, rationale: request.rationale || null })),
     decision: decision ? { decidedAt: decision.decided_at || null, proposalVersion: decision.selected_proposal?.version ?? null, provider: (rfq.proposals || []).find((p) => p.id === decision.proposal_id)?.provider_name || null, rationale: decision.rationale || null } : null,
     contract: contract ? { id: contract.id, startsOn: contract.starts_on || null, endsOn: contract.ends_on || null } : null
   };
+}
+
+function dossierResults(result) {
+  return result?.applied ? (result.results || []).map((row, index) => ({ name: row.provider_name, position: row.low_coverage ? null : index + 1, score: row.score, coverage: row.coverage, missing: row.missing_criteria || [] })) : [];
 }
 
 function dossierBody(rfq, dossier, ctx) {
@@ -374,7 +390,9 @@ function dossierBody(rfq, dossier, ctx) {
       el('p', { text: `Condições com informação pendente: ${dossier.pending.length ? dossier.pending.join(', ') : 'nenhuma'}.` }),
       dossier.notices.length ? el('div', {}, [textStrong('Ressalvas de comparabilidade:'), list(dossier.notices.map(String), '')]) : mutedText('Sem ressalvas de comparabilidade registradas pelo motor.')),
     section('Cenários analisados nesta sessão', ...(dossier.scenarios.length ? dossier.scenarios.map((scenario) => el('div', { class: 'dossier-scenario' }, [
-      textStrong(`${scenario.name} — pesos: ${scenario.criteria.map((item) => `${item.label} ${(item.share * 100).toFixed(0)}%`).join(' · ')}`),
+      textStrong(`${scenario.name}${scenario.criteria.length ? ` — pesos: ${scenario.criteria.map((item) => `${item.label} ${(item.share * 100).toFixed(0)}%`).join(' · ')}` : ''}`),
+      el('p', { class: 'small muted', text: `Origem: ${scenario.origin}.` }),
+      scenario.notice ? el('p', { class: 'small', text: `Não pontuado: ${scenario.notice}` }) : null,
       list(scenario.results.map((row) => `${row.position ? `${row.position}º` : 'fora da ordem'} · ${row.name} · ${row.score === null ? 'sem dados' : row.score.toFixed(2)} · cobertura ${(row.coverage * 100).toFixed(0)}%${row.missing.length ? ` · falta ${row.missing.join(', ')}` : ''}`), ''),
       scenario.sensitivity ? list(scenario.sensitivity.map((row) => `Sem ${row.label}: ${row.state === 'changes' ? `ordem muda para ${row.order.join(' → ')}` : row.state === 'same' ? 'ordem se mantém' : row.state === 'error' ? 'não recalculado' : 'não aplicável'}`), '') : null
     ].filter(Boolean))) : [mutedText('Nenhum cenário calculado nesta sessão.')]), mutedText(USER_WEIGHTS_NOTICE)),

@@ -524,6 +524,14 @@ export function versionHistory(assignment, spec) {
   }));
 }
 
+const INVITE_PREVIEW_STATE = Object.freeze({
+  open: { label: 'Aguardando sua resposta', tone: 'info', text: '' },
+  accepted: { label: 'Já aceito', tone: 'success', text: 'Este convite já foi aceito pela sua instituição. A solicitação está nas suas oportunidades.' },
+  declined: { label: 'Recusado', tone: 'neutral', text: 'Este convite já foi recusado pela sua instituição.' },
+  closed: { label: 'Coleta encerrada', tone: 'neutral', text: 'A empresa encerrou a coleta de propostas desta solicitação. Não é mais possível responder.' },
+  expired: { label: 'Expirado', tone: 'warning', text: 'Este convite expirou ou foi revogado. Peça um novo link à empresa.' }
+});
+
 const DECLINE_REASONS = Object.freeze({ '': 'Sem motivo informado', not_offered: 'Não oferecemos este produto', capacity: 'Sem capacidade no momento', deadline: 'Prazo insuficiente', other: 'Outro motivo' });
 
 export async function providerInvite(ctx) {
@@ -599,7 +607,37 @@ export async function providerInvite(ctx) {
         decline.disabled = error.status === 409; submit.disabled = false;
       }
     });
-    form.append(field({ label: 'Organização que vai responder', control: select }), el('div', { class: 'form-actions' }, [submit, decline]));
+    // Prévia: só o que o e-mail do convite já informou, consultada para a
+    // organização escolhida. Resposta atrasada de outra organização ou de
+    // outro token é descartada (sequência), e falha apenas esconde a prévia.
+    const preview = el('div', { id: 'invite-preview', hidden: true, 'aria-live': 'polite' });
+    let previewSeq = 0;
+    const refreshPreview = async () => {
+      const seq = ++previewSeq;
+      const value = tokenInput.value.trim();
+      preview.hidden = true; preview.replaceChildren();
+      if (!/^[0-9a-f]{64}$/.test(value) || !select.value) return;
+      let result;
+      try { result = await ctx.send('invites/preview', { token: value, provider_organization_id: select.value }); } catch { return; }
+      if (seq !== previewSeq || !result?.available || !result.preview) return;
+      const p = result.preview;
+      const situation = INVITE_PREVIEW_STATE[p.state] || INVITE_PREVIEW_STATE.expired;
+      preview.replaceChildren(card({ title: 'O que este convite pede', actions: [pill(situation)], body: [
+        el('dl', { class: 'deflist deflist-2' }, [
+          ['Empresa', p.buyer || 'Não informada'],
+          ['Produto', p.product ? productLabel(p.product) : 'Não informado'],
+          ['Prazo para proposta', p.response_deadline ? `${formatDate(p.response_deadline)} · ${relativeDays(p.response_deadline)}` : 'Sem prazo informado'],
+          ['Convite válido até', p.expires_at ? formatDate(p.expires_at) : 'Não informado']
+        ].map(([label, value]) => el('div', { class: 'deflist-row' }, [el('dt', { text: label }), el('dd', { text: value })]))),
+        mutedText('Os detalhes da demanda ficam visíveis depois do aceite. Recusar não dá acesso a eles.')
+      ] }));
+      preview.hidden = false;
+      if (p.state !== 'open') { submit.disabled = true; decline.disabled = true; stateNode.className = 'callout callout-warning'; stateNode.textContent = situation.text; }
+    };
+    select.addEventListener('change', refreshPreview);
+    tokenInput.addEventListener('change', refreshPreview);
+    form.append(field({ label: 'Organização que vai responder', control: select }), preview, el('div', { class: 'form-actions' }, [submit, decline]));
+    refreshPreview();
     onSubmit(form, async (event) => {
       event.preventDefault();
       if (!/^[0-9a-f]{64}$/.test(tokenInput.value.trim())) { tokenInput.closest('.field').setError('O token tem 64 caracteres (0-9, a-f).'); return; }

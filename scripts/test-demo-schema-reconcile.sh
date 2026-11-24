@@ -39,7 +39,7 @@ expect "divergent reason=unexpected_relations" "relação fora do manifesto"
 psql "$url" -qc "drop table public.fin_rogue" >/dev/null
 psql "$url" -qc "update public.fin_settings set value='financial-unknown-9' where key='schema_version'" >/dev/null
 expect "divergent reason=unknown_schema_version" "marcador de versão desconhecido"
-psql "$url" -qc "update public.fin_settings set value='financial-arandu-10-1' where key='schema_version'" >/dev/null
+psql "$url" -qc "update public.fin_settings set value='financial-invite-integrity-1' where key='schema_version'" >/dev/null
 psql "$url" -qc "create table public.fin_rogue(id int)" >/dev/null
 psql "$url" -qc "drop table public.fin_rogue" >/dev/null
 expect "compatible" "estado restaurado"
