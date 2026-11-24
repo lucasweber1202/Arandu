@@ -79,9 +79,11 @@ test "$(q "select count(*) from fin_demo_workspaces where slug in ('eeeeeeeeee',
 
 step "7. RLS isolation A <-> new visitor (both directions)"
 slug_b=$(q "select slug from fin_demo_workspaces where status='ready' order by ready_at desc limit 1")
-user_a=$(q "select id from auth.users where email like 'helena+ws-$slug_a@%'")
-user_b=$(q "select id from auth.users where email like 'helena+ws-$slug_b@%'")
-cross() { psql "$db" -qtA -c "begin; set local role authenticated; select set_config('request.jwt.claim.sub','$1',true); select count(*) from fin_rfqs r where r.organization_id = any(public.fin_demo_workspace_orgs('$2')); rollback;" | grep -E '^[0-9]+$'; }
+user_a=$(q "select id from auth.users where email like 'helena.duarte+ws-$slug_a@%'")
+user_b=$(q "select id from auth.users where email like 'helena.duarte+ws-$slug_b@%'")
+# The org helper is service-only (revoked from authenticated by design): resolve first.
+cross() { local orgs; orgs=$(q "select array_to_string(public.fin_demo_workspace_orgs('$2'), ',')")
+  psql "$db" -qtA -c "begin; set local role authenticated; select set_config('request.jwt.claim.sub','$1',true); select count(*) from fin_rfqs r where r.organization_id = any('{$orgs}'::uuid[]); rollback;" | grep -E '^[0-9]+$'; }
 test "$(cross "$user_a" "$slug_b")" = 0
 test "$(cross "$user_b" "$slug_a")" = 0
 test "$(cross "$user_a" "$slug_a")" -gt 0
