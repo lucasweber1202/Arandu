@@ -31,6 +31,9 @@ export const SITUATIONS = Object.freeze({
   signal_review: { label: 'Sinal em revisão', tone: 'info', rank: 3 },
   signal: { label: 'Sinal da regra da empresa', tone: 'warning', rank: 2 }
 });
+// Link vindo da API só vira âncora se for caminho interno do produto
+// (nunca javascript:, data: ou outro domínio).
+export const internalPath = (value) => (typeof value === 'string' && /^\/(finance|provider)\/[\w./?=&%#-]*$/.test(value) && !value.includes('//') ? value : null);
 const RADAR_STATUSES = ['open', 'acknowledged', 'under_review'];
 
 /**
@@ -49,7 +52,7 @@ export function radarWorkItems(rows = [], { providerId = null, providerName = nu
       entityId: context ? context.legal_entity_id : null, entityUnknown: !context, signalNoProvider: Boolean(context) && !pid, category: null, title: type || 'Sinal registrado',
       detail: `${why || 'Fato registrado pela regra.'}${deadline && deadline !== '—' ? ` Prazo: ${deadline}.` : ' Sem prazo registrado.'}`,
       due: context?.deadline || null, who: null, role: 'sinal', actor: 'manage', href: `/finance/opportunities.html?id=${encodeURIComponent(id)}`, cta: action ? `Ver sinal: ${action.toLowerCase()}` : 'Ver sinal',
-      sourceHref: context?.source_href || null, linkedRfqHref: context?.linked_rfq_id ? `/finance/rfq.html?id=${encodeURIComponent(context.linked_rfq_id)}` : null,
+      sourceHref: internalPath(context?.source_href), linkedRfqHref: context?.linked_rfq_id ? `/finance/rfq.html?id=${encodeURIComponent(context.linked_rfq_id)}` : null,
       source: `Regra de oportunidade configurada pela sua empresa · estado: ${state || 'não informado'}. Ação possível é sugestão para uma pessoa avaliar, não decisão.` };
   });
 }
@@ -75,7 +78,7 @@ export function relationshipWorkItems({ contracts = [], rfqs = [], tasks = [], m
     if (!contract.ends_on) { items.push({ ...base, id: `c-${contract.id}`, situation: 'no_end', title: name, detail: 'Sem data de término o Arandu não acompanha renovação nem aviso prévio.', due: null }); continue; }
     // Sem aviso prévio registrado, renewalStage presumiria 0 dias: a data-limite
     // é desconhecida e o item diz isso em vez de afirmar um prazo.
-    if ('renewal_notice_days' in contract && !(Number.isInteger(contract.renewal_notice_days) && contract.renewal_notice_days >= 0)) {
+    if (!renewalStage(contract).noticeKnown) {
       const ended = renewalStage(contract).stage === 'expired';
       items.push({ ...base, id: `c-${contract.id}`, situation: ended ? 'expired' : 'no_notice', title: name, due: ended ? contract.ends_on : null,
         detail: ended ? `Término em ${formatDate(contract.ends_on)}; ainda registrado como vigente. Atualize o status ou registre a renovação.`

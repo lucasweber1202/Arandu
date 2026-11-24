@@ -112,7 +112,7 @@ export async function openProviderRelationship(ctx, provider, {initialDetail = n
       const live = (detail.contracts || []).some(row => ['active', 'renewing'].includes(row.status));
       const start = !live && !detail.pages?.contracts?.has_more && ctx.can('create_rfq') ? el('div', { class: 'callout callout-info compact rel-start' }, [icon('briefcase', { size: 14 }),
         textSpan('Nenhum contrato vigente registrado com esta instituição. Registre o contrato que a empresa já tem para acompanhar condições, prazo e renovação, sem depender da adesão da instituição.'),
-        button('Registrar contrato existente', { size: 'sm', variant: 'primary', iconName: 'plus', onClick: async () => { const { importContractButton } = await import('./contract-center.js'); importContractButton(ctx, entities, { providerId: provider.id })?.click(); } })]) : null;
+        button('Registrar contrato existente', { size: 'sm', variant: 'primary', iconName: 'plus', onClick: async () => { const { importContractButton } = await import('./contract-center/import-button.js'); importContractButton(ctx, entities, { providerId: provider.id })?.click(); } })]) : null;
       startBox.replaceChildren(...[start].filter(Boolean));
       const renewing = (detail.contracts || []).filter((row) => ['active', 'renewing'].includes(row.status) && ['window', 'past_notice'].includes(renewalStage(row).stage));
       const renewalLink = renewing.length ? el('p', { class: 'small rel-renewals' }, [textSpan(`${renewing.length} contrato(s) desta instituição na janela de aviso prévio. `),

@@ -9,106 +9,106 @@
       "id": "buyer",
       "label": "Comprador: painel → tarefas",
       "initial": {
-        "decodedBytes": 164455,
+        "decodedBytes": 168393,
         "requests": 19
       },
       "cumulative": {
-        "decodedBytes": 193601,
+        "decodedBytes": 197594,
         "requests": 30,
-        "transferBytes": 78707,
-        "scriptMs": 5
+        "transferBytes": 79668,
+        "scriptMs": 7
       },
-      "executedBytes": 46439
+      "executedBytes": 46462
     },
     {
       "id": "institution",
       "label": "Instituição: portal → proposta",
       "initial": {
-        "decodedBytes": 130466,
+        "decodedBytes": 134769,
         "requests": 12
       },
       "cumulative": {
-        "decodedBytes": 137261,
+        "decodedBytes": 142777,
         "requests": 25,
-        "transferBytes": 53680,
-        "scriptMs": 4
+        "transferBytes": 55340,
+        "scriptMs": 5
       },
-      "executedBytes": 54764
+      "executedBytes": 54819
     },
     {
       "id": "portfolio",
       "label": "Portfolio: carteira de contratos",
       "initial": {
-        "decodedBytes": 135277,
-        "requests": 14
+        "decodedBytes": 138761,
+        "requests": 16
       },
       "cumulative": {
-        "decodedBytes": 135277,
-        "requests": 14,
-        "transferBytes": 54109,
-        "scriptMs": 14
+        "decodedBytes": 138761,
+        "requests": 16,
+        "transferBytes": 56358,
+        "scriptMs": 16
       },
-      "executedBytes": 51102
+      "executedBytes": 52038
     },
     {
       "id": "contract360",
       "label": "Contract 360: contrato aberto",
       "initial": {
-        "decodedBytes": 193190,
-        "requests": 25
+        "decodedBytes": 197204,
+        "requests": 27
       },
       "cumulative": {
-        "decodedBytes": 193190,
-        "requests": 25,
-        "transferBytes": 81937,
-        "scriptMs": 18
+        "decodedBytes": 197204,
+        "requests": 27,
+        "transferBytes": 84279,
+        "scriptMs": 25
       },
-      "executedBytes": 77749
+      "executedBytes": 79384
     },
     {
       "id": "relationship360",
       "label": "Relationship 360: instituição",
       "initial": {
-        "decodedBytes": 237964,
-        "requests": 26
+        "decodedBytes": 216180,
+        "requests": 25
       },
       "cumulative": {
-        "decodedBytes": 237964,
-        "requests": 26,
-        "transferBytes": 96027,
-        "scriptMs": 17
+        "decodedBytes": 216180,
+        "requests": 25,
+        "transferBytes": 87696,
+        "scriptMs": 18
       },
-      "executedBytes": 79248
+      "executedBytes": 80401
     },
     {
       "id": "obligations",
       "label": "Obrigações: radar → registro de covenants",
       "initial": {
-        "decodedBytes": 110642,
+        "decodedBytes": 112532,
         "requests": 11
       },
       "cumulative": {
-        "decodedBytes": 117628,
+        "decodedBytes": 119518,
         "requests": 21,
-        "transferBytes": 48482,
-        "scriptMs": 3
+        "transferBytes": 48957,
+        "scriptMs": 7
       },
-      "executedBytes": 37629
+      "executedBytes": 37482
     },
     {
       "id": "renewal",
       "label": "Renovação: contrato em janela → negociações",
       "initial": {
-        "decodedBytes": 193190,
-        "requests": 25
+        "decodedBytes": 197204,
+        "requests": 27
       },
       "cumulative": {
-        "decodedBytes": 243754,
-        "requests": 36,
-        "transferBytes": 100870,
-        "scriptMs": 3
+        "decodedBytes": 255687,
+        "requests": 38,
+        "transferBytes": 105827,
+        "scriptMs": 5
       },
-      "executedBytes": 44725
+      "executedBytes": 47560
     }
   ],
   "history": [
@@ -136,6 +136,19 @@
         "relationship360": 242016,
         "obligations": 119129,
         "renewal": 254311
+      }
+    },
+    {
+      "date": "2026-11-23",
+      "reason": "Arandu 11.3: relationship360 deixa de carregar contract-center (import-button); trava o ganho de −27 KB no JS inicial. Demais jornadas: +289 B e +2 requisições em portfolio/contract360/renewal (chunk import-button e preload-helper), dentro da tolerância.",
+      "cumulative": {
+        "buyer": 197594,
+        "institution": 142777,
+        "portfolio": 138761,
+        "contract360": 197204,
+        "relationship360": 216180,
+        "obligations": 119518,
+        "renewal": 255687
       }
     }
   ]

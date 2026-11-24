@@ -513,3 +513,40 @@ test('11.2 painel: objetivos continuam disponíveis depois da primeira solicita�
   await expect(page.locator('#objetivos')).toHaveAttribute('open', '');
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
 });
+
+// Arandu 11.3 — semântica canônica do aviso prévio (renewalStage): nulo é
+// desconhecido, nunca 0; 0 explícito é válido (data-limite = término). API SIMULADA.
+test('11.3 plano de renovações: aviso 0 explícito tem data-limite; aviso nulo não ganha prazo nem "decidir em 30 dias"', async ({ page }) => {
+  const Z = '00000000-0000-4000-8000-0000000007a1';
+  const N = '00000000-0000-4000-8000-0000000007a2';
+  const contracts = [
+    { ...CONTRACT, id: Z, provider_name: 'Banco Zero', title: 'Fiança zero', ends_on: day(20), renewal_notice_days: 0 },
+    { ...CONTRACT, id: N, provider_name: 'Banco Nulo', title: 'Giro nulo', ends_on: day(20), renewal_notice_days: null }
+  ];
+  await setup(page, { overview: { ...OVERVIEW, contracts, tasks: [] } });
+  await page.goto('/finance/contracts.html');
+  await page.locator('#plano-renovacoes-toggle > summary').click();
+  const plan = page.locator('#plano-renovacoes');
+  const zero = plan.locator(`[data-contract="${Z}"]`);
+  await expect(zero).toContainText('Aviso prévio até');
+  await expect(zero).not.toContainText('Aviso prévio não cadastrado');
+  await expect(plan.locator(`.renewal-soon [data-contract="${Z}"]`)).toHaveCount(1);
+  const unknown = plan.locator(`.renewal-window [data-contract="${N}"]`);
+  await expect(unknown).toContainText('Data-limite do aviso desconhecida');
+  await expect(unknown).toContainText('Aviso prévio não cadastrado');
+  await expect(plan.locator(`.renewal-past_notice [data-contract="${N}"], .renewal-soon [data-contract="${N}"]`)).toHaveCount(0);
+});
+
+test('11.3 painel: aviso prévio ausente da resposta também é desconhecido; 0 explícito segue como prazo', async ({ page }) => {
+  const Z = '00000000-0000-4000-8000-0000000007b1';
+  const { renewal_notice_days, ...absent } = { ...CONTRACT, ends_on: day(40) };
+  const zero = { ...CONTRACT, id: Z, provider_name: 'Banco Zero', ends_on: day(10), renewal_notice_days: 0 };
+  await setup(page, { overview: { ...OVERVIEW, contracts: [absent, zero], tasks: [] } });
+  await page.goto('/finance/dashboard.html');
+  const attention = page.locator('#precisa-de-voce');
+  await expect(attention).toContainText('Confirmar aviso prévio: Atlas Bank');
+  await expect(attention).not.toContainText('Decidir renovação: Atlas Bank');
+  await expect(attention).toContainText('Decidir renovação: Banco Zero');
+  await expect(attention).not.toContainText('Invalid');
+  await expect(attention).not.toContainText('undefined');
+});

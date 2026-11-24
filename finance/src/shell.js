@@ -208,6 +208,9 @@ export function renderTopbar(ctx) {
       // a tela de login diz isso em vez de tratar a saída como concluída.
       let confirmed = false;
       try { confirmed = (await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' })).ok; } catch { confirmed = false; }
+      // Dados da aba ligados à conta (convite pendente, organização lembrada)
+      // não sobrevivem à saída: outra pessoa na mesma aba começa do zero.
+      try { for (const key of ['arandu.pending-invite', 'arandu-finance-org']) sessionStorage.removeItem(key); } catch { /* sem armazenamento */ }
       location.assign(confirmed ? '/login.html' : '/login.html?saida=nao-confirmada');
     });
     account.append(trigger, panel);

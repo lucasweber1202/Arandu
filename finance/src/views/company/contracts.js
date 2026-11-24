@@ -18,26 +18,28 @@ function lifecycleBar(contract) {
   const today = Date.parse(`${todayIso()}T00:00:00Z`);
   if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return mutedText('Datas de vigência incompletas.');
   const pos = (time) => `${Math.max(0, Math.min(100, ((time - start) / (end - start)) * 100)).toFixed(2)}%`;
-  const notice = end - Number(contract.renewal_notice_days || 0) * 86400000;
-  const opens = Date.parse(`${renewalStage(contract).opensAt}T00:00:00Z`);
+  const stage = renewalStage(contract);
+  // Aviso prévio desconhecido: sem marco de aviso nem "depois do prazo" na barra.
+  const notice = stage.noticeKnown ? end - contract.renewal_notice_days * 86400000 : end;
+  const opens = Date.parse(`${stage.opensAt}T00:00:00Z`);
   const marks = [['90 dias', end - 90 * 86400000], ['60 dias', end - 60 * 86400000], ['30 dias', end - 30 * 86400000]].filter(([, time]) => time > start);
   const bar = el('div', { class: 'life-track' }, [
     el('span', { class: 'life-elapsed', style: `width:${pos(today)}` }),
     el('span', { class: 'life-window', style: `left:${pos(opens)};width:calc(${pos(notice)} - ${pos(opens)})`, title: 'Janela de decisão (até o aviso prévio)' }),
     el('span', { class: 'life-after', style: `left:${pos(notice)};width:calc(100% - ${pos(notice)})`, title: 'Depois do prazo de aviso prévio' }),
     ...marks.map(([label, time]) => el('span', { class: `life-mark${today >= time ? ' reached' : ''}`, style: `left:${pos(time)}`, title: `${label} antes do vencimento` })),
-    el('span', { class: 'life-notice', style: `left:${pos(notice)}`, title: 'Data limite do aviso prévio' }),
+    stage.noticeKnown ? el('span', { class: 'life-notice', style: `left:${pos(notice)}`, title: 'Data limite do aviso prévio' }) : null,
     today >= start && today <= end ? el('span', { class: 'life-today', style: `left:${pos(today)}` }, el('span', { class: 'life-today-label', text: 'Hoje' })) : null
   ]);
   const legend = el('ol', { class: 'life-legend' }, [
     ['Início', contract.starts_on, today >= start], ['90 dias', new Date(end - 90 * 86400000).toISOString().slice(0, 10), today >= end - 90 * 86400000],
     ['60 dias', new Date(end - 60 * 86400000).toISOString().slice(0, 10), today >= end - 60 * 86400000], ['30 dias', new Date(end - 30 * 86400000).toISOString().slice(0, 10), today >= end - 30 * 86400000],
-    ['Aviso prévio', new Date(notice).toISOString().slice(0, 10), today >= notice], ['Vencimento', contract.ends_on, today >= end]
-  ].filter(([, date]) => date >= contract.starts_on).sort((a, b) => a[1].localeCompare(b[1]) || (a[0] === 'Aviso prévio' ? -1 : 1))
+    stage.noticeKnown ? ['Aviso prévio', new Date(notice).toISOString().slice(0, 10), today >= notice] : null, ['Vencimento', contract.ends_on, today >= end]
+  ].filter(Boolean).filter(([, date]) => date >= contract.starts_on).sort((a, b) => a[1].localeCompare(b[1]) || (a[0] === 'Aviso prévio' ? -1 : 1))
     // Marcos na mesma data (aviso prévio de 60 dias = marco de 60 dias) viram um rótulo só, sem data repetida.
     .reduce((list, point) => { const last = list.at(-1); if (last && last[1] === point[1]) last[0] = `${last[0]} · ${point[0]}`; else list.push([...point]); return list; }, [])
     .map(([label, date, reached]) => el('li', { class: `life-point${reached ? ' reached' : ''}` }, [el('span', { class: 'life-point-label', text: label }), el('span', { class: 'life-point-date', text: formatDate(date, { withYear: 'auto' }) }), reached ? el('span', { class: 'sr-only', text: '(alcançado)' }) : null])));
-  return el('div', { class: 'lifecycle-bar', role: 'img', 'aria-label': `Vigência de ${formatDate(contract.starts_on)} a ${formatDate(contract.ends_on)}; aviso prévio em ${formatDate(new Date(notice).toISOString().slice(0, 10))}` }, [bar, legend]);
+  return el('div', { class: 'lifecycle-bar', role: 'img', 'aria-label': `Vigência de ${formatDate(contract.starts_on)} a ${formatDate(contract.ends_on)}; ${stage.noticeKnown ? `aviso prévio em ${formatDate(new Date(notice).toISOString().slice(0, 10))}` : 'aviso prévio não registrado'}` }, [bar, legend]);
 }
 
 // Dias até o vencimento pelo calendário de quem lê (daysUntil), a mesma conta
@@ -52,6 +54,7 @@ function contractDays(contract) {
 function contractNextAction(contract) {
   if (!['active', 'renewing'].includes(contract.status)) return { tone: 'neutral', icon: 'clock', text: 'Contrato encerrado. Mantido para histórico.' };
   const stage = renewalStage(contract);
+  if (contract.ends_on && !stage.noticeKnown && stage.stage !== 'expired') return { tone: 'warning', icon: 'alert', text: `Aviso prévio não registrado: a data-limite para avisar a não renovação é desconhecida. Confira o documento e registre um aditivo. Vencimento em ${formatDate(contract.ends_on)}.`, cta: stage.stage === 'window' };
   if (contract.status === 'renewing' && stage.stage !== 'past_notice') return { tone: 'info', icon: 'repeat', text: `Nova concorrência em andamento. Compare as propostas antes do aviso prévio (${formatDate(stage.deadline)}).` };
   if (stage.stage === 'window') return { tone: 'warning', icon: 'alert', text: `Janela de renovação aberta. Decida até ${formatDate(stage.deadline)} (${relativeDays(stage.deadline)}, prazo do aviso prévio) se renova, renegocia ou troca.`, cta: true };
   if (stage.stage === 'past_notice') return { tone: 'danger', icon: 'alert', text: `O prazo do aviso prévio passou em ${formatDate(stage.deadline)}. Negocie com o provedor ou prepare a substituição antes do vencimento (${formatDate(contract.ends_on)}).`, cta: true };

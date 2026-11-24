@@ -552,3 +552,18 @@ test('resumo do portal só se diz truncado quando veio cheio (limite declarado p
   await expect(page.getByText('Resumo de até 200 oportunidades.')).toBeVisible();
   await expect(page.locator('#next-hero-title')).toHaveText('Nenhuma pendência nesta seleção');
 });
+
+// Arandu 11.3 — prazo informado já encerrado não passa à frente do que ainda
+// está no prazo, nem aparece como "urgente". API SIMULADA.
+test('11.3 portal: oportunidade com prazo já passado vai depois da que está no prazo e diz isso', async ({ page }) => {
+  await mockProvider(page);
+  const day = (offset) => new Date(Date.now() + offset * 86400000).toISOString().slice(0, 10);
+  const late = { ...ASSIGNMENT, title: 'Antecipação vencida', response_deadline: day(-3) };
+  const live = { ...ASSIGNMENT, proposal_id: '00000000-0000-4000-8000-0000000000d2', rfq_id: '00000000-0000-4000-8000-0000000000b2', title: 'Fiança no prazo', response_deadline: day(4) };
+  await page.route('**/api/finance/assignments**', (route) => route.fulfill({ json: { ok: true, rows: [late, live] } }));
+  await page.goto('/provider/index.html');
+  await expect(page.locator('#next-hero-title')).toHaveText('Responda: Fiança no prazo');
+  const lateRow = page.locator('.opportunity', { hasText: 'Antecipação vencida' });
+  await expect(lateRow).toContainText('Prazo informado passou');
+  await expect(lateRow.locator('.opportunity-deadline')).not.toHaveClass(/urgent/);
+});

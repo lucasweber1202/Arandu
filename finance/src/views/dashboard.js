@@ -151,14 +151,15 @@ export function actionItems(ctx, approvals) {
 
 const GAP_LABEL = { end: 'sem fim de vigência', notice: 'sem aviso prévio registrado', owner: 'sem responsável' };
 /**
- * Lacunas de um contrato vigente que impedem acompanhar a renovação. Campo
- * ausente da resposta não é lacuna (a lista pode não trazê-lo); só o nulo é.
+ * Lacunas de um contrato vigente que impedem acompanhar a renovação. Aviso
+ * prévio segue renewalStage (nulo, ausente ou inválido = desconhecido; 0 é válido).
+ * Responsável ausente da resposta não é lacuna; só o nulo é.
  * Mesma regra do resumo do Contract 360 (contract-center/summary.js).
  */
 export function contractGaps(contract) {
   const gaps = [];
   if (!/^\d{4}-\d{2}-\d{2}/.test(contract.ends_on || '')) gaps.push('end');
-  else if ('renewal_notice_days' in contract && !(Number.isInteger(contract.renewal_notice_days) && contract.renewal_notice_days >= 0)) gaps.push('notice');
+  else if (!renewalStage(contract).noticeKnown && ['active', 'renewing'].includes(contract.status)) gaps.push('notice');
   if ('owner_id' in contract && !contract.owner_id) gaps.push('owner');
   return gaps;
 }
