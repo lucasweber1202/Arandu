@@ -40,24 +40,41 @@ async function service(path, { method = 'GET', body, prefer } = {}) {
 const marker = (await service(`fin_settings?select=value&key=eq.${DEMO_MARKER_KEY}`))?.[0]?.value;
 if (marker !== DEMO_MARKER_VALUE) { console.error('Banco sem marcador de demonstração: recusado. Semeie o baseline (npm run demo:seed) antes.'); process.exit(2); }
 
-const rows = () => service('fin_demo_workspaces?select=slug,status,baseline_version,created_at,ready_at,claimed_at,expires_at,idle_expires_at,cleanup_attempts,last_error&order=created_at');
+const rows = () => service('fin_demo_workspaces?select=slug,status,baseline_version,created_at,ready_at,claimed_at,expires_at,idle_expires_at,heartbeat_at,failed_at,cleanup_attempts,last_error&order=created_at');
 /** Um seed por workspace, em processo próprio; resolve com o status e a duração. */
+// Filhos vivos: cancelamento do controlador repassa o sinal, e o seed marca o
+// próprio workspace como failed (failed_at) antes de sair.
+const children = new Set();
 function seed(slug, flag) {
   const started = Date.now();
   return new Promise((resolve) => {
     const child = spawn(process.execPath, ['scripts/demo/seed.mjs', ...(flag ? [flag] : []), '--quiet'], {
       cwd: process.cwd(), stdio: ['ignore', 'ignore', 'inherit'], env: { ...process.env, ARANDU_DEMO_WORKSPACE: slug }
     });
-    child.on('close', (status) => resolve({ slug, status, seconds: Math.round((Date.now() - started) / 1000) }));
+    children.add(child);
+    let timedOut = false;
+    const timer = flag ? null : setTimeout(() => { timedOut = true; child.kill('SIGTERM'); }, POOL_POLICY.seedTimeoutMinutes * 60_000);
+    child.on('close', (status) => { children.delete(child); if (timer) clearTimeout(timer);
+      resolve({ slug, status: timedOut ? 124 : status, timedOut, seconds: Math.round((Date.now() - started) / 1000) }); });
+  });
+}
+function forwardSignals(onSignal) {
+  for (const signal of ['SIGTERM', 'SIGINT']) process.once(signal, async () => {
+    for (const child of children) child.kill('SIGTERM');
+    await Promise.race([new Promise((r) => { const t = setInterval(() => { if (!children.size) { clearInterval(t); r(); } }, 200); }), new Promise((r) => setTimeout(r, 20_000))]);
+    await onSignal?.(signal);
+    process.exit(130);
   });
 }
 
 /** Monta `count` workspaces com no máximo `concurrency` seeds ao mesmo tempo; falha remove o escopo parcial. */
-async function provision(count, concurrency, beforeBatch = async () => {}) {
+async function provision(count, concurrency, beforeBatch = async () => count) {
   const results = [];
   for (let start = 0; start < count; start += concurrency) {
-    await beforeBatch();
-    const batch = Array.from({ length: Math.min(concurrency, count - start) }, () => newSlug());
+    // beforeBatch pode reduzir o lote (replanejamento: claims durante a manutenção).
+    const allowed = Math.min(await beforeBatch(start), count - start);
+    if (allowed <= 0) break;
+    const batch = Array.from({ length: Math.min(concurrency, allowed) }, () => newSlug());
     console.log(`Provisionando ${batch.join(', ')}…`);
     for (const result of await Promise.all(batch.map((slug) => seed(slug)))) {
       if (result.status !== 0) { console.error(`  ${result.slug} falhou (status ${result.status}) em ${result.seconds} s; removendo o escopo parcial.`); await seed(result.slug, '--cleanup'); }
@@ -98,28 +115,42 @@ if (command === 'list') {
   if (ok !== due.length) process.exit(1);
 } else if (command === 'maintain') {
   const holder = `pool-${crypto.randomBytes(6).toString('hex')}`;
-  const leaseSeconds = 30 * 60;
-  const lease = () => service('rpc/fin_demo_pool_lease', { method: 'POST', body: { p_holder: holder, p_seconds: leaseSeconds } });
+  const lease = () => service('rpc/fin_demo_pool_lease', { method: 'POST', body: { p_holder: holder, p_seconds: POOL_POLICY.leaseSeconds } });
+  const release = () => service('rpc/fin_demo_pool_release', { method: 'POST', body: { p_holder: holder } }).catch(() => null);
   const started = Date.now();
   const plan = planPool(await rows());
   if (DRY) { console.log(JSON.stringify({ dry_run: true, ...plan, cleanup: plan.cleanup.length })); process.exit(0); }
   if ((await lease()) !== true) { console.log(JSON.stringify({ result: 'skipped', reason: 'outro controlador do pool está ativo' })); process.exit(0); }
+  // Renovação periódica: seeds hospedados levam ~18 min; o lease nunca vence
+  // enquanto este controlador está vivo. Perda do lease = não monta mais nada
+  // (seeds em curso terminam; têm heartbeat próprio e nenhum outro controlador os limpa).
+  let leaseLost = false;
+  const renew = setInterval(() => { lease().then((ok) => { if (ok !== true) leaseLost = true; }).catch(() => { leaseLost = true; }); }, POOL_POLICY.leaseRenewSeconds * 1000);
+  forwardSignals(async (signal) => { clearInterval(renew); await release();
+    console.log(JSON.stringify({ result: 'cancelled', signal, elapsed_seconds: Math.round((Date.now() - started) / 1000) })); });
   let exit = 0;
   try {
     // Replaneja já com o lease: o estado pode ter mudado entre a leitura e a aquisição.
     const current = planPool(await rows());
     const cleaned = await cleanup(current.cleanup);
-    const results = current.provision ? await provision(current.provision, POOL_POLICY.concurrency, async () => {
-      if ((await lease()) !== true) throw new Error('lease do pool perdido; interrompendo antes de montar mais');
+    const results = current.provision ? await provision(current.provision, POOL_POLICY.concurrency, async (done) => {
+      if (leaseLost || (await lease()) !== true) { leaseLost = true; return 0; }
+      // Visitantes podem ter reivindicado prontos durante a manutenção: refaz o plano.
+      const fresh = planPool(await rows());
+      return Math.min(fresh.provision, current.provision - done);
     }) : [];
     const ready = results.filter((r) => r.status === 0);
-    if (cleaned !== current.cleanup.length || ready.length !== results.length) exit = 1;
+    const after = planPool(await rows());
+    if (cleaned !== current.cleanup.length || ready.length !== results.length || leaseLost) exit = 1;
     // Métricas operacionais sem segredo nem identidade: só contagens e durações.
-    console.log(JSON.stringify({ result: exit ? 'partial' : 'ok', reason: current.reason, before: current.counts,
-      cleaned, cleanup_due: current.cleanup.length, provisioned: ready.length, provision_failed: results.length - ready.length,
-      seed_seconds: ready.map((r) => r.seconds), elapsed_seconds: Math.round((Date.now() - started) / 1000) }));
+    console.log(JSON.stringify({ result: leaseLost ? 'lease_lost' : exit ? 'partial' : 'ok', reason: current.reason, before: current.counts,
+      cleaned, cleanup_due: current.cleanup.length, orphaned: current.orphaned.length, provisioned: ready.length,
+      provision_failed: results.length - ready.length, timed_out: results.filter((r) => r.timedOut).length,
+      seed_seconds: results.map((r) => r.seconds), after: after.counts, ready_deficit: after.counts.deficit,
+      elapsed_seconds: Math.round((Date.now() - started) / 1000) }));
   } finally {
-    await service('rpc/fin_demo_pool_release', { method: 'POST', body: { p_holder: holder } }).catch(() => null);
+    clearInterval(renew);
+    await release();
   }
   process.exit(exit);
 } else {

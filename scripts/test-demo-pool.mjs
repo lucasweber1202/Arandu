@@ -1,5 +1,6 @@
 // Plano do controlador do pool da Demo (lib/finance/demo-workspaces.mjs).
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { planPool, POOL_POLICY } from '../lib/finance/demo-workspaces.mjs';
 const now = Date.parse('2026-10-11T12:00:00Z');
 const iso = (minutes) => new Date(now + minutes * 60_000).toISOString();
@@ -23,4 +24,25 @@ assert.equal(planPool([], { now, policy: { ...POOL_POLICY, targetReady: 20 } }).
 // Falhas recentes suspendem a reposição, mas não a limpeza.
 plan = planPool([row('f1', 'failed'), row('f2', 'failed'), row('f3', 'failed')], { now });
 assert.equal(plan.provision, 0); assert.match(plan.reason, /backoff/); assert.equal(plan.cleanup.length, 3);
+// OPS-POOL-02: órfão só por heartbeat parado; seed longo e vivo nunca é limpo.
+plan = planPool([row('live', 'provisioning', { created_at: iso(-25), heartbeat_at: iso(-1) }),
+  row('dead', 'provisioning', { created_at: iso(-25), heartbeat_at: iso(-POOL_POLICY.heartbeatStaleMinutes - 1) }),
+  row('old-live', 'provisioning', { created_at: iso(-8 * 60), heartbeat_at: iso(-2) })], { now });
+assert.deepEqual(plan.cleanup, ['dead']); assert.deepEqual(plan.orphaned, ['dead']);
+assert.equal(plan.counts.provisioning, 2, 'montagem viva conta para o alvo');
+// Backoff pela hora da falha persistida, não pela criação do workspace.
+plan = planPool([1, 2, 3].map((i) => row(`o${i}`, 'failed', { created_at: iso(-300), failed_at: iso(-5) })), { now });
+assert.match(plan.reason, /backoff/);
+plan = planPool([1, 2, 3].map((i) => row(`n${i}`, 'failed', { created_at: iso(-5), failed_at: iso(-120) })), { now });
+assert.equal(plan.provision, POOL_POLICY.targetReady, 'falha antiga não suspende reposição');
+assert.equal(planPool([row('r', 'ready')], { now }).counts.deficit, POOL_POLICY.targetReady - 1);
+assert(POOL_POLICY.leaseRenewSeconds * 3 <= POOL_POLICY.leaseSeconds && POOL_POLICY.seedTimeoutMinutes * 60 < POOL_POLICY.leaseSeconds, 'lease cobre um seed inteiro com folga de renovação');
+// OPS-POOL-04: agenda só com opt-in explícito; CI verde no SHA exato e dry-run antes de escrever.
+const yml = readFileSync('.github/workflows/demo-pool.yml', 'utf8');
+assert(/vars\.ARANDU_DEMO_POOL_AUTOMATION_ENABLED == 'true'/.test(yml) && /github\.event_name == 'workflow_dispatch' \|\|/.test(yml), 'agenda desligada sem opt-in');
+for (const ctx of ['database', 'deploy-boundaries', 'validate', 'presentation']) assert(yml.includes(`"${ctx}"`), `contexto ${ctx} exigido`);
+assert(yml.indexOf('Required CI contexts') < yml.indexOf('Dry-run plan') && yml.indexOf('Dry-run plan') < yml.indexOf('Run pool controller'), 'ordem: CI, dry-run, controlador');
+assert(/cancel-in-progress: false/.test(yml) && /group: arandu-demo-pool/.test(yml));
+assert(Number(/timeout-minutes: (\d+)/.exec(yml)[1]) * 60 > 2 * POOL_POLICY.seedTimeoutMinutes * 60, 'timeout cobre duas levas');
+assert(!/CRON_SECRET/.test(readFileSync('scripts/demo/seed.mjs', 'utf8').slice(readFileSync('scripts/demo/seed.mjs', 'utf8').indexOf('async function runScopedJobs'), readFileSync('scripts/demo/seed.mjs', 'utf8').indexOf('async function finishStory'))), 'workspace não usa o cron global');
 console.log('Demo pool: alvo, montagem em andamento, limpeza só de vencidos/falhos/parados, teto, limite por execução e backoff aprovados.');

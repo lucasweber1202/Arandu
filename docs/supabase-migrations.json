@@ -87,7 +87,8 @@
     "docs/supabase-financial-operating-context.sql",
     "docs/supabase-financial-contract-email-links.sql",
     "docs/supabase-financial-arandu-10.sql",
-    "docs/supabase-financial-invite-integrity.sql"
+    "docs/supabase-financial-invite-integrity.sql",
+    "docs/supabase-financial-demo-pool-integrity.sql"
   ],
   "existingDatabase": [
     "docs/supabase-sprint1-auth-ownership.sql",
@@ -176,6 +177,7 @@
     "docs/supabase-financial-operating-context.sql",
     "docs/supabase-financial-contract-email-links.sql",
     "docs/supabase-financial-arandu-10.sql",
-    "docs/supabase-financial-invite-integrity.sql"
+    "docs/supabase-financial-invite-integrity.sql",
+    "docs/supabase-financial-demo-pool-integrity.sql"
   ]
 }

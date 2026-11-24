@@ -821,6 +821,16 @@ for current_db in "$clean_db" "$upgrade_db" "$fresh_db"; do
   apply_file "$current_db" "tests/database/financial-invite-integrity.sql"
 done
 
+# OPS-POOL-01: workspace-scoped maintenance jobs; baseline/other visitors hashed.
+for current_db in "$clean_db" "$upgrade_db" "$fresh_db"; do
+  apply_file "$current_db" "docs/supabase-financial-demo-pool-integrity.sql"
+  apply_file "$current_db" "tests/database/financial-demo-pool-integrity.sql"
+  apply_file "$current_db" "docs/rollback/supabase-financial-demo-pool-integrity.rollback.sql"
+  apply_file "$current_db" "docs/supabase-financial-demo-pool-integrity.sql"
+  apply_file "$current_db" "docs/supabase-financial-demo-pool-integrity.sql"
+  apply_file "$current_db" "tests/database/financial-demo-pool-integrity.sql"
+done
+
 # Executor de migrations hospedadas: lock, marcador real e rollback integral.
 (cd "$root_dir" && node tests/database/release-migration-guard.mjs "$base_url")
 
