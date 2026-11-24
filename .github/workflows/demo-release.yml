@@ -1,0 +1,120 @@
+name: Arandu Demo — release remoto (plan → rehearse → apply)
+
+# Release das migrations da Demo canônica sem máquina pessoal (issue #366,
+# docs/ops/DEMO_REMOTE_RELEASE.md). Só execução manual na main revisada; sem
+# agenda. `plan` é somente leitura; `rehearse` lê a Demo e ensaia numa cópia
+# PostgreSQL 17 descartável no próprio runner; `apply` exige ensaio aprovado
+# na MESMA execução, preservação quando houver sessão de visitante válida,
+# lease do pool e referência de autorização. Nunca recebe credencial de
+# Production/staging. O dump em texto fica só em RUNNER_TEMP (0700) e é apagado;
+# nada de dump, chave privada ou relatório bruto vira artifact.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: plan (somente leitura), rehearse (ensaio na cópia) ou apply (aplica na Demo)
+        required: true
+        default: plan
+        type: choice
+        options: [plan, rehearse, apply]
+      reviewed_sha:
+        description: SHA completo revisado da main
+        required: true
+        type: string
+      authorization_reference:
+        description: "Somente para apply: referência auditável da autorização do owner (ex.: issue-366-comment-123456)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  checks: read
+
+concurrency:
+  # Mesmo grupo do controlador do pool: release e manutenção nunca simultâneos.
+  group: arandu-demo-pool
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    environment: demo
+    timeout-minutes: 60
+    steps:
+      - name: Verify reviewed code identity
+        env:
+          REVIEWED_SHA: ${{ inputs.reviewed_sha }}
+          EXECUTION_SHA: ${{ github.sha }}
+        run: node -e 'if (!/^[a-f0-9]{40}$/.test(process.env.REVIEWED_SHA || "") || process.env.REVIEWED_SHA !== process.env.EXECUTION_SHA) process.exit(1)'
+
+      - name: Required CI contexts green on this exact SHA (fail closed)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh api "repos/$REPO/commits/$SHA/check-runs?per_page=100" > "$RUNNER_TEMP/checks.json"
+          node -e '
+            const runs = require(process.argv[1]).check_runs || [];
+            const need = ["database", "deploy-boundaries", "validate", "presentation"];
+            const bad = need.filter((name) => !runs.some((r) => r.name === name && r.status === "completed" && r.conclusion === "success"));
+            if (bad.length) { console.error("Contextos obrigatórios não verdes neste SHA: " + bad.join(", ")); process.exit(1); }' "$RUNNER_TEMP/checks.json"
+
+      - name: Apply requires authorization reference
+        if: inputs.mode == 'apply'
+        env:
+          AUTH: ${{ inputs.authorization_reference }}
+        run: node -e 'const a=process.env.AUTH||""; if(!/^[A-Za-z0-9][A-Za-z0-9._:\/#-]{7,119}$/.test(a)||/eyJ|postgres|@/.test(a)) { console.error("authorization_reference ausente ou inválida."); process.exit(1); }'
+
+      - name: Checkout reviewed main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+
+      - name: Install
+        run: npm ci --ignore-scripts
+
+      - name: Prepare signed Ubuntu archive for recovery tools
+        run: sudo "$(command -v node)" scripts/configure-ci-apt.mjs
+
+      - name: Install pinned PostgreSQL 17 and age
+        run: bash scripts/install-recovery-tools.sh
+
+      - name: Disposable PostgreSQL 17 image (pinned)
+        if: inputs.mode != 'plan'
+        run: docker pull -q public.ecr.aws/supabase/postgres:17.6.1.166
+
+      - name: Remote release
+        env:
+          ARANDU_ENV: demo
+          MODE: ${{ inputs.mode }}
+          ARANDU_DEMO_DATABASE_URL: ${{ secrets.ARANDU_DEMO_DATABASE_URL }}
+          ARANDU_RELEASE_AUTHORIZATION: ${{ inputs.authorization_reference }}
+          # Preservação (somente se houver sessão de visitante válida): chave
+          # PÚBLICA age e repositório PRIVADO do owner; nunca a identidade privada.
+          ARANDU_DEMO_BACKUP_RECIPIENT: ${{ vars.ARANDU_DEMO_BACKUP_RECIPIENT }}
+          ARANDU_DEMO_BACKUP_REPOSITORY: ${{ vars.ARANDU_DEMO_BACKUP_REPOSITORY }}
+          ARANDU_DEMO_BACKUP_TOKEN: ${{ secrets.ARANDU_DEMO_BACKUP_TOKEN }}
+        run: node scripts/demo/remote-release.mjs "$MODE"
+
+      - name: Sanitized summary
+        if: always()
+        run: |
+          node -e '
+            const fs = require("fs"); const f = "reports/demo-release.json";
+            if (!fs.existsSync(f)) { console.log("Sem relatório."); process.exit(0); }
+            const r = JSON.parse(fs.readFileSync(f, "utf8"));
+            const lines = [`## Demo release: ${r.result}`, `- caminho: ${r.plan?.path ?? "—"}`, `- schema: ${r.plan?.schema_version ?? "—"}`,
+              `- pendentes: ${(r.plan?.pending || []).map((p) => p.file.replace("docs/", "")).join(", ") || "—"}`,
+              `- dados fictícios: ${r.plan?.classification?.fictitious ?? "—"}; sessões válidas: ${r.plan?.non_regenerable?.claimed_valid ?? "—"}`,
+              `- ensaio: ${r.rehearsal ? Object.entries(r.rehearsal.checks).map(([k, v]) => k + "=" + v).join(" ") : "—"}`,
+              `- snapshot sha256: ${r.rehearsal?.snapshot_sha256 ?? "—"}`,
+              r.blocked ? `- **BLOQUEADO ${r.blocked.code}**: ${r.blocked.message}` : ""];
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n");'

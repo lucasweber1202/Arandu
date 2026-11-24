@@ -152,8 +152,11 @@ export function makeExec({ cwd = process.cwd(), secrets = [], log = (line) => pr
     // Ambiente mínimo: PATH/HOME e o que a etapa precisa. Nada do shell do operador vaza.
     const childEnv = { PATH: process.env.PATH, HOME: process.env.HOME, LANG: 'C.UTF-8', ...env };
     const result = spawnSync(command, args, { cwd, env: childEnv, input, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
-    const out = sanitize(`${result.stdout || ''}${result.stderr || ''}`, secrets);
-    if (out.trim()) log(out.trim().split('\n').map((l) => `  [${stage}] ${l}`).join('\n'));
+    // Log só do stderr (diagnóstico); stdout é dado de trabalho (ex.: schema) e
+    // só aparece, sanitizado, quando a etapa falha.
+    const failed = Boolean(result.error) || result.status !== 0;
+    const out = sanitize(`${failed ? result.stdout || '' : ''}${result.stderr || ''}`, secrets);
+    if (out.trim()) log(out.trim().split('\n').slice(-200).map((l) => `  [${stage}] ${l}`).join('\n'));
     if (!allowFail && (result.error || result.status !== 0)) {
       const blocked = /BLOQUEADO \(([A-Z_]+)\)/.exec(out)?.[1] || /\(((?:RECOVERY|STORAGE)_[A-Z_]+)\)/.exec(out)?.[1];
       stop(stage, blocked || 'STEP_FAILED', `Etapa ${stage} falhou (${command} ${args[0] || ''}); nada posterior foi executado.`);
@@ -191,7 +194,8 @@ export function releaseGateChain({ exec, sourceEnv, store, root, schema, postgre
   fs.mkdirSync(gateDir, { recursive: true, mode: 0o700 });
   fs.chmodSync(gateDir, 0o700);
   const dumpFile = path.join(gateDir, `demo-public-${at.toISOString().replace(/[:.]/g, '-')}.dump`);
-  exec('release-backup', 'pg_dump', ['--schema=public', '--format=custom', '--no-owner', '--no-acl', '--file', dumpFile], { env: sourceEnv });
+  // Com ACLs: o ensaio de migrations restaura grants fielmente; verify-backup-restore os ignora (--no-acl no restore).
+  exec('release-backup', 'pg_dump', ['--schema=public', '--format=custom', '--no-owner', '--file', dumpFile], { env: sourceEnv });
   fs.chmodSync(dumpFile, 0o600);
   const sha256 = createHash('sha256').update(fs.readFileSync(dumpFile)).digest('hex');
   const schemaSql = exec('release-backup', 'pg_dump', ['--schema=public', '--schema-only', '--no-owner', '--no-acl'], { env: sourceEnv }).stdout;
