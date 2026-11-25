@@ -45,4 +45,35 @@ assert(yml.indexOf('Required CI contexts') < yml.indexOf('Dry-run plan') && yml.
 assert(/cancel-in-progress: false/.test(yml) && /group: arandu-demo-pool/.test(yml));
 assert(Number(/timeout-minutes: (\d+)/.exec(yml)[1]) * 60 > 2 * POOL_POLICY.seedTimeoutMinutes * 60, 'timeout cobre duas levas');
 assert(!/CRON_SECRET/.test(readFileSync('scripts/demo/seed.mjs', 'utf8').slice(readFileSync('scripts/demo/seed.mjs', 'utf8').indexOf('async function runScopedJobs'), readFileSync('scripts/demo/seed.mjs', 'utf8').indexOf('async function finishStory'))), 'workspace não usa o cron global');
+// Regressão (auditoria pós-#368): todo step de workflow que executa script
+// guardado por assertDemoTarget precisa receber (no job ou no step) TODAS as
+// variáveis que a trava lê; senão falha antes de qualquer leitura.
+{
+  const guard = readFileSync('lib/finance/demo-guard.mjs', 'utf8');
+  const body = guard.slice(guard.indexOf('export function assertDemoTarget'), guard.indexOf('export function assertDemoDatabase'));
+  const required = [...new Set([...body.matchAll(/read\(env, '([A-Z_]+)'\)/g)].map((m) => m[1]))].filter((n) => n !== 'VERCEL_ENV');
+  assert(required.includes('ARANDU_DEMO_PASSWORD') && required.includes('SUPABASE_URL'), 'variáveis exigidas extraídas da trava');
+  const guarded = /scripts\/demo\/(workspaces|seed|readiness|baseline-state|hosted-preflight)\.mjs/;
+  const envBlock = (lines, i, indent) => { const names = []; for (let j = i + 1; j < lines.length; j++) {
+    if (!lines[j].trim() || lines[j].trim().startsWith('#')) continue;
+    const m = /^(\s*)([A-Z_][A-Z0-9_]*):/.exec(lines[j]);
+    if (!m || m[1].length <= indent) break; names.push(m[2]); } return names; };
+  const checked = [];
+  for (const file of ['demo-pool.yml', 'demo-hosted-seed.yml', 'demo-release.yml']) {
+    const lines = readFileSync(`.github/workflows/${file}`, 'utf8').split('\n');
+    let jobEnv = [], stepEnv = [];
+    lines.forEach((line, i) => {
+      const indent = line.length - line.trimStart().length;
+      if (/^  [a-z][\w-]*:\s*$/.test(line)) jobEnv = [];
+      if (/^\s*- /.test(line)) stepEnv = [];
+      if (/^\s*env:\s*$/.test(line)) { if (indent === 4) jobEnv = envBlock(lines, i, indent); else stepEnv = envBlock(lines, i, indent); }
+      if (guarded.test(line) && !line.trim().startsWith('#')) {
+        const missing = required.filter((n) => !jobEnv.includes(n) && !stepEnv.includes(n));
+        assert.deepEqual(missing, [], `${file}:${i + 1} executa script guardado sem ${missing.join(', ')}`);
+        checked.push(`${file}:${i + 1}`);
+      }
+    });
+  }
+  assert(checked.some((c) => c.startsWith('demo-pool.yml')) && checked.length >= 4, `steps guardados verificados: ${checked}`);
+}
 console.log('Demo pool: alvo, montagem em andamento, limpeza só de vencidos/falhos/parados, teto, limite por execução e backoff aprovados.');
