@@ -98,6 +98,13 @@
       "previous": 914711,
       "reason": "Arandu 12 (PR #364), +3.140 B medidos por chunk contra a main d129872: provider +1.739 B (prévia minimizada do convite: empresa, produto, prazos e estado, descarte de resposta atrasada, trava de convite encerrado), decision-studio +975 B (UX-01 resultado de cenário único; UX-02 cenários salvos no dossiê com versão, origem, revisão e instante), rfq +378 B (convite idempotente: 'já enviado'/'atualizado'), renewal-workbench +42 B (DATA-01 só tarefas abertas), work-queue +6 B (UX-03 data pt-BR). Lazy loading não reduz o agregado (todos os chunks contam). Nenhum módulo novo na abertura; nenhum hard limit alterado.",
       "journeyBaseline": "2026-11-23"
+    },
+    {
+      "date": "2026-11-25",
+      "accepted": 918959,
+      "previous": 917851,
+      "reason": "Arandu 12.1 (PR #370), +1.108 B: rfq/decision-tab/shared approvals passam a usar a regra única approvalNextAction (P2-D: 'Registrar decisão' após aprovação válida, 'Solicitar nova aprovação' para rejeitada/desatualizada, cartão 'Aprovação desatualizada'); ledger pré-seleciona o contrato no formulário de obrigações e formDrawer aceita valor inicial em select (P2-C). Correções de produto sem módulo novo na abertura; nenhum hard limit alterado.",
+      "journeyBaseline": "2026-11-23"
     }
   ]
 }

@@ -897,6 +897,20 @@ test('covenants: origem desconhecida ou malformada não expõe identificador nem
   await expect(page.locator('.origin-context')).toHaveCount(0);
 });
 
+test('12.1 obrigações: aberto pelo contrato, o formulário já traz o contrato e nenhum rótulo é identificador', async ({ page }) => {
+  await mockSession(page);
+  const OTHER = '00000000-0000-4000-8000-0000000000d2';
+  const form = { label: 'Registrar obrigação', primary: true, title: 'Registrar covenant ou obrigação', post: 'covenants/open', intro: '',
+    fields: [['contract_id', 'Contrato', [['', 'Selecione'], [OTHER, 'Banco Aurora · Crédito empresarial · vence 31/03/2027'], [CONTRACT, 'Capital de giro carteira · Banco Carteira']], { required: true }], ['title', 'Título', 'text', { required: true }]] };
+  await page.route('**/api/finance/covenants?**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, cards: [], columns: [], rows: [], empty: { title: 'Nenhuma obrigação' }, options: {}, forms: [form] }) }));
+  await page.goto(`/finance/covenants.html?contract_id=${CONTRACT}&contrato=${CONTRACT}`);
+  await page.getByRole('button', { name: 'Registrar obrigação' }).click();
+  const select = page.getByRole('dialog').getByLabel('Contrato');
+  await expect(select).toHaveValue(CONTRACT);
+  await expect(select.locator('option:checked')).toHaveText('Capital de giro carteira · Banco Carteira');
+  await expect(page.getByRole('dialog')).not.toContainText(/[0-9a-f]{8}-[0-9a-f]{4}-/);
+});
+
 // ------------------------------------------- tarefas com paginação do servidor (#206)
 const many = (n, extra = {}) => Array.from({ length: n }, (_, i) => ({ ...OPEN_TASK, related_type: null, related_id: null,
   id: `00000000-0000-4000-8000-${String(1000 + i).padStart(12, '0')}`, title: `Tarefa sintética ${String(i + 1).padStart(3, '0')}`, due_on: `2027-${String(1 + (i % 12)).padStart(2, '0')}-${String(1 + (i % 28)).padStart(2, '0')}`, ...extra }));

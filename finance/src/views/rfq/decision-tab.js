@@ -5,7 +5,7 @@
 import { PRODUCTS } from '../../../../lib/finance/products.mjs';
 import { el, icon, fieldValue, formatDate, formatDateTime, textSpan, textStrong, textItem } from '../../core.js';
 import { card, button, linkButton, emptyState, errorState, loading, toast, confirmDialog, field, onSubmit, mutedText, toastError } from '../../ui.js';
-import { approvalSummaryLine } from '../shared/approvals.js';
+import { approvalSummaryLine, validApproval } from '../shared/approvals.js';
 import { memberName } from '../shared/people.js';
 import { keyTerms } from '../shared/terms.js';
 import { proposalChanges } from '../../../../lib/finance/comparison-context.mjs';
@@ -44,7 +44,7 @@ export function decisionTab(ctx, rfq, { decision, contract, policy, approvals, m
   if(rfq.external_decision_error) wrap.append(el('p',{class:'callout callout-warning',text:'As alternativas externas não puderam ser consultadas. Recarregue antes de selecionar uma fonte externa.'}));
   if (!proposals.length) { wrap.append(emptyState({ title: 'A decisão fica disponível com propostas', text: 'Assim que houver ao menos uma proposta enviada, a empresa pode registrar sua escolha.', iconName: 'flag' })); return wrap; }
   if (!['collecting', 'comparing'].includes(rfq.status) && !(rfq.status==='open'&&rfq.external_decision_alternatives?.length)) { wrap.append(emptyState({ title: 'Sem decisão para este estado', text: 'Decisões são registradas enquanto a solicitação está em coleta ou avaliação.', iconName: 'flag' })); return wrap; }
-  const approved = approvals.find((row) => row.status === 'approved' && !row.stale);
+  const approved = validApproval(approvals);
   const pending = approvals.find((row) => row.status === 'pending');
   if (policy.required_for_decision && !approved) {
     wrap.append(el('div', { class: 'callout callout-warning' }, [icon('lock'), el('div', {}, [

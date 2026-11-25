@@ -3,7 +3,7 @@
 // Uso: node tests/database/release-migration-guard.mjs <url-do-servidor-descartável>
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
-import { guardPrefix, selectPendingSections, assertSingleTransaction, finalMarker } from '../../lib/release-migration-guard.mjs';
+import { guardPrefix, selectPendingSections, assertSingleTransaction, finalMarker, transactionBody } from '../../lib/release-migration-guard.mjs';
 import { readFileSync } from 'node:fs';
 
 const base = process.argv[2];
@@ -18,9 +18,11 @@ function psql(target, args, input) {
   const result = spawnSync('psql', [target, '-XAt', '-v', 'ON_ERROR_STOP=1', ...args], { encoding: 'utf8', input });
   return { ok: result.status === 0, out: String(result.stdout).trim(), err: String(result.stderr) };
 }
+// Forma canônica (P1-A): transação do executor, arquivo sem o próprio BEGIN/COMMIT.
 function apply(expectedBefore, body) {
-  return psql(url, ['-1'], `${guardPrefix(expectedBefore)}\n${body}\n`);
+  return psql(url, ['-1'], `${guardPrefix(expectedBefore)}\n${transactionBody(body, 'test.sql')}\n`);
 }
+const TX_WARNINGS = /already a transaction in progress|no transaction in progress/i;
 const marker = () => psql(url, ['-c', "select value from public.fin_settings where key='schema_version'"]).out;
 const tableExists = (name) => psql(url, ['-c', `select to_regclass('public.${name}') is not null`]).out === 't';
 const migration = (target, extra = '') => `begin;\ncreate table public.guard_probe_${target.replace(/-/g, '_')}(id int);\n${extra}\n`
@@ -63,6 +65,49 @@ try {
   result = apply('financial-a-1', migration('financial-b-1'));
   assert.equal(result.ok, false);
   assert.match(result.err, /arandu-release-guard/);
+
+  // P1-A: sem avisos de transação aninhada/encerrada e uma única transação.
+  result = apply('financial-b-1', migration('financial-c-1'));
+  assert.ok(result.ok, result.err);
+  assert.doesNotMatch(result.err, TX_WARNINGS, 'avisos de transação no apply canônico');
+  assert.equal(marker(), 'financial-c-1');
+  // Regressão documentada: a forma antiga (arquivo com BEGIN/COMMIT sob -1) avisava.
+  const legacy = psql(url, ['-1'], `${guardPrefix('financial-c-1')}\n${migration('financial-d-1')}\n`);
+  assert.match(legacy.err, TX_WARNINGS);
+  psql(url, ['-c', "drop table public.guard_probe_financial_d_1; update public.fin_settings set value='financial-c-1' where key='schema_version'"]);
+
+  // Falha induzida no fim da migration (depois do marcador): nada persiste,
+  // nem o marcador gravado antes do erro.
+  result = apply('financial-c-1', `begin;\ncreate table public.guard_probe_late(id int);\ninsert into public.fin_settings(key,value) values('schema_version','financial-e-1') on conflict(key) do update set value=excluded.value;\nselect 1/0;\ncommit;`);
+  assert.equal(result.ok, false);
+  assert.doesNotMatch(result.err, TX_WARNINGS);
+  assert.equal(marker(), 'financial-c-1');
+  assert.equal(tableExists('guard_probe_late'), false, 'persistência parcial após falha');
+
+  // Falha induzida no rollback: nada do rollback persiste.
+  const rollback = (extra) => `begin;\ndrop table public.guard_probe_financial_c_1;\n${extra}\ncommit;`;
+  result = apply('financial-c-1', rollback('select 1/0;'));
+  assert.equal(result.ok, false);
+  assert.equal(tableExists('guard_probe_financial_c_1'), true, 'rollback parcial persistiu');
+  result = apply('financial-c-1', rollback(''));
+  assert.ok(result.ok, result.err);
+  assert.doesNotMatch(result.err, TX_WARNINGS);
+  assert.equal(tableExists('guard_probe_financial_c_1'), false);
+
+  // Bundle de instalação limpa: vários arquivos numa transação; a falha do
+  // segundo desfaz o primeiro (antes, o COMMIT do primeiro o persistia).
+  const bundle = (second) => [migration('financial-f-1'), second].map((sql, i) => transactionBody(sql, `b${i}.sql`)).join('\n');
+  result = psql(url, ['-1'], bundle('begin;\nselect 1/0;\ncommit;'));
+  assert.equal(result.ok, false);
+  assert.equal(tableExists('guard_probe_financial_f_1'), false, 'bundle parcialmente persistido');
+  assert.equal(marker(), 'financial-c-1');
+
+  // Arquivos reais do manifesto e rollbacks: corpo sem controle transacional residual.
+  for (const file of JSON.parse(readFileSync('docs/supabase-migrations.json', 'utf8')).cleanInstall) {
+    const body = transactionBody(readFileSync(file, 'utf8'), file);
+    assert.doesNotMatch(body.replace(/--[^\n]*/g, ''), /^\s*(begin|commit)\s*;/im, file);
+  }
+  assert.throws(() => transactionBody('begin;\nselect 1;\ncommit;\nselect 2;', 'x'), /após COMMIT/);
 
   // Seleção real do manifesto: somente o sufixo após o marcador observado da Demo.
   const manifest = JSON.parse(readFileSync('docs/supabase-migrations.json', 'utf8')).existingDatabase;

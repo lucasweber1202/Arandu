@@ -4,7 +4,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { inspectBackupArtifact, inspectRestoreEvidence, validOperationalReference } from '../lib/backup-evidence.mjs';
-import { DEMO_REF, assertSingleTransaction, demoConnectionProblems, guardPrefix, sanitizedChildEnv, selectPendingSections } from '../lib/release-migration-guard.mjs';
+import { DEMO_REF, assertSingleTransaction, demoConnectionProblems, guardPrefix, sanitizedChildEnv, selectPendingSections, transactionBody } from '../lib/release-migration-guard.mjs';
 
 const root = process.cwd();
 const args = new Map(process.argv.slice(2).map((argument) => {
@@ -232,7 +232,7 @@ try {
       const sha256 = sections.find((item) => item.file === section.file).sha256;
       try {
         run('psql', [databaseUrl, '-X', '-v', 'ON_ERROR_STOP=1', '-1'],
-          { input: `${guardPrefix(section.expectedBefore)}\n-- ${section.file}\n-- sha256: ${sha256}\n${section.content}\n` });
+          { input: `${guardPrefix(section.expectedBefore)}\n-- ${section.file}\n-- sha256: ${sha256}\n${transactionBody(section.content, section.file)}\n` });
       } catch (error) {
         report.steps.push({ name: 'apply', ok: false, detail: { file: section.file, sha256 } });
         fail(`Migration ${section.file} falhou e foi revertida: ${error.message}`);
@@ -247,7 +247,9 @@ try {
     }
     report.steps.push({ name: 'schema-postflight', ok: true, detail: { schema_version: pending.at(-1).expectedAfter } });
   } else {
-    run('psql', [databaseUrl, '-X', '-v', 'ON_ERROR_STOP=1', '-1'], { input: bundle });
+    // Instalação limpa: o bundle inteiro numa única transação do executor.
+    const atomicBundle = sections.map(({ file, sha256, content }) => `-- ${file}\n-- sha256: ${sha256}\n${transactionBody(content, file)}\n`).join('\n');
+    run('psql', [databaseUrl, '-X', '-v', 'ON_ERROR_STOP=1', '-1'], { input: atomicBundle });
     report.steps.push({ name: 'apply', ok: true, detail: { bundleSha256: report.bundleSha256 } });
   }
 

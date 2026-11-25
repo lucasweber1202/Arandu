@@ -412,7 +412,7 @@ export function formDrawer(title, intro, specs, submit, done = 'Registro preserv
   const values = {};
   const read = [];
   const form = el('form', { class: 'stack' }, [intro ? el('p', { class: 'muted small', text: intro }) : null, ...specs.map(([key, label, kind = 'text', attrs = {}]) => {
-    const control = Array.isArray(kind) ? el('select', {}, kind.map(([value, text]) => el('option', { value, text })))
+    const control = Array.isArray(kind) ? el('select', {}, kind.map(([value, text]) => el('option', { value, text, selected: attrs.value !== undefined && value === attrs.value })))
       : el(kind === 'textarea' ? 'textarea' : 'input', { type: kind === 'textarea' ? null : kind, maxlength: kind === 'text' ? 200 : kind === 'textarea' ? 1000 : null, ...(kind === 'number' ? { min: 0, step: '.01' } : {}), ...attrs });
     read.push(() => { values[key] = kind === 'checkbox' ? control.checked : control.value === '' ? null : kind === 'number' ? Number(control.value) : control.value; });
     return field({ label, control, required: Boolean(attrs.required) });
