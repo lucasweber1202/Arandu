@@ -101,7 +101,14 @@ export async function ledgerPage(ctx, { resource, title, subtitle, filters, scop
   let filled = false;
   let refetch = false;
   const reload = () => { cursor = null; return load(); };
-  const open = (form, done = reload) => formDrawer(form.title, form.intro, form.fields, async (values) => {
+  // Aberto a partir de um contrato (?contrato= / filtro): o formulário já vem
+  // com esse contrato selecionado, se ele estiver entre as opções permitidas.
+  const preselect = (fields) => {
+    const wanted = params.get('contrato') || controls.contract_id?.value || '';
+    return wanted ? fields.map(([key, label, kind, attrs = {}]) => (key === 'contract_id' && Array.isArray(kind) && kind.some(([v]) => v === wanted)
+      ? [key, label, kind, { ...attrs, value: wanted }] : [key, label, kind, attrs])) : fields;
+  };
+  const open = (form, done = reload) => formDrawer(form.title, form.intro, preselect(form.fields), async (values) => {
     await post(ctx, form.post, { organization_id: ctx.organization.id, ...form.fixed, ...Object.fromEntries(Object.entries(values).filter(([, v]) => v !== null)) });
     await done();
   }, undefined, { onUncertain: reload });

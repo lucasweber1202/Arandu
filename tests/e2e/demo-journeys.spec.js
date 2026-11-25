@@ -169,6 +169,10 @@ test('jornada completa: comprador → provedor → comprador → aprovador → d
   // Comprador decide, registra contrato e vê a renovação.
   await asPersona(page, 'Comprador');
   await page.goto(`${rfqUrl}#decisao`);
+  // Arandu 12.1 / P2-D: aprovação final válida => a ação principal é decidir,
+  // nunca pedir a aprovação de novo (cabeçalho e próximo passo coerentes).
+  await expect(page.getByRole('link', { name: 'Solicitar aprovação' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Registrar decisão' }).first()).toBeVisible();
   await page.getByRole('button', { name: 'Registrar decisão' }).click();
   await confirm(page, 'Registrar decisão');
   await expect(page.locator('#decisao-registrada')).toContainText('Atlas Bank — DEMO');

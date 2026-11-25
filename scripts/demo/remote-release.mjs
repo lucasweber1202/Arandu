@@ -16,7 +16,7 @@ import path from 'node:path';
 import { createHash, randomBytes } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { makeExec, disposablePostgres, releaseGateChain, validateSourceUrl, pgEnv, sanitize, OrchestratorStop } from '../recovery/orchestrate.mjs';
-import { DEMO_REF, selectPendingSections } from '../../lib/release-migration-guard.mjs';
+import { DEMO_REF, selectPendingSections, guardPrefix, transactionBody } from '../../lib/release-migration-guard.mjs';
 import { DEMO_EMAIL_DOMAINS } from '../../lib/finance/demo-guard.mjs';
 import { PATHS, POLICY_VERSION, recoveryPath, classifyData, nonRegenerableState, decideDemoRelease } from '../../lib/demo-recovery-policy.mjs';
 
@@ -83,11 +83,21 @@ export function rehearse({ exec, sourceEnv, planned, workDir, postgres = disposa
       psql('rehearse', ['-c', `alter role authenticator set ${key} = '${value}'`]);
     }
     if (marker() !== planned.schema_version) stop('rehearse', 'REHEARSAL_SOURCE_MISMATCH', 'Cópia não está no marcador da origem.');
-    const apply = () => { for (const m of planned.pending) { psql('migrations', ['-1', '-f', path.join(root, m.file)]); if (marker() !== m.expectedAfter) stop('migrations', 'MIGRATION_MARKER_MISMATCH', `${m.file} não gravou ${m.expectedAfter}.`); } };
+    // Mesma forma do apply hospedado (scripts/release-migrations.mjs): uma
+    // transação do executor por arquivo, com advisory lock + marcador conferidos
+    // nela, e o arquivo sem o próprio BEGIN/COMMIT (transactionBody).
+    const atomic = (stage, expectedBefore, file) => exec(stage, 'psql', ['-X', '-q', '-v', 'ON_ERROR_STOP=1', '-1'],
+      { env: t, input: `${guardPrefix(expectedBefore)}\n-- ${file}\n${transactionBody(fs.readFileSync(path.join(root, file), 'utf8'), file)}\n` });
+    const apply = () => { for (const m of planned.pending) { atomic('migrations', m.expectedBefore, m.file); if (marker() !== m.expectedAfter) stop('migrations', 'MIGRATION_MARKER_MISMATCH', `${m.file} não gravou ${m.expectedAfter}.`); } };
     apply(); checks.migrations_applied = 'PASS';
     psql('probes', ['-f', path.join(root, 'ops/sql/post-migration-probes.sql')]); checks.post_migration_probes = 'PASS';
     psql('canary', ['-f', path.join(root, 'ops/sql/pilot-isolation-canary.sql')]); checks.isolation_canary = 'PASS';
-    for (const m of [...planned.pending].reverse()) { if (!fs.existsSync(path.join(root, m.rollback))) stop('rollback', 'ROLLBACK_MISSING', `${m.rollback} ausente.`); psql('rollback', ['-1', '-f', path.join(root, m.rollback)]); }
+    for (const m of [...planned.pending].reverse()) { if (!fs.existsSync(path.join(root, m.rollback))) stop('rollback', 'ROLLBACK_MISSING', `${m.rollback} ausente.`); atomic('rollback', planned.pending.at(-1).expectedAfter, m.rollback); }
+    // Os rollbacks versionados não regravam schema_version; só na cópia
+    // descartável o marcador volta ao da origem, para a reaplicação passar pelo
+    // mesmo guard (lock + marcador) do apply hospedado.
+    if (!/^financial-[a-z0-9-]+$/.test(planned.schema_version)) stop('rollback', 'PLAN_INVALID', 'Marcador de origem inválido.');
+    psql('rollback', ['-1', '-c', `update public.fin_settings set value = '${planned.schema_version}' where key = 'schema_version'`]);
     checks.rollback = 'PASS';
     apply();
     psql('probes', ['-f', path.join(root, 'ops/sql/post-migration-probes.sql')]); checks.reapply = 'PASS';

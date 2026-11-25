@@ -27,6 +27,7 @@ import path from 'node:path';
 import { seedProfiler } from './profile.mjs';
 import { seedCoordination } from '../ci-demo/seed-coordination.mjs';
 import { retryDelayMs } from './backpressure.mjs';
+import { scopedStoragePaths, deleteStorageObjects, STORAGE_BUCKET } from '../../lib/demo/storage-cleanup.mjs';
 import {
   assertDemoTarget, assertDemoDatabase, assertDemoApplication, DemoGuardError,
   DEMO_EMAIL_DOMAINS, DEMO_MARKER_KEY, DEMO_MARKER_VALUE, isDemoEmail
@@ -326,12 +327,16 @@ async function resetDemo() {
   log(`Reset: ${scope.orgs.length} organização(ões) e ${scope.users.length} conta(s) fictícias encontradas.`);
   if (scope.orgs.length) {
     // Objetos do Storage dos documentos fictícios.
-    const paths = scope.documents.length
-      ? (await service(`fin_document_versions?select=storage_path&document_id=${inList(scope.documents)}`)).payload.map((row) => row.storage_path).filter(Boolean)
+    // Antes das tabelas: se o Storage falhar, o reset para aqui e as referências
+    // (fin_document_versions) ficam para a próxima tentativa (Arandu 12.1 / P1-B).
+    const references = scope.documents.length
+      ? (await service(`fin_document_versions?select=document_id,storage_bucket,storage_path&document_id=${inList(scope.documents)}`)).payload
       : [];
-    for (let index = 0; index < paths.length; index += 100) {
-      await service('object/fin-documents', { base: 'storage/v1', method: 'DELETE', body: { prefixes: paths.slice(index, index + 100) } }).catch(() => null);
-    }
+    const paths = scopedStoragePaths(references, { orgs: scope.orgs, documents: scope.documents });
+    await deleteStorageObjects(paths, { remove: async (prefixes) => {
+      try { await service(`object/${STORAGE_BUCKET}`, { base: 'storage/v1', method: 'DELETE', body: { prefixes } }); }
+      catch (error) { const status = /: (\d{3})\b/.exec(error.message)?.[1]; throw Object.assign(error, { status: status ? Number(status) : undefined }); }
+    } });
     for (const [table, , filter] of scopedTables(scope)) await service(`${table}?${filter}`, { method: 'DELETE' });
   }
   if (scope.userIds.length) {

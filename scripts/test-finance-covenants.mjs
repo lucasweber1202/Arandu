@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {Readable} from 'node:stream';
 import {covenantComparison,reviewChoices} from '../lib/finance/covenants.mjs';
-import {presentCovenantPage,presentCovenantDetail,presentCovenantSummary} from '../lib/finance/covenant-presenter.mjs';
+import {presentCovenantPage,presentCovenantDetail,presentCovenantSummary,contractOptionLabel} from '../lib/finance/covenant-presenter.mjs';
 import {handleFinance} from '../lib/api/domains/finance.mjs';
 assert.equal(covenantComparison('1.00000000000000001','gt','1'),true);
 assert.equal(covenantComparison('999999999999999999','lt','1000000000000000000'),true);
@@ -28,3 +28,19 @@ assert.equal(sent.find(s=>s.url.endsWith('/fin_open_obligation')).body.p_input.o
  assert.doesNotMatch(shown(named),UUID);assert.doesNotMatch(shown(named),ISO);assert.match(shown(named),/Contrato Atlas/);
  const hidden=presentCovenantDetail({period,measurements:[],evidence:[],reviews:[],waivers:[]});assert.doesNotMatch(shown(hidden),UUID);assert.match(shown(hidden),/Contrato indisponível/);}
 console.log('Covenants: unknown vs numeric facts, review choices, coverage, empty/hidden scopes, user JWT and server-derived tenant passed.');
+
+// Arandu 12.1 / P2-C: seletor de contratos sem UUID (RFQ, manual, legado).
+{
+ const id='9b2c4c1e-1111-4a2b-8c3d-000000000001';
+ const opts=(c)=>presentCovenantPage({rows:[],contracts:[{id,...c}],members:[],next:null}).forms[0].fields[0][2];
+ const UUIDISH=/[0-9a-f]{8}-[0-9a-f]{4}-/i;
+ assert.equal(contractOptionLabel({rfq_title:'Capital de giro 2026',provider_name:'Banco Aurora'}),'Capital de giro 2026 · Banco Aurora','contrato de RFQ');
+ assert.equal(contractOptionLabel({title:'Contrato manual',provider_name:'Banco Aurora'}),'Contrato manual · Banco Aurora','registrado manualmente');
+ assert.equal(contractOptionLabel({provider_name:'Banco Aurora',product:'credit',ends_on:'2027-03-31'}),'Banco Aurora · Crédito empresarial · vence 31/03/2027','legado');
+ assert.equal(contractOptionLabel({}),'Contrato sem título');
+ for(const c of [{},{title:null,rfq_title:null},{provider_name:'Banco Aurora'}]){
+  const [value,label]=opts(c).find(([v])=>v===id);
+  assert.equal(value,id);assert.doesNotMatch(label,UUIDISH,'UUID como rótulo do contrato');
+ }
+}
+console.log('Seletor de contratos de obrigações sem identificador interno: OK');

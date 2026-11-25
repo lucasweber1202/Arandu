@@ -8,7 +8,7 @@ import { el, icon, fieldValue, formatDate, relativeDays, daysUntil, plural, prod
 import { card, pill, tag, button, linkButton, emptyState, errorState, loading, tabs, definitionList, toast, confirmDialog, drawer, field, catalogControl, person, menu, progress, onSubmit, mutedText, toastError } from '../ui.js';
 import { loadEntities, rfqEntityControl } from './entities.js';
 import { revisionTimeline, collaboration, activityLog } from './shared/collaboration.js';
-import { currentStep, isViewerTurn } from './shared/approvals.js';
+import { currentStep, isViewerTurn, approvalNextAction } from './shared/approvals.js';
 import { memberName } from './shared/people.js';
 import { coverage, keyTerms } from './shared/terms.js';
 import { lazyDocuments } from './shared/documents.js';
@@ -120,7 +120,12 @@ export async function rfqDetail(ctx) {
     if (rfq.status === 'collecting') actions.push(button('Encerrar coleta e avaliar', { variant: 'primary', iconName: 'scale', onClick: () => transition('comparing', {
       title: 'Encerrar a coleta?', confirmLabel: 'Encerrar coleta',
       description: `${plural(proposals.length, 'proposta recebida', 'propostas recebidas')}. Provedores não poderão mais enviar ou revisar propostas, a menos que você reabra a coleta.` }) }));
-    if (rfq.status === 'comparing' && !pending && !decision && !governanceGap) actions.push(linkButton(policy.required_for_decision ? 'Solicitar aprovação' : 'Registrar decisão', `#${policy.required_for_decision ? 'aprovacoes' : 'decisao'}`, { variant: 'primary', iconName: policy.required_for_decision ? 'checkCircle' : 'flag' }));
+    if (rfq.status === 'comparing' && !pending && !decision && !governanceGap) {
+      const next = approvalNextAction(approvals, { required: policy.required_for_decision });
+      actions.push(next.kind === 'decide'
+        ? linkButton('Registrar decisão', '#decisao', { variant: 'primary', iconName: 'flag' })
+        : linkButton(next.kind === 'rerequest' ? 'Solicitar nova aprovação' : 'Solicitar aprovação', '#aprovacoes', { variant: 'primary', iconName: 'checkCircle' }));
+    }
     if (rfq.status === 'decided' && !contract && !governanceGap) actions.push(linkButton('Registrar contrato', '#decisao', { variant: 'primary', iconName: 'briefcase' }));
     if (['draft', 'open', 'collecting'].includes(rfq.status)) actions.push(button('Editar', { iconName: 'edit', onClick: () => editDrawer(ctx, rfq) }));
   }
@@ -320,7 +325,8 @@ function nextStepCard(ctx, rfq, { pending, approvals = [], decision, contract, p
     }
     if (rfq.status === 'comparing' && latest?.status === 'changes_requested') return ['Alterações pedidas na aprovação', 'Revise a justificativa ou a escolha e solicite aprovação de novo.'];
     if (rfq.status === 'comparing' && latest?.status === 'rejected') return ['Aprovação rejeitada', 'Veja o motivo na aba Aprovações antes de decidir o próximo passo.'];
-    if (rfq.status === 'comparing' && latest?.status === 'approved' && !latest.stale && !decision) return ['Aprovação concluída: registre a decisão', 'A aprovação cobre a proposta escolhida. Registre a decisão para seguir ao contrato.'];
+    if (rfq.status === 'comparing' && !decision && policy?.required_for_decision && approvalNextAction(approvals, { required: true }).kind === 'decide') return ['Aprovação concluída: registre a decisão', 'A aprovação cobre a proposta escolhida. Registre a decisão para seguir ao contrato.'];
+    if (rfq.status === 'comparing' && !decision && latest?.status === 'approved' && latest.stale) return ['Aprovação desatualizada', 'A proposta mudou depois da aprovação. Solicite nova aprovação antes de decidir.'];
     if (rfq.status === 'comparing' && policy?.required_for_decision) return ['Compare e peça aprovação', 'A política da empresa exige aprovação antes da decisão. A comparação é factual; a decisão é sempre da empresa.'];
     if (rfq.status === 'decided' && contract) return ['Contrato registrado', 'Os marcos de renovação aparecem em Contratos.'];
     return null;
@@ -344,7 +350,8 @@ function nextStepCard(ctx, rfq, { pending, approvals = [], decision, contract, p
   // ações continuam nos lugares de sempre e o servidor decide quem pode.
   const where = governanceGap ? null : pending ? ['#aprovacoes', 'Ver aprovação'] : {
     draft: ['#convites', 'Ver convites'], open: ['#convites', 'Ver convites'], collecting: ['#propostas', 'Ver propostas'],
-    comparing: rfq.proposals?.length ? ['#comparacao', 'Ver comparação'] : ['#propostas', 'Ver propostas'], decided: ['#decisao', 'Ver decisão']
+    comparing: !decision && policy?.required_for_decision && approvalNextAction(approvals, { required: true }).kind === 'decide' ? ['#decisao', 'Registrar decisão']
+      : rfq.proposals?.length ? ['#comparacao', 'Ver comparação'] : ['#propostas', 'Ver propostas'], decided: ['#decisao', 'Ver decisão']
   }[rfq.status] || null;
   const viewerTurn = pending && isViewerTurn(pending, ctx.viewer?.id);
   const who = canonical?.actor === 'institution' ? 'Ação das instituições convidadas; você acompanha. Para registrar um follow-up, abra o relacionamento da instituição no Quadro de respostas.'

@@ -119,3 +119,6 @@ export function approvalSummaryLine(request) {
 export { APPROVAL_STATUS, pill, field };
 
 // Documentos sob demanda: o painel (e seu módulo) só carrega quando a seção abre.
+
+// Próxima ação de aprovação da RFQ (Arandu 12.1 / P2-D): regra pura e testada.
+export { validApproval, approvalNextAction } from '../../../../lib/finance/approval-next-action.mjs';
