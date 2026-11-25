@@ -1124,16 +1124,29 @@ async function sanity() {
 // Prova de vida do provisionamento (OPS-POOL-02): o controlador só trata como
 // órfão um 'provisioning' cujo heartbeat parou. Só atualiza a própria linha.
 let heartbeat = null;
+// Schema anterior à demo-pool-integrity não tem heartbeat_at/failed_at: os campos
+// são omitidos (cleanup legado continua possível); provisionar exige o schema novo
+// de qualquer forma (jobs escopados falham fechado sem a função).
+let poolColumns = null;
+async function poolBody(body) {
+  if (poolColumns === null) {
+    try { await service('fin_demo_workspaces?select=heartbeat_at,failed_at&limit=0'); poolColumns = true; }
+    catch (error) { if (/\b400\b/.test(String(error.message))) poolColumns = false; else throw error; }
+  }
+  if (poolColumns) return body;
+  const { heartbeat_at, failed_at, ...rest } = body; return rest;
+}
 function startHeartbeat() {
-  heartbeat = setInterval(() => {
-    service(`fin_demo_workspaces?slug=eq.${WORKSPACE}&status=eq.provisioning`, { method: 'PATCH', body: { heartbeat_at: new Date().toISOString() }, prefer: 'return=minimal' }).catch(() => null);
+  heartbeat = setInterval(async () => {
+    if (!(await poolBody({ heartbeat_at: 1 })).heartbeat_at) return;
+    service(`fin_demo_workspaces?slug=eq.${WORKSPACE}&status=eq.provisioning`, { method: 'PATCH', body: await poolBody({ heartbeat_at: new Date().toISOString() }), prefer: 'return=minimal' }).catch(() => null);
   }, 60_000);
   heartbeat.unref?.();
 }
 const stopHeartbeat = () => { if (heartbeat) clearInterval(heartbeat); heartbeat = null; };
 
 async function saveWorkspace(fields) {
-  await service('fin_demo_workspaces?on_conflict=slug', { method: 'POST', body: { slug: WORKSPACE, baseline_version: BASELINE_VERSION, ...fields },
+  await service('fin_demo_workspaces?on_conflict=slug', { method: 'POST', body: await poolBody({ slug: WORKSPACE, baseline_version: BASELINE_VERSION, ...fields }),
     prefer: 'resolution=merge-duplicates,return=minimal' });
 }
 
@@ -1146,7 +1159,7 @@ async function cleanupWorkspace(scope) {
     await service(`fin_demo_workspaces?slug=eq.${WORKSPACE}`, { method: 'DELETE', prefer: 'return=minimal' });
     log(`Workspace ${WORKSPACE}: ${scope.orgs.length} organização(ões) e ${scope.users.length} conta(s) removidas.`);
   } catch (error) {
-    if (current) await service(`fin_demo_workspaces?slug=eq.${WORKSPACE}`, { method: 'PATCH', body: { status: 'failed', failed_at: new Date().toISOString(), last_error: String(error.message).slice(0, 500) }, prefer: 'return=minimal' }).catch(() => null);
+    if (current) await service(`fin_demo_workspaces?slug=eq.${WORKSPACE}`, { method: 'PATCH', body: await poolBody({ status: 'failed', failed_at: new Date().toISOString(), last_error: String(error.message).slice(0, 500) }), prefer: 'return=minimal' }).catch(() => null);
     throw error;
   }
 }
@@ -1229,7 +1242,7 @@ async function markProvisioningFailed(reason) {
   stopHeartbeat();
   if (!WORKSPACE || MODE === 'cleanup' || MODE === 'check') return;
   await service(`fin_demo_workspaces?slug=eq.${WORKSPACE}&status=eq.provisioning`, { method: 'PATCH',
-    body: { status: 'failed', failed_at: new Date().toISOString(), last_error: String(reason).slice(0, 500) }, prefer: 'return=minimal' }).catch(() => null);
+    body: await poolBody({ status: 'failed', failed_at: new Date().toISOString(), last_error: String(reason).slice(0, 500) }), prefer: 'return=minimal' }).catch(() => null);
 }
 for (const signal of ['SIGTERM', 'SIGINT']) process.once(signal, () => { markProvisioningFailed(`interrompido por ${signal}`).finally(() => process.exit(130)); });
 

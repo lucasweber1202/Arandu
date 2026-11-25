@@ -147,17 +147,23 @@ async function main() {
     report.plan = { path: planned.path, schema_version: planned.schema_version, classification: planned.classification, non_regenerable: planned.non_regenerable,
       pending: planned.pending.map(({ file, sha256 }) => ({ file, sha256 })), bundle_sha256: planned.bundle_sha256, inventory: planned.inventory };
     if (command === 'plan') { report.result = 'planned'; write(); console.log(JSON.stringify(report.plan, null, 2)); return 0; }
-    const evidence = rehearse({ exec, sourceEnv, planned, workDir });
-    report.rehearsal = { ...evidence, snapshot_file: undefined, release_gate: { ...evidence.release_gate, backup_file: undefined } };
-    if (command === 'rehearse') { report.result = 'rehearsed'; write(); console.log(JSON.stringify({ result: report.result, checks: evidence.checks, snapshot_sha256: evidence.snapshot_sha256 })); return 0; }
-    if (command !== 'apply') stop('usage', 'USAGE', 'Comando inválido.');
-    const preservation = planned.non_regenerable.present
-      ? await preserve({ exec, evidence, recipient: process.env.ARANDU_DEMO_BACKUP_RECIPIENT, repository: process.env.ARANDU_DEMO_BACKUP_REPOSITORY, token: process.env.ARANDU_DEMO_BACKUP_TOKEN, workDir })
-      : { destination_approved: false, reason: 'NOT_REQUIRED' };
-    report.preservation = preservation;
+    if (!['rehearse', 'apply'].includes(command)) stop('usage', 'USAGE', 'Comando inválido.');
+    // Concorrência (auditoria pós-#367): no apply o lease do pool é tomado ANTES
+    // do snapshot e mantido até o fim. maintain/cleanup ficam bloqueados entre
+    // snapshot, decisão e apply; claims de visitante (que não usam o lease) são
+    // vistos pela decisão, que relê o inventário imediatamente antes de aplicar.
     const holder = `release-${(process.env.GITHUB_RUN_ID || randomBytes(4).toString('hex')).toLowerCase()}`.slice(0, 64);
-    const lease = exec('lock', 'psql', ['-XAtc', `select public.fin_demo_pool_lease('${holder}', 3600)`], { env: sourceEnv }).stdout.trim() === 't';
+    const lease = command === 'apply' && exec('lock', 'psql', ['-XAtc', `select public.fin_demo_pool_lease('${holder}', 3600)`], { env: sourceEnv }).stdout.trim() === 't';
+    if (command === 'apply' && !lease) stop('lock', 'LOCK_NOT_HELD', 'Lease do pool está com outro controlador ou release: nada foi lido nem aplicado.');
     try {
+      const evidence = rehearse({ exec, sourceEnv, planned, workDir });
+      report.rehearsal = { ...evidence, snapshot_file: undefined, release_gate: { ...evidence.release_gate, backup_file: undefined } };
+      if (command === 'rehearse') { report.result = 'rehearsed'; write(); console.log(JSON.stringify({ result: report.result, checks: evidence.checks, snapshot_sha256: evidence.snapshot_sha256 })); return 0; }
+      const current = plan({ exec, sourceEnv, declaredEnvironment: 'demo', connectionRef: DEMO_REF }).inventory;
+      const preservation = nonRegenerableState(current).present
+        ? await preserve({ exec, evidence, recipient: process.env.ARANDU_DEMO_BACKUP_RECIPIENT, repository: process.env.ARANDU_DEMO_BACKUP_REPOSITORY, token: process.env.ARANDU_DEMO_BACKUP_TOKEN, workDir })
+        : { destination_approved: false, reason: 'NOT_REQUIRED' };
+      report.preservation = preservation;
       const decision = decideDemoRelease({ declaredEnvironment: 'demo', connectionRef: DEMO_REF, inventory: plan({ exec, sourceEnv, declaredEnvironment: 'demo', connectionRef: DEMO_REF }).inventory,
         evidence, preservation, lock: { held: lease, holder_matches: lease }, authorization: process.env.ARANDU_RELEASE_AUTHORIZATION });
       report.decision = decision;

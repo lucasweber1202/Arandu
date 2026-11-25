@@ -101,4 +101,13 @@ assert(!/PRODUCTION|STAGING|LEGACY/i.test(yml.replace(/Production\/staging/g, ''
 assert(!/upload-artifact/.test(yml), 'nenhum artifact (repositório público)');
 assert(!/AGE-SECRET|IDENTITY_FILE|RECOVERY_IDENTITY/.test(yml), 'nenhuma identidade privada em CI');
 assert(yml.indexOf('Apply requires authorization') < yml.indexOf('Remote release'));
+// Transição (auditoria pós-#367): lease antes do snapshot no apply; cleanup
+// legado sob o mesmo lease e com leitura compatível com o schema anterior.
+const release = fs.readFileSync('scripts/demo/remote-release.mjs', 'utf8');
+assert(release.indexOf("fin_demo_pool_lease('${holder}'") < release.indexOf('const evidence = rehearse('), 'lease antes do snapshot');
+assert(/LOCK_NOT_HELD', 'Lease do pool está com outro/.test(release));
+const controller = fs.readFileSync('scripts/demo/workspaces.mjs', 'utf8');
+const cleanupBlock = controller.slice(controller.indexOf("command === 'cleanup'"), controller.indexOf("command === 'maintain'"));
+assert(/fin_demo_pool_lease/.test(cleanupBlock) && /fin_demo_pool_release/.test(cleanupBlock) && /planPool\(await rows\(\)\)\.cleanup/.test(cleanupBlock), 'cleanup sob lease e replanejado');
+assert(/hasPoolColumns\(\)\) \? 'heartbeat_at,failed_at,' : ''/.test(controller), 'leitura compatível com o schema anterior');
 console.log('Demo recovery policy: Production/staging sempre FULL_RECOVERY, classificação fail-closed, 25 NO-GOs específicos, reconstrução só como alternativa aprovada, CLI recusa antes de conectar e workflow manual em plan sem artifact nem credencial alheia.');
