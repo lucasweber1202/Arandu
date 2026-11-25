@@ -90,6 +90,9 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.ARANDU_DEMO_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.ARANDU_DEMO_SUPABASE_SERVICE_ROLE_KEY }}
           ARANDU_DEMO_APP_URL: ${{ secrets.ARANDU_DEMO_APP_URL }}
+          # assertDemoTarget valida todas as travas antes de qualquer leitura,
+          # inclusive a senha (só validada aqui; o dry-run não escreve nem semeia).
+          ARANDU_DEMO_PASSWORD: ${{ secrets.ARANDU_DEMO_PASSWORD }}
         run: node scripts/demo/workspaces.mjs maintain --dry-run
 
       - name: Run pool controller
