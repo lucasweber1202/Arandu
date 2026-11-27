@@ -59,6 +59,49 @@ function currencyCard(view, definitions) {
   });
 }
 
+const INDEX_LABEL = { cdi: 'CDI', selic: 'Selic', ipca: 'IPCA', sofr: 'SOFR', tr: 'TR', tjlp: 'TJLP', usd: 'Variação cambial (USD)' };
+const pct = (value) => (value === null || value === undefined ? 'não informado' : `${new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(value)}% a.a.`);
+
+// Custo declarado e sensibilidade: estimativa linear com premissas na tela.
+function debtCard(debt, shocks, reload) {
+  const inputs = ['cdi', 'selic', 'ipca', 'sofr'].map((key) => {
+    const input = el('input', { type: 'number', step: '0.25', min: '-50', max: '50', inputmode: 'decimal', 'aria-label': `Variação do ${INDEX_LABEL[key]} em pontos percentuais`, value: shocks[key] ?? '' });
+    input.addEventListener('change', () => {
+      const value = input.value === '' ? null : Number(input.value);
+      if (value === null) delete shocks[key]; else if (Number.isFinite(value) && Math.abs(value) <= 50) shocks[key] = value; else return;
+      reload();
+    });
+    return el('label', { class: 'shock-input' }, [textSpan(`${INDEX_LABEL[key]} (p.p.)`), input]);
+  });
+  return card({
+    title: 'Custo declarado e sensibilidade a juros', subtitle: debt.definitions.sensitivity, className: 'portfolio-debt',
+    body: [
+      el('div', { class: 'shock-inputs' }, inputs),
+      ...debt.currencies.map((view) => el('section', { class: 'debt-currency' }, [
+        el('h3', { text: view.currency }),
+        el('ul', { class: 'plain-list' }, [
+          view.fixed_rate_avg ? el('li', {}, [textStrong('Prefixado: '), textSpan(`${pct(view.fixed_rate_avg.pct_year)} médio sobre ${amount(view.fixed_rate_avg.covered_outstanding, view.currency)}`),
+            view.fixed_rate_avg.facilities_missing_rate ? mutedText(` · ${view.fixed_rate_avg.facilities_missing_rate} sem taxa declarada`, 'span') : null]) : null,
+          ...view.spread_avg.map((row) => el('li', {}, [textStrong(`${INDEX_LABEL[row.indexer] || row.indexer}: `), textSpan(`spread médio ${row.pct_year === null ? 'não informado' : `+${pct(row.pct_year)}`}`),
+            row.facilities_missing_spread ? mutedText(` · ${row.facilities_missing_spread} sem spread declarado`, 'span') : null]))
+        ]),
+        view.sensitivity.length ? el('div', { class: 'table-scroll' }, el('table', { class: 'data-table compact' }, [
+          el('thead', {}, el('tr', {}, ['Indexador', 'Saldo exposto', 'Por 1 p.p. ao ano', 'Variação simulada', 'Efeito anual estimado'].map((label) => el('th', { scope: 'col', text: label })))),
+          el('tbody', {}, view.sensitivity.map((row) => el('tr', {}, [
+            el('td', { 'data-label': 'Indexador', text: INDEX_LABEL[row.indexer] || row.indexer }),
+            el('td', { 'data-label': 'Saldo exposto', text: amount(row.exposed_outstanding, view.currency) }),
+            el('td', { 'data-label': 'Por 1 p.p. ao ano', text: `≈ ${amount(row.per_1pp_estimate, view.currency)}` }),
+            el('td', { 'data-label': 'Variação simulada', text: row.shock_pp === null ? '—' : `${row.shock_pp > 0 ? '+' : ''}${row.shock_pp} p.p.` }),
+            el('td', { 'data-label': 'Efeito anual estimado', text: row.annual_impact_estimate === null ? '—' : `≈ ${amount(row.annual_impact_estimate, view.currency)}` })
+          ])))
+        ])) : mutedText('Sem saldo pós-fixado conhecido nesta moeda.'),
+        view.facilities_without_balance || view.facilities_without_indexer ? mutedText(`Fora do cálculo: ${view.facilities_without_balance} sem saldo registrado, ${view.facilities_without_indexer} sem indexador.`) : null
+      ])),
+      mutedText(`${debt.definitions.fixed_rate_avg} ${debt.definitions.spread_avg}`)
+    ]
+  });
+}
+
 export async function portfolio(ctx) {
   const entities = await loadEntities(ctx);
   const manage = ctx.can('edit_profile');
@@ -68,9 +111,11 @@ export async function portfolio(ctx) {
   ctx.header({ title: 'Dívida, limites e garantias', subtitle: 'Visão de procurement e relacionamento, por moeda. Dados registrados pela empresa, com origem e data.', actions: [context, addGuarantee, add].filter(Boolean) });
   const root = el('div', { class: 'stack portfolio' }, loading('Carregando portfólio…'));
   let horizon = 12;
+  const shocks = { cdi: 1 };
   const load = async () => {
     try {
-      const result = await ctx.api(`portfolio?organization_id=${ctx.orgId}&horizon_months=${horizon}`);
+      const shockQuery = Object.entries(shocks).map(([key, value]) => `&shock_${key}=${encodeURIComponent(value)}`).join('');
+      const result = await ctx.api(`portfolio?organization_id=${ctx.orgId}&horizon_months=${horizon}${shockQuery}`);
       root.replaceChildren(...render(result));
     } catch (error) {
       root.replaceChildren(error.status === 404 ? emptyState({ title: 'Portfólio indisponível neste ambiente', iconName: 'layers', text: 'A visão de dívida e limites não está disponível aqui.' }) : errorState({ error, onRetry: load }));
@@ -87,6 +132,7 @@ export async function portfolio(ctx) {
     const out = [];
     if (filtered) out.push(el('p', { class: 'callout callout-info compact' }, [icon('info', { size: 14 }), textSpan('Os totais por moeda consideram todo o seu escopo de acesso; a lista abaixo segue a entidade em foco.')]));
     out.push(...result.views.currencies.map((view) => currencyCard(view, result.views.definitions)));
+    if (result.debt?.currencies?.length) out.push(debtCard(result.debt, shocks, () => { root.replaceChildren(loading()); load(); }));
 
     const horizonSelect = el('select', { 'aria-label': 'Horizonte de refinanciamento' });
     for (const months of [3, 6, 12, 18, 24, 36]) horizonSelect.add(new Option(`${months} meses`, String(months)));
