@@ -105,6 +105,13 @@
       "previous": 917851,
       "reason": "Arandu 12.1 (PR #370), +1.108 B: rfq/decision-tab/shared approvals passam a usar a regra única approvalNextAction (P2-D: 'Registrar decisão' após aprovação válida, 'Solicitar nova aprovação' para rejeitada/desatualizada, cartão 'Aprovação desatualizada'); ledger pré-seleciona o contrato no formulário de obrigações e formDrawer aceita valor inicial em select (P2-C). Correções de produto sem módulo novo na abertura; nenhum hard limit alterado.",
       "journeyBaseline": "2026-11-23"
+    },
+    {
+      "date": "2026-11-27",
+      "accepted": 921710,
+      "previous": 918959,
+      "reason": "Arandu 13 (PR #371), +2.751 B: card 'Custo declarado e sensibilidade a juros' no portfólio (rota portfolio, lazy) e módulo puro debt-intelligence só no servidor; nenhum hard limit alterado.",
+      "journeyBaseline": "2026-11-23"
     }
   ]
 }
