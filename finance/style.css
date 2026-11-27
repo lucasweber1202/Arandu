@@ -1522,3 +1522,9 @@ textarea.mono{width:100%;max-width:100%;min-width:0}
 .scenario-save-state{margin:var(--s1) 0 0}
 @media (max-width:420px){.work-row,.scenario-saved{padding:var(--s2)}.work-side .btn{white-space:normal}}
 .scenario-save-state.is-error{color:var(--danger)}
+
+/* Sensibilidade a juros (portfólio) */
+.shock-inputs { display: flex; flex-wrap: wrap; gap: var(--space-3, 12px); margin-bottom: var(--space-3, 12px); }
+.shock-input { display: grid; gap: 4px; font-size: 0.875rem; }
+.shock-input input { width: 7rem; max-width: 100%; }
+.debt-currency + .debt-currency { margin-top: var(--space-4, 16px); }
